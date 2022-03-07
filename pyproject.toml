@@ -1,0 +1,15 @@
+[project]
+name = "giuseppe"
+version = "0.0.1"
+description = "A general purpose OCP solver"
+authors = [
+    {name = "Sean.Matthew.Nolan@gmail.com", email = "Sean.Matthew.Nolan@gmail.com"}
+]
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel"
+]
+
+build-backend = "setuptools.build_meta"
