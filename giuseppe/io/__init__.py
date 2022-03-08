@@ -1,1 +1,1 @@
-from .symbolic_input import InputSymbolicProblem
+from .symbolic_input import InputOCP
