@@ -1,1 +1,1 @@
-from .symbolic_input import InputOCP
+from .string_input import InputOCP

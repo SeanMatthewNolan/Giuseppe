@@ -3,6 +3,8 @@ import giuseppe.interface_classes.symbolic_interfaces
 
 ocp = giuseppe.io.InputOCP()
 
+ocp.set_independent('t')
+
 ocp.add_state('x', 'v*cos(theta)')
 ocp.add_state('y', 'v*sin(theta)')
 ocp.add_state('v', '-g*sin(theta)')
@@ -29,3 +31,5 @@ ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
 sym_ocp = giuseppe.interface_classes.SymOCP(ocp)
+sym_dual = giuseppe.dualization.SymDual(sym_ocp)
+
