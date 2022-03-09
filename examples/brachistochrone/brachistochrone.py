@@ -1,5 +1,4 @@
 import giuseppe
-import giuseppe.interface_classes.symbolic_interfaces
 
 ocp = giuseppe.io.InputOCP()
 
@@ -30,6 +29,6 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
-sym_ocp = giuseppe.interface_classes.SymOCP(ocp)
+sym_ocp = giuseppe.ocp.SymOCP(ocp)
 sym_dual = giuseppe.dualization.SymDual(sym_ocp)
 
