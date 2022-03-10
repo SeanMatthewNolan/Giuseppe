@@ -1,3 +1,1 @@
-from . import aliases
-from . import functions
-from . import mixins
+from . import aliases, functions, mixins

@@ -1,6 +1,6 @@
 from sympy import Symbol, sympify
 
-from giuseppe.utils.aliases import SymExpr, SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SYM_ZERO
+from giuseppe.utils.aliases import SymExpr
 
 
 class Symbolic:

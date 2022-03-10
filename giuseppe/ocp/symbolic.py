@@ -1,12 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
-from sympy import Symbol
-
-from giuseppe.io import InputOCP
 from giuseppe.bvp import SymBVP
-from giuseppe.utils.aliases import SymExpr, SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SYM_ZERO
+from giuseppe.io import InputOCP
+from giuseppe.utils.aliases import SymExpr, SymMatrix, EMPTY_SYM_MATRIX, SYM_ZERO
 
 
 @dataclass

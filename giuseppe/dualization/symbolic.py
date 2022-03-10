@@ -1,7 +1,7 @@
 from giuseppe.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
-from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.aliases import SymMatrix
 from giuseppe.utils.functions import as_scalar
+from giuseppe.utils.mixins import Symbolic
 
 
 class SymDual(Symbolic):

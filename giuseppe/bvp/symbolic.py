@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from sympy import Symbol, sympify
+from sympy import Symbol
 
 from giuseppe.io import InputBVP
 from giuseppe.utils.aliases import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL
@@ -47,5 +47,3 @@ class SymBVP(Symbolic):
     def process_data_from_input(self, input_data: InputBVP):
         self.process_variables_from_input(input_data)
         self.process_expr_from_input(input_data)
-
-
