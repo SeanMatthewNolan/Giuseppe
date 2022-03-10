@@ -1,8 +1,5 @@
-from dataclasses import dataclass
-
-import sympy
-
-from giuseppe.ocp.symbolic import Symbolic, SymOCP, SymBoundaryConditions, SymCost
+from giuseppe.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
+from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.aliases import SymMatrix
 from giuseppe.utils.functions import as_scalar
 

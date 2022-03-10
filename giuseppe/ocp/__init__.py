@@ -1,1 +1,1 @@
-from .symbolic import Symbolic, SymOCP
+from .symbolic import SymOCP
