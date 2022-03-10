@@ -1,1 +1,1 @@
-from .symbolic_dualization import SymDual
+from .symbolic import SymDual
