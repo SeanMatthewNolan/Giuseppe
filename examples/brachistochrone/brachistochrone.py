@@ -31,4 +31,5 @@ ocp.add_constraint('terminal', 'y - y_f')
 
 sym_ocp = giuseppe.ocp.SymOCP(ocp)
 sym_dual = giuseppe.dualization.SymDual(sym_ocp)
-
+sym_bvp_alg = giuseppe.dualization.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
+sym_bvp_dif = giuseppe.dualization.SymDualOCP(sym_ocp, sym_dual, control_method='differential')

@@ -1,1 +1,1 @@
-from .symbolic import SymDual
+from .symbolic import SymDual, SymDualOCP
