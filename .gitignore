@@ -1,3 +1,6 @@
+# Giuseppe Specific
+dev_notes/**/*.html
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
