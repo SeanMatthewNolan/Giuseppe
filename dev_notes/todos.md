@@ -1,7 +1,7 @@
 ---
 title: Giuseppe TODOs and Ideas
 author: Sean Matthew Nolan
-date: 3/11/22
+date: 3/14/22
 ---
 
 # TODOs
@@ -17,4 +17,6 @@ date: 3/11/22
 
 - Explore "custom functions" via making function to evaluate `Derivative(*, *)`
 - Explore SymPy's `Piecewise` for univariate tables
-
+- Explore SymPy's `xreplace` for quantities
+- Explore Numba's `cfunc` for use with C++ solvers
+- Explore split vs. combined BCs

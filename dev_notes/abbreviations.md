@@ -7,9 +7,11 @@ date: 3/11/22
 # Abbreviations
 
 - **BVP**: Boundary Value Problem
+- **Comp**: Compiled, for problems and functions with have been turned in regular Python functions and the JIT compiled with Numba
 - **Dual**: Dualized, for problems with dual information (see below for *dual* definition)
 - **IO**: Input/Output
 - **OCP**: Optimal Control Problem
+- **src**: Source
 - **Sym**: Symbolic, in code refers to objects which use SymPy to represent symbolic expressions 
 
 

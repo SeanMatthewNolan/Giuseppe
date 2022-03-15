@@ -1,5 +1,5 @@
 [project]
-name = "giuseppe"
+name = "Giuseppe"
 version = "0.0.1"
 description = "A general purpose OCP solver"
 authors = [

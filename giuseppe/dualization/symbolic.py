@@ -1,6 +1,6 @@
 from giuseppe.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
 from giuseppe.utils.aliases import Symbol, SymMatrix
-from giuseppe.utils.functions import as_scalar
+from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic
 
 
@@ -15,14 +15,14 @@ class SymDual(Symbolic):
         self.terminal_adjoints = SymMatrix(
                 [self.new_sym(f'_nu_f_{idx}') for idx, _ in enumerate(ocp.boundary_conditions.terminal)])
 
-        self.hamiltonian = ocp.cost.path + as_scalar(self.costates.T @ ocp.dynamics)
+        self.hamiltonian = ocp.cost.path + matrix_as_scalar(self.costates.T @ ocp.dynamics)
 
         self.costate_dynamics = -self.hamiltonian.diff(ocp.states)
 
         self.augmented_cost = SymCost(
-                ocp.cost.initial + as_scalar(self.initial_adjoints.T @ ocp.boundary_conditions.initial),
+                ocp.cost.initial + matrix_as_scalar(self.initial_adjoints.T @ ocp.boundary_conditions.initial),
                 self.hamiltonian,
-                ocp.cost.terminal + as_scalar(self.terminal_adjoints.T @ ocp.boundary_conditions.terminal),
+                ocp.cost.terminal + matrix_as_scalar(self.terminal_adjoints.T @ ocp.boundary_conditions.terminal),
         )
 
         initial_adjoined_bcs = SymMatrix([
