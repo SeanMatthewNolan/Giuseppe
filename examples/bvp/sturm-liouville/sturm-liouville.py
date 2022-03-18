@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 
 from giuseppe.bvp import SymBVP, CompBVP, BVPSol
@@ -45,3 +47,6 @@ bc = num_solver.boundary_conditions(x0, xf, np.array([t0, tf]), sym_bvp.default_
 guess = BVPSol(t=tau_vec, x=x_vec, k=sym_bvp.default_values)
 
 sol = num_solver.solve(guess, sym_bvp.default_values)
+
+with open('sol.data', 'wb') as file:
+    pickle.dump(sol, file)

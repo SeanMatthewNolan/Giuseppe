@@ -23,3 +23,4 @@ date: 3/14/22
 - Explore split vs. combined BCs
 - Make typing more explicit with Generic types
 - Pre-compile Jacobians (issues with differential controls)
+- Implement "annotate" method to return solutions with names from SymBVP

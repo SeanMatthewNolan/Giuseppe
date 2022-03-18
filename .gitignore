@@ -1,5 +1,6 @@
 # Giuseppe Specific
 dev_notes/**/*.html
+*.data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
