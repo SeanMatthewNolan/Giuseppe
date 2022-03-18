@@ -1,6 +1,8 @@
+from typing import Union, Any
+
 from sympy import Symbol, sympify
 
-from giuseppe.utils.aliases import SymExpr
+from giuseppe.utils.typing import SymExpr
 
 
 class Symbolic:
@@ -19,3 +21,11 @@ class Symbolic:
 
     def sympify(self, expr: str) -> SymExpr:
         return sympify(expr, locals=self.sym_locals)
+
+
+class Picky:
+    SUPPORTED_INPUTS: type = object
+
+    def __init__(self, data_source: SUPPORTED_INPUTS):
+        if not isinstance(data_source, self.SUPPORTED_INPUTS):
+            raise TypeError(f'{self.__class__} cannot ingest type {type(data_source)}')

@@ -5,7 +5,7 @@ import numpy as np
 from sympy import Symbol
 
 from giuseppe.io import InputBVP
-from giuseppe.utils.aliases import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL
+from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL
 from giuseppe.utils.mixins import Symbolic
 
 

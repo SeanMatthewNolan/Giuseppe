@@ -16,4 +16,4 @@ Nothing is strictly binding, but for consistency and to avoid beluga's issues, t
 1. Keep it simple first; add more features later (focus on the problem at hand)
 2. Retain problem information as long as possible
 3. Have classes "ingest" information during initialization (exclude "input" classes) to avoid objects in "incomplete" state
-
+4. Wrap functions generated with SymPy's "lambdify" with wrappers for clarity annd documentatin support

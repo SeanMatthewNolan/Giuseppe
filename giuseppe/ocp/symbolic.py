@@ -3,7 +3,7 @@ from typing import Optional
 
 from giuseppe.bvp import SymBVP
 from giuseppe.io import InputOCP
-from giuseppe.utils.aliases import SymExpr, SymMatrix, EMPTY_SYM_MATRIX, SYM_ZERO
+from giuseppe.utils.typing import SymExpr, SymMatrix, EMPTY_SYM_MATRIX, SYM_ZERO
 
 
 @dataclass

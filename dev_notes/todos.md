@@ -15,8 +15,11 @@ date: 3/14/22
 
 # Ideas
 
+- Use SciPy's PPoly to represent some solutions
 - Explore "custom functions" via making function to evaluate `Derivative(*, *)`
 - Explore SymPy's `Piecewise` for univariate tables
 - Explore SymPy's `xreplace` for quantities
 - Explore Numba's `cfunc` for use with C++ solvers
 - Explore split vs. combined BCs
+- Make typing more explicit with Generic types
+- Pre-compile Jacobians (issues with differential controls)

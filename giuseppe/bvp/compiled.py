@@ -1,12 +1,14 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from .symbolic import SymBVP
-from ..utils.aliases import Array, NumbaFloat, NumbaArray
+from ..utils.typing import NumbaFloat, NumbaArray
 from ..utils.complilation import lambdify, jit_compile
+from ..utils.mixins import Picky
 
 
 @dataclass
@@ -15,12 +17,11 @@ class CompBoundaryConditions:
     terminal: Callable
 
 
-class CompBVP:
-    SUPPORTED_INPUTS = [SymBVP]
+class CompBVP(Picky):
+    SUPPORTED_INPUTS: type = Union[SymBVP]
 
-    def __init__(self, source_bvp: SymBVP):
-        if type(source_bvp) not in self.SUPPORTED_INPUTS:
-            raise TypeError(f'CompBVP cannot ingest type {type(source_bvp)}')
+    def __init__(self, source_bvp: SUPPORTED_INPUTS):
+        Picky.__init__(self, source_bvp)
 
         self.src_bvp = deepcopy(source_bvp)  # source bvp is copied here for reference as it may be mutated later
 
@@ -33,7 +34,7 @@ class CompBVP:
     def compile_dynamics(self):
         lam_func = lambdify(self._sym_args, tuple(self.src_bvp.dynamics.flat()))
 
-        def dynamics(t: float, x: Array, k: Array) -> Array:
+        def dynamics(t: float, x: ArrayLike, k: ArrayLike) -> ArrayLike:
             return np.array(lam_func(t, x, k))
 
         return jit_compile(dynamics, signature=self._args_numba_signature)
@@ -42,10 +43,10 @@ class CompBVP:
         lam_bc0 = lambdify(self._sym_args, tuple(self.src_bvp.boundary_conditions.initial.flat()))
         lam_bcf = lambdify(self._sym_args, tuple(self.src_bvp.boundary_conditions.terminal.flat()))
 
-        def initial_boundary_conditions(t0: float, x0: Array, k: Array) -> Array:
+        def initial_boundary_conditions(t0: float, x0: ArrayLike, k: ArrayLike) -> ArrayLike:
             return np.array(lam_bc0(t0, x0, k))
 
-        def terminal_boundary_conditions(tf: float, xf: Array, k: Array) -> Array:
+        def terminal_boundary_conditions(tf: float, xf: ArrayLike, k: ArrayLike) -> ArrayLike:
             return np.array(lam_bcf(tf, xf, k))
 
         return CompBoundaryConditions(

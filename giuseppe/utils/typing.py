@@ -1,8 +1,11 @@
 from numba import float64
-from numpy import ndarray
+import numpy as np
 from sympy import Symbol, Matrix, Expr, Integer
 
-Array = ndarray
+NPArray = np.ndarray
+
+EMPTY_ARRAY = np.empty((0,))
+EMPTY_2D_ARRAY = np.empty((0, 0))
 
 SymMatrix = Matrix
 SymExpr = Expr

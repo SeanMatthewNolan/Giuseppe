@@ -1,5 +1,8 @@
-from giuseppe.bvp import SymBVP, CompBVP
+import numpy as np
+
+from giuseppe.bvp import SymBVP, CompBVP, BVPSol
 from giuseppe.io.string_input import InputBVP
+from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 
 sturm_liouville = InputBVP()
 
@@ -26,3 +29,19 @@ sturm_liouville.add_constraint('terminal', 'y - y_f')
 
 sym_bvp = SymBVP(sturm_liouville)
 comp_bvp = CompBVP(sym_bvp)
+
+num_solver = ScipySolveBVP(comp_bvp, do_jit_compile=True)
+
+n_steps = 11
+
+t0, tf = 0., 1.
+x0, xf = np.array([1., 1., 1.]), np.array([1., -1., 1.])
+tau_vec = np.linspace(0., 1., n_steps)
+x_vec = np.linspace(x0, xf, n_steps).T
+
+x_dot = num_solver.dynamics(tau_vec, x_vec, np.array([t0, tf]), sym_bvp.default_values)
+bc = num_solver.boundary_conditions(x0, xf, np.array([t0, tf]), sym_bvp.default_values)
+
+guess = BVPSol(t=tau_vec, x=x_vec, k=sym_bvp.default_values)
+
+sol = num_solver.solve(guess, sym_bvp.default_values)

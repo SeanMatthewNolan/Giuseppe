@@ -1,5 +1,5 @@
 from giuseppe.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
-from giuseppe.utils.aliases import Symbol, SymMatrix
+from giuseppe.utils.typing import Symbol, SymMatrix
 from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic
 
