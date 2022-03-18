@@ -1,5 +1,5 @@
-from numba import float64
 import numpy as np
+from numba import float64
 from sympy import Symbol, Matrix, Expr, Integer
 
 NPArray = np.ndarray

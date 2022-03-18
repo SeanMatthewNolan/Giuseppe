@@ -6,9 +6,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from .symbolic import SymBVP
-from ..utils.typing import NumbaFloat, NumbaArray
 from ..utils.complilation import lambdify, jit_compile
 from ..utils.mixins import Picky
+from ..utils.typing import NumbaFloat, NumbaArray
 
 
 @dataclass

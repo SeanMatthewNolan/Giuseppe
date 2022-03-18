@@ -1,13 +1,13 @@
-from typing import Union, Callable, Optional
+from typing import Union, Callable
 
-from scipy.integrate import solve_bvp
 import numpy as np
+from scipy.integrate import solve_bvp
 
 from ...bvp import CompBVP, BVPSol
 from ...dualization import CompDualOCP
 from ...utils.complilation import jit_compile
-from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
 from ...utils.mixins import Picky
+from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
 
 _dyn_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
 _bc_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]

@@ -1,12 +1,7 @@
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Callable, Union
-
-import numpy as np
+from typing import Union
 
 from .symbolic import SymDualOCP
-from ..utils.typing import NumbaFloat, NumbaArray
-from ..utils.complilation import lambdify, jit_compile
 from ..utils.mixins import Picky
 
 
