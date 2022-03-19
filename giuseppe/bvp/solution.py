@@ -12,3 +12,5 @@ class BVPSol:
     k: NPArray = EMPTY_ARRAY
 
     aux: Optional[dict] = None
+
+    converged: bool = False

@@ -24,3 +24,4 @@ date: 3/14/22
 - Make typing more explicit with Generic types
 - Pre-compile Jacobians (issues with differential controls)
 - Implement "annotate" method to return solutions with names from SymBVP
+- Consider using a Protocol to avoid typing error with Scipy BVP solution

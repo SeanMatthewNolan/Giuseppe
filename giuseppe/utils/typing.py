@@ -18,4 +18,3 @@ SYM_ZERO = SymInteger('0')
 NumbaFloat = float64
 NumbaArray = float64[:]
 NumbaMatrix = float64[:, :]
-

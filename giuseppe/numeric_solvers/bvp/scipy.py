@@ -93,7 +93,7 @@ class ScipySolveBVP(Picky):
         t0, tf = p[-2], p[-1]
         t = (tf - t0) * tau + (t0 + tf)/2
         p = p[:-2]
-        return BVPSol(t=t, x=x, p=p, k=k)
+        return BVPSol(t=t, x=x, p=p, k=k, converged=True)
 
     def solve(self, guess: Union[BVPSol], constants: NPArray) -> Union[BVPSol]:
 
@@ -114,4 +114,3 @@ class ScipySolveBVP(Picky):
         else:
             # TODO make custom exception to be handled by continuation handler
             raise RuntimeError(f'BVP solver did not converge')
-
