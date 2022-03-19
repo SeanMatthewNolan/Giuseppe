@@ -16,5 +16,3 @@ class CompOCP:
 
         else:
             raise NotImplementedError(f'CompOCP cannot ingest type {type(source_ocp)}')
-
-

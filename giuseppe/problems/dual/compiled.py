@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Union
 
 from .symbolic import SymDualOCP
-from ..utils.mixins import Picky
+from ...utils.mixins import Picky
 
 
 class CompDualOCP(Picky):

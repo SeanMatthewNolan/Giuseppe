@@ -6,9 +6,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from .symbolic import SymBVP
-from ..utils.complilation import lambdify, jit_compile
-from ..utils.mixins import Picky
-from ..utils.typing import NumbaFloat, NumbaArray
+from giuseppe.utils.complilation import lambdify, jit_compile
+from giuseppe.utils.mixins import Picky
+from giuseppe.utils.typing import NumbaFloat, NumbaArray
 
 
 @dataclass
@@ -53,4 +53,3 @@ class CompBVP(Picky):
                 jit_compile(initial_boundary_conditions, signature=self._args_numba_signature),
                 jit_compile(terminal_boundary_conditions, signature=self._args_numba_signature),
         )
-

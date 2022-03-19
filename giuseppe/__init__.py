@@ -1,1 +1,2 @@
-from . import io, dualization, ocp, utils
+from . import io, utils
+from .problems import ocp, dual

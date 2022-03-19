@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from ..utils.typing import NPArray, EMPTY_ARRAY, EMPTY_2D_ARRAY
+from giuseppe.utils.typing import NPArray, EMPTY_ARRAY, EMPTY_2D_ARRAY
 
 
 @dataclass

@@ -3,8 +3,8 @@ from typing import Union, Callable
 import numpy as np
 from scipy.integrate import solve_bvp
 
-from ...bvp import CompBVP, BVPSol
-from ...dualization import CompDualOCP
+from ...problems.bvp import CompBVP, BVPSol
+from ...problems.dual import CompDualOCP
 from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
 from ...utils.typing import NumbaArray, NumbaMatrix, NPArray

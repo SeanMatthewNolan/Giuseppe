@@ -1,6 +1,8 @@
-import giuseppe
+from giuseppe.io import InputOCP
+from giuseppe.problems.ocp import SymOCP
+from giuseppe.problems.dual import SymDual, SymDualOCP
 
-ocp = giuseppe.io.InputOCP()
+ocp = InputOCP()
 
 ocp.set_independent('t')
 
@@ -29,7 +31,7 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
-sym_ocp = giuseppe.ocp.SymOCP(ocp)
-sym_dual = giuseppe.dualization.SymDual(sym_ocp)
-sym_bvp_alg = giuseppe.dualization.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-sym_bvp_dif = giuseppe.dualization.SymDualOCP(sym_ocp, sym_dual, control_method='differential')
+sym_ocp = SymOCP(ocp)
+sym_dual = SymDual(sym_ocp)
+sym_bvp_alg = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
+sym_bvp_dif = SymDualOCP(sym_ocp, sym_dual, control_method='differential')

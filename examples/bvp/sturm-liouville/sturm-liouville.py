@@ -2,8 +2,8 @@ import pickle
 
 import numpy as np
 
-from giuseppe.bvp import SymBVP, CompBVP, BVPSol
-from giuseppe.io.string_input import InputBVP
+from giuseppe.io import InputBVP
+from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 
 sturm_liouville = InputBVP()

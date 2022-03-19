@@ -1,4 +1,4 @@
-from giuseppe.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
+from giuseppe.problems.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
 from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.typing import Symbol, SymMatrix
@@ -76,5 +76,3 @@ class SymDualOCP:
         else:
             raise NotImplementedError(
                     f'\"{control_method}\" is not an implemented control method. Try \"differential\".')
-
-

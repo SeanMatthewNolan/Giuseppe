@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 from sympy import Symbol
 
-from giuseppe.io import InputBVP
+from giuseppe.problems.bvp.input import InputBVP
 from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL
 
