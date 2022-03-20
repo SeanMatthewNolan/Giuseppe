@@ -95,7 +95,7 @@ class ScipySolveBVP(Picky):
         p = p[:-2]
         return BVPSol(t=t, x=x, p=p, k=k, converged=True)
 
-    def solve(self, guess: Union[BVPSol], constants: NPArray) -> Union[BVPSol]:
+    def solve(self, constants: NPArray, guess: Union[BVPSol]) -> Union[BVPSol]:
 
         tau_guess, x_guess, p_guess = self.preprocess(guess)
         k = constants

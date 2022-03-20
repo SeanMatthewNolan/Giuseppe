@@ -5,6 +5,7 @@ import numpy as np
 from giuseppe.io import InputBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
+from giuseppe.continuation import SolutionSet, SolutionSubset, ContinuationHandler
 
 sturm_liouville = InputBVP()
 
@@ -46,7 +47,20 @@ bc = num_solver.boundary_conditions(x0, xf, np.array([t0, tf]), sym_bvp.default_
 
 guess = BVPSol(t=tau_vec, x=x_vec, k=sym_bvp.default_values)
 
-sol = num_solver.solve(guess, sym_bvp.default_values)
+sol = num_solver.solve(sym_bvp.default_values, guess)
 
 with open('sol.data', 'wb') as file:
     pickle.dump(sol, file)
+
+sol_set = SolutionSet(sym_bvp, sol)
+cont = ContinuationHandler(sol_set)
+cont.add_linear_series(5, {'a': 2})
+
+sol_set.append(SolutionSubset())
+for series in cont.continuation_series:
+    for k, guess in series:
+        sol_i = num_solver.solve(k, guess)
+        sol_set[-1].append(sol_i)
+
+with open('sol_set.data', 'wb') as file:
+    pickle.dump(sol_set[-1], file)
