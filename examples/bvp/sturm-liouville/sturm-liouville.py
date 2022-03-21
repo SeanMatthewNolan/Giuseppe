@@ -6,6 +6,7 @@ from giuseppe.io import InputBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 from giuseppe.continuation import SolutionSet, SolutionSubset, ContinuationHandler
+from giuseppe.utils import Timer
 
 sturm_liouville = InputBVP()
 
@@ -56,11 +57,12 @@ sol_set = SolutionSet(sym_bvp, sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'a': 2})
 
-sol_set.append(SolutionSubset())
-for series in cont.continuation_series:
-    for k, guess in series:
-        sol_i = num_solver.solve(k, guess)
-        sol_set[-1].append(sol_i)
+with Timer():
+    sol_set.append(SolutionSubset())
+    for series in cont.continuation_series:
+        for k, guess in series:
+            sol_i = num_solver.solve(k, guess)
+            sol_set[-1].append(sol_i)
 
 with open('sol_set.data', 'wb') as file:
     pickle.dump(sol_set[-1], file)
