@@ -46,18 +46,3 @@ def jit_compile(func: Callable, signature: Optional = None):
     except NumbaRuntimeError as e:
         warn(f'Numba error {e} prevented complilation of function {func}. Uncompiled version will be used.')
         return func
-
-
-# def check_for_array_arg(arg: Any):
-#     return isinstance(arg, Sequence) or hasattr(arg, '__array__')
-#
-#
-# def form_signature_from_args(args: Union[Sequence, Expr], expr: Optional[Expr] = None):
-#     signature = [numba.float64[:] if check_for_array_arg(arg) else numba.float64 for arg in args]
-#
-#     if expr is None:
-#         return signature
-#     elif check_for_array_arg(expr):
-#         return numba.float64[:](signature)
-#     else:
-#         return numba.float64(signature)
