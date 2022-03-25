@@ -25,6 +25,6 @@ class BisectionLogarithmicSeries(LogarithmicSeries, BisectionLinearSeries):
 
     def _bisect_step(self, last_constants: NPArray, next_constants: NPArray) -> NPArray:
         for idx, _ in self._idx_target_pairs:
-            next_constants[idx] = sqrt(next_constants[idx]*last_constants[idx])
+            next_constants[idx] = sqrt(next_constants[idx] * last_constants[idx])
 
         return next_constants

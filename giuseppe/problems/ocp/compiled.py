@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
-from collections.abc import Callable
 from typing import Union
 
 import numpy as np

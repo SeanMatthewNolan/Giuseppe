@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Callable, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import ArrayLike

@@ -1,7 +1,8 @@
 from collections.abc import Hashable, Mapping
 from typing import Union
 
-from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, BisectionLogarithmicSeries
+from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
+    BisectionLogarithmicSeries
 from .solution_set import SolutionSet
 
 

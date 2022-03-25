@@ -86,7 +86,7 @@ class ScipySolveBVP(Picky):
     def _preprocess_bvp_sol(sol: BVPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         p_guess = np.array([t0, tf])
-        tau_guess = (sol.t - (t0 + tf)/2) / (tf - t0)
+        tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
         return tau_guess, sol.x, p_guess
 
     @staticmethod
@@ -96,7 +96,7 @@ class ScipySolveBVP(Picky):
         p: NPArray = scipy_sol.p
 
         t0, tf = p[-2], p[-1]
-        t = (tf - t0) * tau + (t0 + tf)/2
+        t = (tf - t0) * tau + (t0 + tf) / 2
         p = p[:-2]
 
         return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)

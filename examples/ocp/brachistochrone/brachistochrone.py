@@ -42,11 +42,11 @@ comp_ocp = CompOCP(sym_ocp)
 
 t0 = 0.
 x0 = np.array([0., 0., 1.])
-u0 = np.array([-np.pi/4])
+u0 = np.array([-np.pi / 4])
 
 tf = 10.
 xf = np.array([12., -12, 12])
-uf = np.array([-np.pi/6])
+uf = np.array([-np.pi / 6])
 
 k = sym_ocp.default_values
 

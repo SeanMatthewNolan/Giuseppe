@@ -16,7 +16,7 @@ class LinearSeries(ContinuationSeries):
         super().__init__(solution_set)
         self.num_steps: int = num_steps
         self.target_mapping: Mapping[Hashable: float] = target_mapping
-        self._idx_target_pairs: list[tuple[int, float]] =\
+        self._idx_target_pairs: list[tuple[int, float]] = \
             [(idx, tar) for idx, tar in zip(self._get_constant_indices(), target_mapping.values())]
         self._steps: list[NPArray]
 
@@ -62,7 +62,7 @@ class BisectionLinearSeries(LinearSeries):
 
     @staticmethod
     def _bisect_step(last_constants: NPArray, next_constants: NPArray) -> NPArray:
-        return (next_constants + last_constants)/2
+        return (next_constants + last_constants) / 2
 
     def _perform_iter(self):
         self._steps.reverse()

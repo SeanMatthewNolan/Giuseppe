@@ -8,7 +8,6 @@ from ..utils.mixins import Picky
 
 # TODO: add annotations to solution set
 class SolutionSet(MutableSequence, Picky):
-
     SUPPORTED_INPUTS = Union[SymBVP]
 
     def __init__(self, problem: SymBVP, seed_solution: BVPSol):

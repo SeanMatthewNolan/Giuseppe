@@ -23,6 +23,7 @@ class InputBVP:
     """
     Class to input boundary value problem data for symbolic processing
     """
+
     def __init__(self):
         self.independent = None
         self.states: list[InputState] = []
