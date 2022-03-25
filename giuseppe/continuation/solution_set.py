@@ -2,7 +2,6 @@ from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence, Hashable
 from typing import Union, overload
 
-from .solution_subset import SolutionSubset
 from ..problems.bvp import SymBVP, BVPSol
 from ..utils.mixins import Picky
 
@@ -17,44 +16,36 @@ class SolutionSet(MutableSequence, Picky):
 
         self.problem: SymBVP = problem
         self.seed_solution: BVPSol = seed_solution
-
-        self.subsets: list[SolutionSubset] = [
-            SolutionSubset(data=[self.seed_solution], description='the seed solution (guess)')]
+        self.solutions: list[BVPSol] = [seed_solution]
+        self.continuation_slices: list[slice] = []
+        self.damned_sols: list[BVPSol] = []
 
         # Annotations
         self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.problem.constants)
 
-    def get_last(self):
-        assert len(self.subsets) > 0, 'Solution set is empty! It should be intialized with seed solution/guess'
-        if len(self.subsets[-1]) > 0:
-            return self.subsets[-1][-1]
-        else:
-            assert len(self.subsets[-2]) > 0, 'The last two solutions subsets are empty!'
-            return self.subsets[-2][-1]
-
-    def insert(self, index: int, sol_subset: SolutionSubset) -> None:
-        self.subsets.insert(index, sol_subset)
+    def insert(self, index: int, solution: BVPSol) -> None:
+        self.solutions.insert(index, solution)
 
     @overload
     @abstractmethod
-    def __getitem__(self, i: int) -> SolutionSubset: ...
+    def __getitem__(self, i: int) -> BVPSol: ...
 
     @overload
     @abstractmethod
-    def __getitem__(self, s: slice) -> MutableSequence[SolutionSubset]: ...
+    def __getitem__(self, s: slice) -> MutableSequence[BVPSol]: ...
 
-    def __getitem__(self, i: int) -> SolutionSubset:
-        return self.subsets.__getitem__(i)
-
-    @overload
-    @abstractmethod
-    def __setitem__(self, i: int, o: SolutionSubset) -> None: ...
+    def __getitem__(self, i: int) -> BVPSol:
+        return self.solutions.__getitem__(i)
 
     @overload
     @abstractmethod
-    def __setitem__(self, s: slice, o: Iterable[SolutionSubset]) -> None: ...
+    def __setitem__(self, i: int, o: BVPSol) -> None: ...
 
-    def __setitem__(self, i: int, o: SolutionSubset) -> None:
+    @overload
+    @abstractmethod
+    def __setitem__(self, s: slice, o: Iterable[BVPSol]) -> None: ...
+
+    def __setitem__(self, i: int, o: BVPSol) -> None:
         self.__setitem__(i, o)
 
     @overload
@@ -66,7 +57,7 @@ class SolutionSet(MutableSequence, Picky):
     def __delitem__(self, i: slice) -> None: ...
 
     def __delitem__(self, i: int) -> None:
-        self.subsets.__delitem__(i)
+        self.solutions.__delitem__(i)
 
     def __len__(self) -> int:
-        return self.subsets.__len__()
+        return self.solutions.__len__()

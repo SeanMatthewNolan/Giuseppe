@@ -5,7 +5,7 @@ import numpy as np
 from giuseppe.io import InputBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
-from giuseppe.continuation import SolutionSet, SolutionSubset, ContinuationHandler
+from giuseppe.continuation import SolutionSet, ContinuationHandler
 from giuseppe.utils import Timer
 
 sturm_liouville = InputBVP()
@@ -31,10 +31,10 @@ sturm_liouville.add_constraint('initial', 'yp - a * k')
 sturm_liouville.add_constraint('terminal', 'x - x_f')
 sturm_liouville.add_constraint('terminal', 'y - y_f')
 
-sym_bvp = SymBVP(sturm_liouville)
-comp_bvp = CompBVP(sym_bvp)
-
-num_solver = ScipySolveBVP(comp_bvp, do_jit_compile=True)
+with Timer(prefix='Complilation Time:'):
+    sym_bvp = SymBVP(sturm_liouville)
+    comp_bvp = CompBVP(sym_bvp)
+    num_solver = ScipySolveBVP(comp_bvp, do_jit_compile=True)
 
 n_steps = 11
 
@@ -55,14 +55,17 @@ with open('sol.data', 'wb') as file:
 
 sol_set = SolutionSet(sym_bvp, sol)
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(5, {'a': 2})
+cont.add_linear_series(10, {'a': 100}, bisection=True)
 
-with Timer():
-    sol_set.append(SolutionSubset())
+i = 0
+with Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:
         for k, guess in series:
+            i += 1
             sol_i = num_solver.solve(k, guess)
-            sol_set[-1].append(sol_i)
+            if 2 <= i <= 4 or 10 <= i <= 15:
+                sol_i.converged = False
+            sol_set.append(sol_i)
 
 with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set[-1], file)
+    pickle.dump(sol_set, file)

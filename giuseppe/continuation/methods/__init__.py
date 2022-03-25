@@ -1,2 +1,2 @@
 from .abstract import ContinuationSeries
-from .linear import LinearSeries
+from .linear import LinearSeries, BisectionLinear

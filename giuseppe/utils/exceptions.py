@@ -1,0 +1,2 @@
+class ContinuationError(RuntimeError):
+    pass

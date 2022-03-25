@@ -1,4 +1,4 @@
-from typing import Union, Callable
+from typing import Union, Callable, TypeVar
 
 import numpy as np
 from scipy.integrate import solve_bvp
@@ -9,10 +9,11 @@ from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
 from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
 
+_scipy_bvp_sol = TypeVar('_scipy_bvp_sol')
 _dyn_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
 _bc_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
 _preprocess_type = Callable[[BVPSol], tuple[NPArray, NPArray, NPArray]]
-_postprocess_type = Callable[[NPArray, NPArray, NPArray, NPArray], BVPSol]
+_postprocess_type = Callable[[_scipy_bvp_sol, NPArray], BVPSol]
 
 
 class ScipySolveBVP(Picky):
@@ -89,28 +90,27 @@ class ScipySolveBVP(Picky):
         return tau_guess, sol.x, p_guess
 
     @staticmethod
-    def _postprocess_bvp_sol(tau: NPArray, x: NPArray, p: NPArray, k: NPArray) -> BVPSol:
+    def _postprocess_bvp_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> BVPSol:
+        tau: NPArray = scipy_sol.x
+        x: NPArray = scipy_sol.y
+        p: NPArray = scipy_sol.p
+
         t0, tf = p[-2], p[-1]
         t = (tf - t0) * tau + (t0 + tf)/2
         p = p[:-2]
-        return BVPSol(t=t, x=x, p=p, k=k, converged=True)
+
+        return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
 
     def solve(self, constants: NPArray, guess: Union[BVPSol]) -> Union[BVPSol]:
 
         tau_guess, x_guess, p_guess = self.preprocess(guess)
         k = constants
 
-        sol = solve_bvp(
+        sol: _scipy_bvp_sol = solve_bvp(
                 lambda tau, x, p: self.dynamics(tau, x, p, k),
                 lambda x0, xf, p: self.boundary_conditions(x0, xf, p, k),
                 tau_guess, x_guess, p_guess,
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )
 
-        # noinspection PyUnresolvedReferences
-        if sol.success:
-            # noinspection PyUnresolvedReferences
-            return self.postprocess(sol.x, sol.y, sol.p, k)
-        else:
-            # TODO make custom exception to be handled by continuation handler
-            raise RuntimeError(f'BVP solver did not converge')
+        return self.postprocess(sol, k)
