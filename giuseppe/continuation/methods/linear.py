@@ -1,6 +1,5 @@
-from copy import copy
-from warnings import warn
 from collections.abc import Hashable, Mapping, Iterator
+from copy import copy
 
 import numpy as np
 

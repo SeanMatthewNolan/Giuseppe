@@ -1,3 +1,1 @@
-from . import bvp
-from . import ocp
-from . import dual
+from . import bvp, ocp, dual

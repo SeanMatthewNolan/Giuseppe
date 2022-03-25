@@ -1,6 +1,6 @@
 from giuseppe.io import InputOCP
-from giuseppe.problems.ocp import SymOCP
 from giuseppe.problems.dual import SymDual, SymDualOCP
+from giuseppe.problems.ocp import SymOCP
 
 ocp = InputOCP()
 

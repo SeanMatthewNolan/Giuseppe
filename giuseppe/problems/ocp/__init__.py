@@ -1,2 +1,2 @@
-from .symbolic import SymOCP
 from .input import InputOCP
+from .symbolic import SymOCP

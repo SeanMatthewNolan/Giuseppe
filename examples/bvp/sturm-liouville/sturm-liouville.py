@@ -2,10 +2,10 @@ import pickle
 
 import numpy as np
 
-from giuseppe.io import InputBVP
-from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
-from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 from giuseppe.continuation import SolutionSet, ContinuationHandler
+from giuseppe.io import InputBVP
+from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
+from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
 from giuseppe.utils import Timer
 
 sturm_liouville = InputBVP()

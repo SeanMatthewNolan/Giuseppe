@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 
-from ..solution_set import SolutionSet
 from giuseppe.problems.bvp import BVPSol
+from ..solution_set import SolutionSet
 from ...utils.typing import NPArray
 
 

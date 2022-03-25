@@ -1,7 +1,6 @@
-from typing import Union, Optional
 from collections.abc import Callable
-
 from time import perf_counter_ns
+from typing import Union, Optional
 
 _TIMER_OUTPUT_TYPE = Union[int, float]
 TIMER_TYPE = Callable[[], _TIMER_OUTPUT_TYPE]

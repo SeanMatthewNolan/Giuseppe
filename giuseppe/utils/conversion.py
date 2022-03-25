@@ -1,6 +1,6 @@
 import numpy as np
 
-from .typing import SymMatrix, SymExpr
+from giuseppe.utils.typing import SymMatrix, SymExpr
 
 
 def matrix_as_vector(matrix_1d: SymMatrix) -> np.ndarray:
