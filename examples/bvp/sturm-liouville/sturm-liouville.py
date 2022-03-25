@@ -48,24 +48,16 @@ bc = num_solver.boundary_conditions(x0, xf, np.array([t0, tf]), sym_bvp.default_
 
 guess = BVPSol(t=tau_vec, x=x_vec, k=sym_bvp.default_values)
 
-sol = num_solver.solve(sym_bvp.default_values, guess)
+guess = num_solver.solve(sym_bvp.default_values, guess)
 
-with open('sol.data', 'wb') as file:
-    pickle.dump(sol, file)
-
-sol_set = SolutionSet(sym_bvp, sol)
+sol_set = SolutionSet(sym_bvp, guess)
 cont = ContinuationHandler(sol_set)
-# cont.add_linear_series(10, {'a': 100}, bisection=True)
-cont.add_logarithmic_series(10, {'a': 100, 'x_f': 1.5}, bisection=8)
+cont.add_linear_series(10, {'a': 100})
 
-i = 0
 with Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:
         for k, guess in series:
-            i += 1
             sol_i = num_solver.solve(k, guess)
-            if 2 <= i <= 4 or 10 <= i <= 15:
-                sol_i.converged = False
             sol_set.append(sol_i)
 
 with open('sol_set.data', 'wb') as file:
