@@ -55,7 +55,8 @@ with open('sol.data', 'wb') as file:
 
 sol_set = SolutionSet(sym_bvp, sol)
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(10, {'a': 100}, bisection=True)
+# cont.add_linear_series(10, {'a': 100}, bisection=True)
+cont.add_logarithmic_series(10, {'a': 100, 'x_f': 1.5}, bisection=8)
 
 i = 0
 with Timer(prefix='Continuation Time:'):

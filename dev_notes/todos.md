@@ -1,17 +1,15 @@
 ---
 title: Giuseppe TODOs and Ideas
 author: Sean Matthew Nolan
-date: 3/14/22
+date: 3/25/22
 ---
 
 # TODOs
 
-- Add compilation classes
-- Add numerical solvers
-- Add continuation handlers
 - Add guess generators
 - Add parameter support
 - Add inequality constraints 
+- Add interface for OCP for SciPy solver
 
 # Ideas
 
@@ -25,5 +23,5 @@ date: 3/14/22
 - Pre-compile Jacobians (issues with differential controls)
 - Implement "annotate" method to return solutions with names from SymBVP
     - Consider a "metadata" class shared by all problems
-- Consider using a Protocol to avoid typing error with Scipy BVP solution
+- Consider using a Protocol to avoid typing error with Scipy BVP solution (Addressed with Generic)
 - Add support for multiple checks when using Picky
