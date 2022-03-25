@@ -5,7 +5,7 @@ from time import perf_counter_ns
 
 _TIMER_OUTPUT_TYPE = Union[int, float]
 TIMER_TYPE = Callable[[], _TIMER_OUTPUT_TYPE]
-LOG_FUNC_TYPE = Callable[[_TIMER_OUTPUT_TYPE], None]
+LOG_FUNC_TYPE = Callable[[str], None]
 
 
 def format_time(elasped_time: _TIMER_OUTPUT_TYPE):
@@ -40,26 +40,25 @@ def format_time(elasped_time: _TIMER_OUTPUT_TYPE):
         return '{0:0.3f} s'.format(seconds)
 
 
-def print_time(elasped_time: _TIMER_OUTPUT_TYPE):
-    print(f'Elasped time: {format_time(elasped_time)}')
-
-
 class Timer:
-    def __init__(self, timer_function: TIMER_TYPE = perf_counter_ns, log_func: Optional[LOG_FUNC_TYPE] = print_time):
+    def __init__(self, prefix: str = '', timer_function: TIMER_TYPE = perf_counter_ns,
+                 log_func: Optional[LOG_FUNC_TYPE] = print):
         self.timer: TIMER_TYPE = timer_function
         self.start_time: _TIMER_OUTPUT_TYPE = -1
         self.end_time: _TIMER_OUTPUT_TYPE = -1
         self.elasped_time: _TIMER_OUTPUT_TYPE = 0
 
+        self.prefix: str = prefix + ' '
+
         self.log_fun: Optional[LOG_FUNC_TYPE] = log_func
 
-    def __enter__(self) -> _TIMER_OUTPUT_TYPE:
+    def __enter__(self):
         self.start_time = self.timer()
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.end_time = self.timer()
         self.elasped_time = self.end_time - self.start_time
         if self.log_fun is not None:
-            self.log_fun(self.elasped_time)
+            self.log_fun(f'{self.prefix}Elasped time: {format_time(self.elasped_time)}')
 
         return False
