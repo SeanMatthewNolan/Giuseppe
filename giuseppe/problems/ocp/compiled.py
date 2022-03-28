@@ -71,14 +71,14 @@ class CompOCP(Picky):
         lam_cost_path = lambdify(self._sym_args['dynamic'], self.src_ocp.cost.path)
         lam_cost_f = lambdify(self._sym_args['static'], self.src_ocp.cost.terminal)
 
-        def initial_cost(t0: float, x0: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_cost_0(t0, x0, k))
+        def initial_cost(t0: float, x0: ArrayLike, k: ArrayLike) -> float:
+            return lam_cost_0(t0, x0, k)
 
-        def path_cost(t: float, x: ArrayLike, u: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_cost_path(t, x, u, k))
+        def path_cost(t: float, x: ArrayLike, u: ArrayLike, k: ArrayLike) -> float:
+            return lam_cost_path(t, x, u, k)
 
-        def terminal_cost(tf: float, xf: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_cost_f(tf, xf, k))
+        def terminal_cost(tf: float, xf: ArrayLike, k: ArrayLike) -> float:
+            return lam_cost_f(tf, xf, k)
 
         return CompCost(
                 jit_compile(initial_cost, signature=self._args_numba_signature['static']),
