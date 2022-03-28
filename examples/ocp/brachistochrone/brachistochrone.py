@@ -1,7 +1,8 @@
 import numpy as np
 
+import giuseppe
 from giuseppe.io import InputOCP
-from giuseppe.problems.dual import SymDual, SymDualOCP
+from giuseppe.problems.dual import SymDual, SymDualOCP, CompDual
 from giuseppe.problems.ocp import SymOCP, CompOCP
 
 ocp = InputOCP()
@@ -38,6 +39,8 @@ sym_dual = SymDual(sym_ocp)
 sym_bvp_alg = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
 sym_bvp_dif = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
 
+# giuseppe.utils.complilation.JIT_COMPILE = False
+
 comp_ocp = CompOCP(sym_ocp)
 
 t0 = 0.
@@ -58,3 +61,21 @@ psif = comp_ocp.boundary_conditions.terminal(tf, xf, k)
 phi0 = comp_ocp.cost.initial(t0, x0, k)
 ll = comp_ocp.cost.path(t0, x0, u0, k)
 phif = comp_ocp.cost.terminal(tf, xf, k)
+
+lam0 = np.array([-0.1, -0.2, -0.3])
+lamf = np.array([-0.1, -0.2, -0.3])
+
+nu0 = np.array([0.01, 0.02, 0.03, 0.04])
+nuf = np.array([-0.01, -0.02])
+
+comp_dual = CompDual(sym_dual)
+
+lam_dot0 = comp_dual.costate_dynamics(t0, x0, lam0, u0, k)
+
+adj_bc0 = comp_dual.adjoined_boundary_conditions.initial(t0, x0, lam0, u0, nu0, k)
+adj_bcf = comp_dual.adjoined_boundary_conditions.terminal(tf, xf, lamf, uf, nuf, k)
+
+aug_cost0 = comp_dual.augmented_cost.initial(t0, x0, lam0, u0, nu0, k)
+aug_costf = comp_dual.augmented_cost.terminal(tf, xf, lamf, uf, nuf, k)
+
+ham0 = comp_dual.hamiltonian(t0, x0, lam0, u0, k)

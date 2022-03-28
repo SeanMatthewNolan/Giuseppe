@@ -1,12 +1,18 @@
+from copy import deepcopy
+
 from giuseppe.problems.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
 from giuseppe.utils.conversion import matrix_as_scalar
-from giuseppe.utils.mixins import Symbolic
+from giuseppe.utils.mixins import Symbolic, Picky
 from giuseppe.utils.typing import Symbol, SymMatrix
 
 
-class SymDual(Symbolic):
+class SymDual(Symbolic, Picky):
+    SUPPORTED_INPUTS: type = SymOCP
+
     def __init__(self, ocp: SymOCP):
         super().__init__()
+
+        self.src_ocp: SymOCP = deepcopy(ocp)
 
         self.costates = SymMatrix([self.new_sym(f'_lam_{state}') for state in ocp.states])
 
