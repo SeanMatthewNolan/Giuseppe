@@ -2,7 +2,7 @@ import numpy as np
 
 import giuseppe
 from giuseppe.io import InputOCP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDual
+from giuseppe.problems.dual import SymDual, SymDualOCP, CompDual, CompDualOCP
 from giuseppe.problems.ocp import SymOCP, CompOCP
 
 ocp = InputOCP()
@@ -79,3 +79,7 @@ aug_cost0 = comp_dual.augmented_cost.initial(t0, x0, lam0, u0, nu0, k)
 aug_costf = comp_dual.augmented_cost.terminal(tf, xf, lamf, uf, nuf, k)
 
 ham0 = comp_dual.hamiltonian(t0, x0, lam0, u0, k)
+
+# sym_bvp_alg.control_handler.control_law.pop()
+comp_dual_ocp = CompDualOCP(sym_bvp_alg)
+u0 = comp_dual_ocp.control_handler.control(t0, x0, lam0, k)

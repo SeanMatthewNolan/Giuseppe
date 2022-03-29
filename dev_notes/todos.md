@@ -25,3 +25,4 @@ date: 3/25/22
     - Consider a "metadata" class shared by all problems
 - Consider using a Protocol to avoid typing error with Scipy BVP solution (Addressed with Generic)
 - Add support for multiple checks when using Picky
+- Assign tuples to ndarrays to make output consistent and elimante instances of "double complilation"

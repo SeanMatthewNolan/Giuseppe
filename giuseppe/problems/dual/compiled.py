@@ -6,8 +6,8 @@ from numpy.typing import ArrayLike
 
 from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
-from giuseppe.utils.typing import NumbaFloat, NumbaArray
-from .symbolic import SymDual, SymDualOCP, SymOCP
+from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
+from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
 from ..bvp.compiled import CompBoundaryConditions
 from ..ocp.compiled import CompCost, CompOCP
 
@@ -91,6 +91,41 @@ class CompDual(Picky):
         )
 
 
+class CompAlgControlHandler:
+    def __init__(self, source_handler: AlgebraicControlHandler, comp_dual: CompDual):
+        self.src_handler = deepcopy(source_handler)
+        self.comp_dual = comp_dual
+        self.sym_args = (self.comp_dual.src_ocp.independent, self.comp_dual.src_ocp.states.flat(),
+                         self.comp_dual.src_dual.costates.flat(), self.comp_dual.src_ocp.constants.flat())
+        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+        self.control = self.compile_control()
+
+    def compile_control(self):
+        control_law = self.src_handler.control_law
+
+        num_options = len(control_law)
+
+        if num_options == 1:
+            lam_control = lambdify(self.sym_args, list(control_law[-1]))
+
+            def control(t: float, x: ArrayLike, lam: ArrayLike, k: ArrayLike):
+                return np.array(lam_control(t, x, lam, k))
+
+        else:
+            hamiltonian = self.comp_dual.hamiltonian
+            lam_control = lambdify(self.sym_args, SymMatrix(control_law))
+
+            def control(t: float, x: ArrayLike, lam: ArrayLike, k: ArrayLike):
+                control_options = lam_control(t, x, lam, k)
+                hamiltonians = np.empty((num_options,))
+                for idx in range(num_options):
+                    hamiltonians[idx] = hamiltonian(t, x, lam, control_options[idx], k)
+
+                return control_options[np.argmin(hamiltonians)]
+
+        return jit_compile(control, self.args_numba_signature)
+
+
 class CompDualOCP(Picky):
     SUPPORTED_INPUTS: type = Union[SymDualOCP]
 
@@ -100,21 +135,9 @@ class CompDualOCP(Picky):
         self.src_dualocp = deepcopy(source_dualocp)
         self.comp_ocp = CompOCP(self.src_dualocp.ocp)
         self.comp_dual = CompDual(self.src_dualocp.dual)
-        self.control_handler = self.src_dualocp.control_handler
+        self.control_handler = self.compile_control_handler()
 
-        self.sym_args = self.comp_ocp.sym_args
-        self.args_numba_signature = self.comp_ocp.args_numba_signature
-
-        self.dynamics = self.compile_dynamics()
-        self.boundary_conditions = None
-
-    def compile_dynamics(self):
-        state_dynamics = self.comp_ocp.dynamics
-        costate_dynamics = self.comp_dual.costate_dynamics
-
-        def dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike) -> ArrayLike:
-            x_dot = state_dynamics(t, x, u, k)
-            lam_dot = costate_dynamics(t, x, lam, u, k)
-            return np.concatenate((x_dot, lam_dot))
-
-        return jit_compile(dynamics, self.args_numba_signature['dynamic'])
+    def compile_control_handler(self):
+        sym_control_handler = self.src_dualocp.control_handler
+        if type(sym_control_handler) is AlgebraicControlHandler:
+            return CompAlgControlHandler(sym_control_handler, self.comp_dual)
