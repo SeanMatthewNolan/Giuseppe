@@ -1,6 +1,5 @@
 import numpy as np
 
-import giuseppe
 from giuseppe.io import InputOCP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDual, CompDualOCP
 from giuseppe.problems.ocp import SymOCP, CompOCP
@@ -37,7 +36,7 @@ ocp.add_constraint('terminal', 'y - y_f')
 sym_ocp = SymOCP(ocp)
 sym_dual = SymDual(sym_ocp)
 sym_bvp_alg = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-sym_bvp_dif = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
+sym_bvp_diff = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
 
 # giuseppe.utils.complilation.JIT_COMPILE = False
 
@@ -81,5 +80,9 @@ aug_costf = comp_dual.augmented_cost.terminal(tf, xf, lamf, uf, nuf, k)
 ham0 = comp_dual.hamiltonian(t0, x0, lam0, u0, k)
 
 # sym_bvp_alg.control_handler.control_law.pop()
-comp_dual_ocp = CompDualOCP(sym_bvp_alg)
-u0 = comp_dual_ocp.control_handler.control(t0, x0, lam0, k)
+comp_dual_ocp_alg = CompDualOCP(sym_bvp_alg)
+u0 = comp_dual_ocp_alg.control_handler.control(t0, x0, lam0, k)
+
+comp_dual_ocp_diff = CompDualOCP(sym_bvp_diff)
+u_dot = comp_dual_ocp_diff.control_handler.control_dynamics(t0, x0, lam0, u0, k)
+h_u = comp_dual_ocp_diff.control_handler.control_bc(t0, x0, lam0, u0, k)

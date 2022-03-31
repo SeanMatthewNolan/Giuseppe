@@ -126,6 +126,33 @@ class CompAlgControlHandler:
         return jit_compile(control, self.args_numba_signature)
 
 
+class CompDiffControlHandler:
+    def __init__(self, source_handler: DifferentialControlHandler, comp_dual: CompDual):
+        self.src_handler = deepcopy(source_handler)
+        self.comp_dual = comp_dual
+        self.sym_args = self.comp_dual.sym_args['dynamic']
+        self.args_numba_signature = self.comp_dual.args_numba_signature['dynamic']
+
+        self.control_dynamics = self.compile_control_rate()
+        self.control_bc = self.compile_control_bc()
+
+    def compile_control_rate(self):
+        lam_control_dynamics = lambdify(self.sym_args, self.src_handler.control_dynamics.flat())
+
+        def control_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike):
+            return np.array(lam_control_dynamics(t, x, lam, u, k))
+
+        return jit_compile(control_dynamics, self.args_numba_signature)
+
+    def compile_control_bc(self):
+        lam_control_bc = lambdify(self.sym_args, self.src_handler.h_u.flat())
+
+        def control_bc(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike):
+            return np.array(lam_control_bc(t, x, lam, u, k))
+
+        return jit_compile(control_bc, self.args_numba_signature)
+
+
 class CompDualOCP(Picky):
     SUPPORTED_INPUTS: type = Union[SymDualOCP]
 
@@ -141,3 +168,6 @@ class CompDualOCP(Picky):
         sym_control_handler = self.src_dualocp.control_handler
         if type(sym_control_handler) is AlgebraicControlHandler:
             return CompAlgControlHandler(sym_control_handler, self.comp_dual)
+
+        elif type(sym_control_handler) is DifferentialControlHandler:
+            return CompDiffControlHandler(sym_control_handler, self.comp_dual)
