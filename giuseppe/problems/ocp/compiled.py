@@ -28,6 +28,9 @@ class CompOCP(Picky):
 
         self.src_ocp = deepcopy(source_ocp)  # source ocp is copied here for reference as it may be mutated later
 
+        self.num_states = len(self.src_ocp.states)
+        self.num_constants = len(self.src_ocp.constants)
+
         self.sym_args = {
             'static': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.constants.flat()),
             'dynamic': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.controls.flat(),

@@ -21,6 +21,10 @@ class CompDual(Picky):
         self.src_dual: Union[SymDual] = deepcopy(source_dual)
         self.src_ocp: Union[SymOCP] = self.src_dual.src_ocp
 
+        self.num_costates = len(self.src_dual.costates)
+        self.num_initial_adjoints = self.src_dual.initial_adjoints
+        self.num_terminal_adjoints = self.src_dual.terminal_adjoints
+
         self.sym_args = {
             'initial': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
                         self.src_ocp.controls.flat(), self.src_dual.initial_adjoints, self.src_ocp.constants.flat()),
@@ -159,10 +163,10 @@ class CompDualOCP(Picky):
     def __init__(self, source_dualocp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_dualocp)
 
-        self.src_dualocp = deepcopy(source_dualocp)
-        self.comp_ocp = CompOCP(self.src_dualocp.ocp)
-        self.comp_dual = CompDual(self.src_dualocp.dual)
-        self.control_handler = self.compile_control_handler()
+        self.src_dualocp: SymDualOCP = deepcopy(source_dualocp)
+        self.comp_ocp: CompOCP = CompOCP(self.src_dualocp.ocp)
+        self.comp_dual: CompDual = CompDual(self.src_dualocp.dual)
+        self.control_handler: Union[CompAlgControlHandler, CompDiffControlHandler] = self.compile_control_handler()
 
     def compile_control_handler(self):
         sym_control_handler = self.src_dualocp.control_handler

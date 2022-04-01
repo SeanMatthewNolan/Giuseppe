@@ -24,7 +24,10 @@ class CompBVP(Picky):
     def __init__(self, source_bvp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_bvp)
 
-        self.src_bvp = deepcopy(source_bvp)  # source bvp is copied here for reference as it may be mutated later
+        self.src_bvp = deepcopy(source_bvp)  # source dual_ocp is copied here for reference as it may be mutated later
+
+        self.num_states = len(self.src_bvp.states)
+        self.num_constants = len(self.src_bvp.constants)
 
         self.sym_args = (self.src_bvp.independent, self.src_bvp.states.flat(), self.src_bvp.constants.flat())
         self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray)
