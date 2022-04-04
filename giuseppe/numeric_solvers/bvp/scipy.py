@@ -4,7 +4,7 @@ import numpy as np
 from scipy.integrate import solve_bvp
 
 from ...problems.bvp import CompBVP, BVPSol
-from ...problems.dual import CompDualOCP
+from ...problems.dual import CompDualOCP, DualSol
 from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler
 from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
@@ -49,7 +49,7 @@ class ScipySolveBVP(Picky):
                 dynamics = self._generate_ocp_alg_dynamics(bvp)
                 boundary_conditions = self._generate_ocp_alg_bcs(bvp)
                 preprocess = self._preprocess_ocp_alg_sol
-                postprocess = self._postprocess_ocp_alg_sol
+                postprocess = self._generate_postprocess_ocp_alg_sol(bvp)
             elif type(bvp.control_handler) is CompDiffControlHandler:
                 dynamics = self._generate_bvp_dynamics(bvp)
                 boundary_conditions = self._generate_bvp_bcs(bvp)
@@ -182,12 +182,41 @@ class ScipySolveBVP(Picky):
         return boundary_conditions
 
     @staticmethod
-    def _preprocess_ocp_alg_sol(sol: BVPSol) -> tuple[NPArray, NPArray, NPArray]:
-        raise NotImplementedError
+    def _preprocess_ocp_alg_sol(sol: DualSol) -> tuple[NPArray, NPArray, NPArray]:
+        t0, tf = sol.t[0], sol.t[-1]
+        tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
+        p_guess = np.concatenate(sol.p, sol.nu0, sol.nuf, np.array([t0, tf]))
+        y = np.vstack((sol.x, sol.lam))
+        return tau_guess, y, p_guess
 
     @staticmethod
-    def _postprocess_ocp_alg_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> BVPSol:
-        raise NotImplementedError
+    def _generate_postprocess_ocp_alg_sol(dual_ocp: CompDualOCP) \
+            -> Callable[[DualSol], tuple[NPArray, NPArray, NPArray]]:
+
+        n_x = dual_ocp.comp_ocp.num_states
+        n_p = 0
+        n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
+        n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
+
+        control = dual_ocp.control_handler.control
+
+        def _postprocess_ocp_alg_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualSol:
+            tau: NPArray = scipy_sol.x
+            t0, tf = scipy_sol.p[-2], scipy_sol.p[-1]
+            t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
+
+            x: NPArray = scipy_sol.y[:n_x]
+            lam: NPArray = scipy_sol.y[n_x:]
+
+            p: NPArray = scipy_sol.p[:n_p]
+            nu_0: NPArray = scipy_sol.p[n_p:n_p + n_nu_0]
+            nu_f: NPArray = scipy_sol.p[n_p + n_nu_0:n_p + n_nu_0 + n_nu_f]
+
+            u = np.array([control(ti, xi, lami, k) for ti, xi, lami in zip(t, x, lam)])
+
+            return DualSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
+
+        return _postprocess_ocp_alg_sol
 
     def solve(self, constants: NPArray, guess: Union[BVPSol]) -> Union[BVPSol]:
 
