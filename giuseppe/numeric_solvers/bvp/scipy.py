@@ -5,6 +5,7 @@ from scipy.integrate import solve_bvp
 
 from ...problems.bvp import CompBVP, BVPSol
 from ...problems.dual import CompDualOCP
+from ...problems.dual.compiled import AlgebraicControlHandler, DifferentialControlHandler
 from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
 from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
@@ -38,13 +39,24 @@ class ScipySolveBVP(Picky):
         self.postprocess: _postprocess_type = postprocess
 
     def load_problem(self, bvp: SUPPORTED_INPUTS) -> tuple[_dyn_type, _bc_type, _preprocess_type, _postprocess_type]:
-        if isinstance(bvp, CompBVP):
+        if type(bvp) is CompBVP:
             dynamics = self._generate_bvp_dynamics(bvp)
             boundary_conditions = self._generate_bvp_bcs(bvp)
             preprocess = self._preprocess_bvp_sol
             postprocess = self._postprocess_bvp_sol
-        elif isinstance(bvp, CompDualOCP):
-            raise NotImplementedError
+        elif type(bvp) is CompDualOCP:
+            if type(bvp.control_handler) is AlgebraicControlHandler:
+                dynamics = self._generate_ocp_alg_dynamics(bvp)
+                boundary_conditions = self._generate_ocp_alg_bcs(bvp)
+                preprocess = self._preprocess_ocp_alg_sol
+                postprocess = self._postprocess_ocp_alg_sol
+            elif type(bvp.control_handler) is DifferentialControlHandler:
+                dynamics = self._generate_bvp_dynamics(bvp)
+                boundary_conditions = self._generate_bvp_bcs(bvp)
+                preprocess = self._preprocess_bvp_sol
+                postprocess = self._postprocess_bvp_sol
+            else:
+                raise TypeError('To use Scipy\'s BVP Solver, problem needs a algebraic or differential control handler')
         else:
             raise TypeError
 
@@ -100,6 +112,57 @@ class ScipySolveBVP(Picky):
         p = p[:-2]
 
         return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
+
+    def _generate_ocp_alg_dynamics(self, bvp: CompBVP) -> _dyn_type:
+        raise NotImplementedError
+
+    def _generate_ocp_alg_bcs(self, dual_ocp: CompDualOCP) -> _bc_type:
+        ocp_bc0 = dual_ocp.comp_ocp.boundary_conditions.initial
+        ocp_bcf = dual_ocp.comp_ocp.boundary_conditions.terminal
+
+        dual_bc0 = dual_ocp.comp_dual.adjoined_boundary_conditions.initial
+        dual_bcf = dual_ocp.comp_dual.adjoined_boundary_conditions.terminal
+
+        n_x = dual_ocp.comp_ocp.num_states
+
+        n_p = 0
+        n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
+        n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
+
+        control = dual_ocp.control_handler.control
+
+        def boundary_conditions(y0: NPArray, yf: NPArray, r: NPArray, k: NPArray):
+            x0 = y0[:n_x]
+            lam0 = y0[n_x:]
+
+            xf = yf[:n_x]
+            lamf = yf[n_x:]
+
+            p = r[:n_p]
+            nu0 = r[n_p:n_p + n_nu_0]
+            nuf = r[n_p + n_nu_0: n_p + n_nu_0 + n_nu_f]
+            t0, tf = p[-2], p[-1]
+
+            u0 = control(t0, x0, lam0, k)
+            uf = control(tf, xf, lamf, k)
+
+            return np.concatenate((
+                ocp_bc0(t0, x0, k), ocp_bcf(tf, xf, k),
+                dual_bc0(t0, x0, lam0, u0, nu0, k), dual_bcf(tf, xf, lamf, uf, nuf, k)
+            ))
+
+        if self.do_jit_compile:
+            boundary_conditions = jit_compile(boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
+
+        return boundary_conditions
+
+    @staticmethod
+    def _preprocess_ocp_alg_sol(sol: BVPSol) -> tuple[NPArray, NPArray, NPArray]:
+        raise NotImplementedError
+
+    @staticmethod
+    def _postprocess_ocp_alg_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> BVPSol:
+        raise NotImplementedError
 
     def solve(self, constants: NPArray, guess: Union[BVPSol]) -> Union[BVPSol]:
 
