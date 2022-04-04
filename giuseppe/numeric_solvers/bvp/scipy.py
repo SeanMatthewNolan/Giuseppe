@@ -5,7 +5,7 @@ from scipy.integrate import solve_bvp
 
 from ...problems.bvp import CompBVP, BVPSol
 from ...problems.dual import CompDualOCP
-from ...problems.dual.compiled import AlgebraicControlHandler, DifferentialControlHandler
+from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler
 from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
 from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
@@ -45,12 +45,12 @@ class ScipySolveBVP(Picky):
             preprocess = self._preprocess_bvp_sol
             postprocess = self._postprocess_bvp_sol
         elif type(bvp) is CompDualOCP:
-            if type(bvp.control_handler) is AlgebraicControlHandler:
+            if type(bvp.control_handler) is CompAlgControlHandler:
                 dynamics = self._generate_ocp_alg_dynamics(bvp)
                 boundary_conditions = self._generate_ocp_alg_bcs(bvp)
                 preprocess = self._preprocess_ocp_alg_sol
                 postprocess = self._postprocess_ocp_alg_sol
-            elif type(bvp.control_handler) is DifferentialControlHandler:
+            elif type(bvp.control_handler) is CompDiffControlHandler:
                 dynamics = self._generate_bvp_dynamics(bvp)
                 boundary_conditions = self._generate_bvp_bcs(bvp)
                 preprocess = self._preprocess_bvp_sol
@@ -113,8 +113,34 @@ class ScipySolveBVP(Picky):
 
         return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
 
-    def _generate_ocp_alg_dynamics(self, bvp: CompBVP) -> _dyn_type:
-        raise NotImplementedError
+    def _generate_ocp_alg_dynamics(self, dual_ocp: CompDualOCP) -> _dyn_type:
+        state_dyn = dual_ocp.comp_ocp.dynamics
+        costate_dyn = dual_ocp.comp_dual.costate_dynamics
+
+        n_x = dual_ocp.comp_ocp.num_states
+
+        control = dual_ocp.control_handler.control
+
+        def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
+            t0, tf = p[-2], p[-1]
+            tau_mult = (tf - t0)
+            t_vec = tau_vec * tau_mult + (tf + t0) / 2
+
+            y_dot = np.empty_like(y_vec)  # Need to pre-allocate for Numba
+            for idx, (ti, yi) in enumerate(zip(t_vec, y_vec.T)):
+                xi = yi[:n_x]
+                lami = yi[n_x:]
+                ui = control(t0, xi, lami, k)
+
+                y_dot[:n_x, idx] = state_dyn(ti, xi, ui, k)
+                y_dot[n_x:, idx] = costate_dyn(ti, xi, lami, ui, k)
+
+            return y_dot * tau_mult
+
+        if self.do_jit_compile:
+            dynamics = jit_compile(dynamics, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray))
+
+        return dynamics
 
     def _generate_ocp_alg_bcs(self, dual_ocp: CompDualOCP) -> _bc_type:
         ocp_bc0 = dual_ocp.comp_ocp.boundary_conditions.initial
@@ -124,7 +150,6 @@ class ScipySolveBVP(Picky):
         dual_bcf = dual_ocp.comp_dual.adjoined_boundary_conditions.terminal
 
         n_x = dual_ocp.comp_ocp.num_states
-
         n_p = 0
         n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
         n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints

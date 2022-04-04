@@ -22,8 +22,8 @@ class CompDual(Picky):
         self.src_ocp: Union[SymOCP] = self.src_dual.src_ocp
 
         self.num_costates = len(self.src_dual.costates)
-        self.num_initial_adjoints = self.src_dual.initial_adjoints
-        self.num_terminal_adjoints = self.src_dual.terminal_adjoints
+        self.num_initial_adjoints = len(self.src_dual.initial_adjoints)
+        self.num_terminal_adjoints = len(self.src_dual.terminal_adjoints)
 
         self.sym_args = {
             'initial': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),

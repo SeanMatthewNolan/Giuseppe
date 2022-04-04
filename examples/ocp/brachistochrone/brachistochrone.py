@@ -3,6 +3,7 @@ import numpy as np
 from giuseppe.io import InputOCP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDual, CompDualOCP
 from giuseppe.problems.ocp import SymOCP, CompOCP
+from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 
 ocp = InputOCP()
 
@@ -86,3 +87,12 @@ u0 = comp_dual_ocp_alg.control_handler.control(t0, x0, lam0, k)
 comp_dual_ocp_diff = CompDualOCP(sym_bvp_diff)
 u_dot = comp_dual_ocp_diff.control_handler.control_dynamics(t0, x0, lam0, u0, k)
 h_u = comp_dual_ocp_diff.control_handler.control_bc(t0, x0, lam0, u0, k)
+
+n = 5
+tau_guess = np.linspace(0, 1, n)
+y_guess = np.linspace(np.concatenate((x0, lam0)), np.concatenate((xf, lamf)), n).T
+p = np.concatenate((nu0, nuf, np.array([t0, tf])))
+
+solver_alg = ScipySolveBVP(comp_dual_ocp_alg)
+y_dot_alg = solver_alg.dynamics(tau_guess, y_guess, np.array([t0, tf]), k)
+bc_alg = solver_alg.boundary_conditions(y_guess[:, 0], y_guess[:, -1], p, k)
