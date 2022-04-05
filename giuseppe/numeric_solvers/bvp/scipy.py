@@ -1,6 +1,7 @@
 from typing import Union, Callable, TypeVar
 
 import numpy as np
+from numpy import ndarray
 from scipy.integrate import solve_bvp
 
 from ...problems.bvp import CompBVP, BVPSol
@@ -185,13 +186,13 @@ class ScipySolveBVP(Picky):
     def _preprocess_ocp_alg_sol(sol: DualSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
-        p_guess = np.concatenate(sol.p, sol.nu0, sol.nuf, np.array([t0, tf]))
+        p_guess = np.concatenate((sol.p, sol.nu0, sol.nuf, np.array([t0, tf])))
         y = np.vstack((sol.x, sol.lam))
         return tau_guess, y, p_guess
 
     @staticmethod
     def _generate_postprocess_ocp_alg_sol(dual_ocp: CompDualOCP) \
-            -> Callable[[DualSol], tuple[NPArray, NPArray, NPArray]]:
+            -> Callable[[_scipy_bvp_sol, ndarray], DualSol]:
 
         n_x = dual_ocp.comp_ocp.num_states
         n_p = 0
@@ -212,7 +213,7 @@ class ScipySolveBVP(Picky):
             nu_0: NPArray = scipy_sol.p[n_p:n_p + n_nu_0]
             nu_f: NPArray = scipy_sol.p[n_p + n_nu_0:n_p + n_nu_0 + n_nu_f]
 
-            u = np.array([control(ti, xi, lami, k) for ti, xi, lami in zip(t, x, lam)])
+            u = np.array([control(ti, xi, lami, k) for ti, xi, lami in zip(t, x.T, lam.T)]).T
 
             return DualSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
 
