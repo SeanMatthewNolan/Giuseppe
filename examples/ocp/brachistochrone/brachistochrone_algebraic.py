@@ -1,9 +1,14 @@
+import pickle
+
 import numpy as np
 
+import giuseppe
 from giuseppe.io import InputOCP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP, DualSol
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
+
+giuseppe.utils.complilation.JIT_COMPILE = True
 
 ocp = InputOCP()
 
@@ -41,10 +46,10 @@ comp_dual_ocp = CompDualOCP(sym_bvp)
 
 solver_alg = ScipySolveBVP(comp_dual_ocp)
 
-n = 3
+n = 2
 t = np.linspace(0, 0.25, n)
-x = np.linspace(np.array([0., 0., 1.]), np.array([1., 1., 8.]), n)
-lam = np.linspace(np.array([-0.1, -0.1, -0.1]), np.array([-0.1, -0.1, -0.1]), n)
+x = np.linspace(np.array([0., 0., 1.]), np.array([1., 1., 8.]), n).T
+lam = np.linspace(np.array([-0.1, -0.1, -0.1]), np.array([-0.1, -0.1, -0.1]), n).T
 nu0 = np.array([-0.1, -0.1, -0.1, -0.1])
 nuf = np.array([-0.1, -0.1])
 k = sym_ocp.default_values
@@ -52,3 +57,6 @@ k = sym_ocp.default_values
 guess = DualSol(t=t, x=x, lam=lam, nu0=nu0, nuf=nuf, k=k)
 
 sol = solver_alg.solve(k, guess)
+
+with open('sol.data', 'wb') as file:
+    pickle.dump(sol, file)

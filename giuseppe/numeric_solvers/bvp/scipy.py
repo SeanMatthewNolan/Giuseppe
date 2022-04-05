@@ -164,10 +164,10 @@ class ScipySolveBVP(Picky):
             xf = yf[:n_x]
             lamf = yf[n_x:]
 
-            p = r[:n_p]
+            # p = r[:n_p]
             nu0 = r[n_p:n_p + n_nu_0]
             nuf = r[n_p + n_nu_0: n_p + n_nu_0 + n_nu_f]
-            t0, tf = p[-2], p[-1]
+            t0, tf = r[-2], r[-1]
 
             u0 = control(t0, x0, lam0, k)
             uf = control(tf, xf, lamf, k)
