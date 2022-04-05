@@ -70,6 +70,7 @@ class DifferentialControlHandler:
             -self.h_uu.inv() * (self.h_ut + self.h_ux @ sym_ocp.dynamics + self.f_u.T @ sym_dual.costate_dynamics)
 
 
+# TODO: Consider exposing OCP and Dual attributes
 class SymDualOCP:
     def __init__(self, sym_ocp: SymOCP, sym_dual: SymDual, control_method: str = 'differential'):
         self.ocp: SymOCP = sym_ocp
