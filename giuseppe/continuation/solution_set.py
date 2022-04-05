@@ -1,26 +1,34 @@
+from copy import deepcopy
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence, Hashable
 from typing import Union, overload
 
 from ..problems.bvp import SymBVP, BVPSol
+from ..problems.ocp import SymOCP
+from ..problems.dual import SymDualOCP
 from ..utils.mixins import Picky
 
 
 # TODO: add annotations to solution set
 class SolutionSet(MutableSequence, Picky):
-    SUPPORTED_INPUTS = Union[SymBVP]
+    SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP]
 
-    def __init__(self, problem: SymBVP, seed_solution: BVPSol):
+    def __init__(self, problem: Union[SymBVP, SymOCP, SymDualOCP], seed_solution: BVPSol):
         Picky.__init__(self, problem)
 
-        self.problem: SymBVP = problem
+        self.problem = deepcopy(problem)
+        if type(problem) is SymDualOCP:
+            self.constants = self.problem.ocp.constants
+        else:
+            self.constants = self.problem.constants
+
         self.seed_solution: BVPSol = seed_solution
         self.solutions: list[BVPSol] = [seed_solution]
         self.continuation_slices: list[slice] = []
         self.damned_sols: list[BVPSol] = []
 
         # Annotations
-        self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.problem.constants)
+        self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
 
     def insert(self, index: int, solution: BVPSol) -> None:
         self.solutions.insert(index, solution)

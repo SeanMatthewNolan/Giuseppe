@@ -7,6 +7,8 @@ from giuseppe.io import InputOCP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP, DualSol
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
+from giuseppe.continuation import ContinuationHandler, SolutionSet
+from giuseppe.utils import Timer
 
 giuseppe.utils.complilation.JIT_COMPILE = True
 
@@ -39,12 +41,12 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
-sym_ocp = SymOCP(ocp)
-sym_dual = SymDual(sym_ocp)
-sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-comp_dual_ocp = CompDualOCP(sym_bvp)
-
-solver_alg = ScipySolveBVP(comp_dual_ocp)
+with Timer(prefix='Complilation Time:'):
+    sym_ocp = SymOCP(ocp)
+    sym_dual = SymDual(sym_ocp)
+    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
+    comp_dual_ocp = CompDualOCP(sym_bvp)
+    num_solver = ScipySolveBVP(comp_dual_ocp)
 
 n = 2
 t = np.linspace(0, 0.25, n)
@@ -54,9 +56,16 @@ nu0 = np.array([-0.1, -0.1, -0.1, -0.1])
 nuf = np.array([-0.1, -0.1])
 k = sym_ocp.default_values
 
-guess = DualSol(t=t, x=x, lam=lam, nu0=nu0, nuf=nuf, k=k)
+guess = num_solver.solve(k, DualSol(t=t, x=x, lam=lam, nu0=nu0, nuf=nuf, k=k))
+sol_set = SolutionSet(sym_bvp, guess)
+cont = ContinuationHandler(sol_set)
+cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
-sol = solver_alg.solve(k, guess)
+with Timer(prefix='Continuation Time:'):
+    for series in cont.continuation_series:
+        for k, guess in series:
+            sol_i = num_solver.solve(k, guess)
+            sol_set.append(sol_i)
 
-with open('sol.data', 'wb') as file:
-    pickle.dump(sol, file)
+with open('sol_set.data', 'wb') as file:
+    pickle.dump(sol_set, file)
