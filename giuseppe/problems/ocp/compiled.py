@@ -30,15 +30,16 @@ class CompOCP(Picky):
 
         self.num_states = len(self.src_ocp.states)
         self.num_constants = len(self.src_ocp.constants)
+        self.num_controls = len(self.src_ocp.controls)
 
         self.sym_args = {
-            'static': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.constants.flat()),
+            'static' : (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.constants.flat()),
             'dynamic': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.controls.flat(),
                         self.src_ocp.constants.flat())
         }
 
         self.args_numba_signature = {
-            'static': (NumbaFloat, NumbaArray, NumbaArray),
+            'static' : (NumbaFloat, NumbaArray, NumbaArray),
             'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
         }
 
