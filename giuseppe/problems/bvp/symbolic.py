@@ -21,6 +21,7 @@ class SymBVP(Symbolic):
 
         self.independent: Symbol = SYM_NULL
         self.states: SymMatrix = EMPTY_SYM_MATRIX
+        self.parameters: SymMatrix = EMPTY_SYM_MATRIX
         self.dynamics: SymMatrix = EMPTY_SYM_MATRIX
         self.constants: SymMatrix = EMPTY_SYM_MATRIX
 
@@ -34,6 +35,7 @@ class SymBVP(Symbolic):
     def process_variables_from_input(self, input_data: InputBVP):
         self.independent = self.new_sym(input_data.independent)
         self.states = SymMatrix([self.new_sym(state.name) for state in input_data.states])
+        self.parameters = SymMatrix([self.new_sym(parameter) for parameter in input_data.parameters])
         self.constants = SymMatrix([self.new_sym(constant.name) for constant in input_data.constants])
         self.default_values = np.array([constant.default_value for constant in input_data.constants])
 

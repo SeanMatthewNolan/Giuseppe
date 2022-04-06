@@ -71,9 +71,11 @@ class ScipySolveBVP(Picky):
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + (tf + t0) / 2
 
+            p = p[:-2]
+
             x_dot = np.empty_like(x_vec)  # Need to pre-allocate for Numba
             for idx, (ti, xi) in enumerate(zip(t_vec, x_vec.T)):
-                x_dot[:, idx] = bvp_dyn(ti, xi, k)
+                x_dot[:, idx] = bvp_dyn(ti, xi, p, k)
 
             return x_dot * tau_mult
 
@@ -88,7 +90,8 @@ class ScipySolveBVP(Picky):
 
         def boundary_conditions(x0: NPArray, xf: NPArray, p: NPArray, k: NPArray):
             t0, tf = p[-2], p[-1]
-            return np.concatenate((bvp_bc0(t0, x0, k), bvp_bcf(tf, xf, k)))
+            p = p[:-2]
+            return np.concatenate((bvp_bc0(t0, x0, p, k), bvp_bcf(tf, xf, p, k)))
 
         if self.do_jit_compile:
             boundary_conditions = jit_compile(boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
@@ -98,7 +101,7 @@ class ScipySolveBVP(Picky):
     @staticmethod
     def _preprocess_bvp_sol(sol: BVPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
-        p_guess = np.array([t0, tf])
+        p_guess = np.concatenate((sol.p, np.array([t0, tf])))
         tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
         return tau_guess, sol.x, p_guess
 

@@ -27,6 +27,7 @@ class InputBVP:
     def __init__(self):
         self.independent = None
         self.states: list[InputState] = []
+        self.parameters: list[str] = []
         self.constants: list[InputConstant] = []
         self.constraints: InputConstraints = InputConstraints()
 
@@ -36,6 +37,10 @@ class InputBVP:
 
     def add_state(self, name: str, eom: str):
         self.states.append(InputState(name, eom))
+        return self
+
+    def add_parameter(self, name: str):
+        self.parameters.append(name)
         return self
 
     def add_constant(self, name: str, default_value: float = 0.):
