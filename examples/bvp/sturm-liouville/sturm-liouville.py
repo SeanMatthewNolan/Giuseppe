@@ -4,8 +4,9 @@ import numpy as np
 
 from giuseppe.continuation import SolutionSet, ContinuationHandler
 from giuseppe.io import InputBVP
+from giuseppe.guess_generators import generate_ones_ocp_guess
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
-from giuseppe.problems.bvp import SymBVP, CompBVP, BVPSol
+from giuseppe.problems.bvp import SymBVP, CompBVP
 from giuseppe.utils import Timer
 
 sturm_liouville = InputBVP()
@@ -33,19 +34,12 @@ sturm_liouville.add_constraint('terminal', 'y - y_f')
 with Timer(prefix='Complilation Time:'):
     sym_bvp = SymBVP(sturm_liouville)
     comp_bvp = CompBVP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_bvp, do_jit_compile=True)
+    num_solver = ScipySolveBVP(comp_bvp)
 
-n_steps = 11
+guess = generate_ones_ocp_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
+seed_sol = num_solver.solve(sym_bvp.default_values, guess)
 
-t0, tf = 0., 1.
-x0, xf = np.array([1., 1.]), np.array([1., -1.])
-tau_vec = np.linspace(0., 1., n_steps)
-x_vec = np.linspace(x0, xf, n_steps).T
-p_vec = np.array([1.])
-
-guess = num_solver.solve(sym_bvp.default_values, BVPSol(t=tau_vec, x=x_vec, p=p_vec, k=sym_bvp.default_values))
-
-sol_set = SolutionSet(sym_bvp, guess)
+sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'a': 100})
 
