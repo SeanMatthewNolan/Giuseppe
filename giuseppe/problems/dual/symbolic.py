@@ -14,16 +14,18 @@ class SymDual(Symbolic, Picky):
 
         self.src_ocp: SymOCP = deepcopy(ocp)
 
-        self.costates = SymMatrix([self.new_sym(f'_lam_{state}') for state in ocp.states])
+        states_and_parameters = SymMatrix(ocp.states.flat() + ocp.parameters.flat())
+
+        self.costates = SymMatrix([self.new_sym(f'_lam_{state}') for state in states_and_parameters])
 
         self.initial_adjoints = SymMatrix(
                 [self.new_sym(f'_nu_0_{idx}') for idx, _ in enumerate(ocp.boundary_conditions.initial)])
         self.terminal_adjoints = SymMatrix(
                 [self.new_sym(f'_nu_f_{idx}') for idx, _ in enumerate(ocp.boundary_conditions.terminal)])
 
-        self.hamiltonian = ocp.cost.path + matrix_as_scalar(self.costates.T @ ocp.dynamics)
+        self.hamiltonian = ocp.cost.path + matrix_as_scalar(self.costates[:len(ocp.states.flat()), :].T @ ocp.dynamics)
 
-        self.costate_dynamics = -self.hamiltonian.diff(ocp.states)
+        self.costate_dynamics = -self.hamiltonian.diff(states_and_parameters)
 
         self.augmented_cost = SymCost(
                 ocp.cost.initial + matrix_as_scalar(self.initial_adjoints.T @ ocp.boundary_conditions.initial),
@@ -33,11 +35,11 @@ class SymDual(Symbolic, Picky):
 
         initial_adjoined_bcs = SymMatrix([
             self.augmented_cost.initial.diff(ocp.independent) - self.hamiltonian,
-            SymMatrix([self.augmented_cost.initial]).jacobian(ocp.states).T + self.costates
+            SymMatrix([self.augmented_cost.initial]).jacobian(states_and_parameters).T + self.costates
         ])
         terminal_adjoined_bcs = SymMatrix([
             self.augmented_cost.terminal.diff(ocp.independent) + self.hamiltonian,
-            SymMatrix([self.augmented_cost.terminal]).jacobian(ocp.states).T - self.costates
+            SymMatrix([self.augmented_cost.terminal]).jacobian(states_and_parameters).T - self.costates
         ])
         self.adjoined_boundary_conditions = SymBoundaryConditions(
                 initial=initial_adjoined_bcs, terminal=terminal_adjoined_bcs
@@ -67,7 +69,8 @@ class DifferentialControlHandler:
         self.f_u: SymMatrix = sym_ocp.dynamics.jacobian(sym_ocp.controls)
 
         self.control_dynamics = \
-            -self.h_uu.inv() * (self.h_ut + self.h_ux @ sym_ocp.dynamics + self.f_u.T @ sym_dual.costate_dynamics)
+            -self.h_uu.inv() * (self.h_ut + self.h_ux @ sym_ocp.dynamics
+                                + self.f_u.T @ sym_dual.costate_dynamics[:len(sym_ocp.states.flat()), :])
 
 
 # TODO: Consider exposing OCP and Dual attributes

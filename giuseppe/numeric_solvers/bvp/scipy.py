@@ -122,6 +122,8 @@ class ScipySolveBVP(Picky):
         costate_dyn = dual_ocp.comp_dual.costate_dynamics
 
         n_x = dual_ocp.comp_ocp.num_states
+        n_p = dual_ocp.comp_ocp.num_parameters
+        n_lam = dual_ocp.comp_dual.num_costates
 
         control = dual_ocp.control_handler.control
 
@@ -129,15 +131,16 @@ class ScipySolveBVP(Picky):
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + (tf + t0) / 2
+            p = p[:n_p]
 
             y_dot = np.empty_like(y_vec)  # Need to pre-allocate for Numba
             for idx, (ti, yi) in enumerate(zip(t_vec, y_vec.T)):
                 xi = yi[:n_x]
-                lami = yi[n_x:]
-                ui = control(t0, xi, lami, k)
+                lami = yi[n_x:n_x + n_lam]
 
-                y_dot[:n_x, idx] = state_dyn(ti, xi, ui, k)
-                y_dot[n_x:, idx] = costate_dyn(ti, xi, lami, ui, k)
+                ui = control(t0, xi, lami, p, k)
+                y_dot[:n_x, idx] = state_dyn(ti, xi, ui, p, k)
+                y_dot[n_x:n_x + n_lam, idx] = costate_dyn(ti, xi, lami, ui, p, k)
 
             return y_dot * tau_mult
 
@@ -154,30 +157,31 @@ class ScipySolveBVP(Picky):
         dual_bcf = dual_ocp.comp_dual.adjoined_boundary_conditions.terminal
 
         n_x = dual_ocp.comp_ocp.num_states
-        n_p = 0
+        n_p = dual_ocp.comp_ocp.num_parameters
+        n_lam = dual_ocp.comp_dual.num_costates
         n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
         n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
 
         control = dual_ocp.control_handler.control
 
-        def boundary_conditions(y0: NPArray, yf: NPArray, r: NPArray, k: NPArray):
+        def boundary_conditions(y0: NPArray, yf: NPArray, _p: NPArray, k: NPArray):
             x0 = y0[:n_x]
-            lam0 = y0[n_x:]
+            lam0 = y0[n_x:n_x + n_lam]
 
             xf = yf[:n_x]
-            lamf = yf[n_x:]
+            lamf = yf[n_x:n_x + n_lam]
 
-            # p = r[:n_p]
-            nu0 = r[n_p:n_p + n_nu_0]
-            nuf = r[n_p + n_nu_0: n_p + n_nu_0 + n_nu_f]
-            t0, tf = r[-2], r[-1]
+            p = _p[:n_p]
+            nu0 = _p[n_p:n_p + n_nu_0]
+            nuf = _p[n_p + n_nu_0: n_p + n_nu_0 + n_nu_f]
+            t0, tf = _p[-2], _p[-1]
 
-            u0 = control(t0, x0, lam0, k)
-            uf = control(tf, xf, lamf, k)
+            u0 = control(t0, x0, lam0, p, k)
+            uf = control(tf, xf, lamf, p, k)
 
             return np.concatenate((
-                ocp_bc0(t0, x0, k), ocp_bcf(tf, xf, k),
-                dual_bc0(t0, x0, lam0, u0, nu0, k), dual_bcf(tf, xf, lamf, uf, nuf, k)
+                ocp_bc0(t0, x0, p, k), ocp_bcf(tf, xf, p, k),
+                dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k)
             ))
 
         if self.do_jit_compile:
@@ -198,7 +202,8 @@ class ScipySolveBVP(Picky):
             -> Callable[[_scipy_bvp_sol, ndarray], DualSol]:
 
         n_x = dual_ocp.comp_ocp.num_states
-        n_p = 0
+        n_p = dual_ocp.comp_ocp.num_parameters
+        n_lam = dual_ocp.comp_dual.num_costates
         n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
         n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
 
@@ -210,13 +215,13 @@ class ScipySolveBVP(Picky):
             t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
 
             x: NPArray = scipy_sol.y[:n_x]
-            lam: NPArray = scipy_sol.y[n_x:]
+            lam: NPArray = scipy_sol.y[n_x:n_x + n_lam]
 
             p: NPArray = scipy_sol.p[:n_p]
             nu_0: NPArray = scipy_sol.p[n_p:n_p + n_nu_0]
             nu_f: NPArray = scipy_sol.p[n_p + n_nu_0:n_p + n_nu_0 + n_nu_f]
 
-            u = np.array([control(ti, xi, lami, k) for ti, xi, lami in zip(t, x.T, lam.T)]).T
+            u = np.array([control(ti, xi, lami, p, k) for ti, xi, lami in zip(t, x.T, lam.T)]).T
 
             return DualSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
 
@@ -228,22 +233,25 @@ class ScipySolveBVP(Picky):
         control_dyn = dual_ocp.control_handler.control_dynamics
 
         n_x = dual_ocp.comp_ocp.num_states
+        n_p = dual_ocp.comp_ocp.num_parameters
+        n_lam = dual_ocp.comp_dual.num_costates
         n_u = dual_ocp.comp_ocp.num_controls
 
         def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + (tf + t0) / 2
+            p = p[:n_p]
 
             y_dot = np.empty_like(y_vec)  # Need to pre-allocate for Numba
             for idx, (ti, yi) in enumerate(zip(t_vec, y_vec.T)):
                 xi = yi[:n_x]
-                lami = yi[n_x:2 * n_x]
-                ui = yi[2 * n_x:2 * n_x + n_u]
+                lami = yi[n_x:n_x + n_lam]
+                ui = yi[n_x + n_lam:n_x + n_lam + n_u]
 
-                y_dot[:n_x, idx] = state_dyn(ti, xi, ui, k)
-                y_dot[n_x:2 * n_x, idx] = costate_dyn(ti, xi, lami, ui, k)
-                y_dot[2 * n_x:2 * n_x + n_u, idx] = control_dyn(ti, xi, lami, ui, k)
+                y_dot[:n_x, idx] = state_dyn(ti, xi, ui, p, k)
+                y_dot[n_x:n_x + n_lam, idx] = costate_dyn(ti, xi, lami, ui, p, k)
+                y_dot[n_x + n_lam:n_x + n_lam + n_u, idx] = control_dyn(ti, xi, lami, ui, p, k)
 
             return y_dot * tau_mult
 
@@ -263,28 +271,29 @@ class ScipySolveBVP(Picky):
 
         n_x = dual_ocp.comp_ocp.num_states
         n_u = dual_ocp.comp_ocp.num_controls
-        n_p = 0
+        n_p = dual_ocp.comp_ocp.num_parameters
+        n_lam = dual_ocp.comp_dual.num_costates
         n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
         n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
 
-        def boundary_conditions(y0: NPArray, yf: NPArray, r: NPArray, k: NPArray):
+        def boundary_conditions(y0: NPArray, yf: NPArray, _p: NPArray, k: NPArray):
             x0 = y0[:n_x]
-            lam0 = y0[n_x:2 * n_x]
-            u0 = y0[2 * n_x:2 * n_x + n_u]
+            lam0 = y0[n_x:n_x + n_lam]
+            u0 = y0[n_x + n_lam:n_x + n_lam + n_u]
 
             xf = yf[:n_x]
-            lamf = yf[n_x:2 * n_x]
-            uf = yf[2 * n_x:2 * n_x + n_u]
+            lamf = yf[n_x:n_x + n_lam]
+            uf = yf[n_x + n_lam:n_x + n_lam + n_u]
 
-            # p = r[:n_p]
-            nu0 = r[n_p:n_p + n_nu_0]
-            nuf = r[n_p + n_nu_0: n_p + n_nu_0 + n_nu_f]
-            t0, tf = r[-2], r[-1]
+            p = _p[:n_p]
+            nu0 = _p[n_p:n_p + n_nu_0]
+            nuf = _p[n_p + n_nu_0: n_p + n_nu_0 + n_nu_f]
+            t0, tf = _p[-2], _p[-1]
 
             return np.concatenate((
-                ocp_bc0(t0, x0, k), ocp_bcf(tf, xf, k),
-                dual_bc0(t0, x0, lam0, u0, nu0, k), dual_bcf(tf, xf, lamf, uf, nuf, k),
-                control_bc(t0, x0, lam0, u0, k)
+                ocp_bc0(t0, x0, p, k), ocp_bcf(tf, xf, p, k),
+                dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k),
+                control_bc(t0, x0, lam0, u0, p, k)
             ))
 
         if self.do_jit_compile:
@@ -305,9 +314,10 @@ class ScipySolveBVP(Picky):
             -> Callable[[_scipy_bvp_sol, ndarray], DualSol]:
 
         n_x = dual_ocp.comp_ocp.num_states
-        n_p = 0
+        n_p = dual_ocp.comp_ocp.num_parameters
         n_u = dual_ocp.comp_ocp.num_controls
 
+        n_lam = dual_ocp.comp_dual.num_costates
         n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
         n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
 
@@ -317,8 +327,8 @@ class ScipySolveBVP(Picky):
             t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
 
             x: NPArray = scipy_sol.y[:n_x]
-            lam: NPArray = scipy_sol.y[n_x:2 * n_x]
-            u: NPArray = scipy_sol.y[2 * n_x:2 * n_x + n_u]
+            lam: NPArray = scipy_sol.y[n_x:n_x + n_lam]
+            u: NPArray = scipy_sol.y[n_x + n_lam:n_x + n_lam + n_u]
 
             p: NPArray = scipy_sol.p[:n_p]
             nu_0: NPArray = scipy_sol.p[n_p:n_p + n_nu_0]

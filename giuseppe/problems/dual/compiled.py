@@ -27,17 +27,20 @@ class CompDual(Picky):
 
         self.sym_args = {
             'initial': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
-                        self.src_ocp.controls.flat(), self.src_dual.initial_adjoints, self.src_ocp.constants.flat()),
+                        self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
+                        self.src_dual.initial_adjoints.flat(), self.src_ocp.constants.flat()),
             'dynamic': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
-                        self.src_ocp.controls.flat(), self.src_ocp.constants.flat()),
+                        self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
+                        self.src_ocp.constants.flat()),
             'terminal': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
-                         self.src_ocp.controls.flat(), self.src_dual.terminal_adjoints, self.src_ocp.constants.flat()),
+                         self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
+                         self.src_dual.terminal_adjoints, self.src_ocp.constants.flat())
         }
 
         self.args_numba_signature = {
-            'initial': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-            'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-            'terminal': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'initial': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'terminal': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
         }
 
         self.costate_dynamics = self.compile_costate_dynamics()
@@ -48,8 +51,9 @@ class CompDual(Picky):
     def compile_costate_dynamics(self):
         lam_func = lambdify(self.sym_args['dynamic'], tuple(self.src_dual.costate_dynamics.flat()))
 
-        def costate_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_func(t, x, lam, u, k))
+        def costate_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike)\
+                -> ArrayLike:
+            return np.array(lam_func(t, x, lam, u, p, k))
 
         return jit_compile(costate_dynamics, signature=self.args_numba_signature['dynamic'])
 
@@ -59,13 +63,13 @@ class CompDual(Picky):
         lam_bcf = lambdify(self.sym_args['terminal'],
                            tuple(self.src_dual.adjoined_boundary_conditions.terminal.flat()))
 
-        def initial_boundary_conditions(t0: float, x0: ArrayLike, lam0: ArrayLike, u0: ArrayLike,
+        def initial_boundary_conditions(t0: float, x0: ArrayLike, lam0: ArrayLike, u0: ArrayLike, p: ArrayLike,
                                         nu0: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_bc0(t0, x0, lam0, u0, nu0, k))
+            return np.array(lam_bc0(t0, x0, lam0, u0, p, nu0, k))
 
-        def terminal_boundary_conditions(tf: float, xf: ArrayLike, lamf: ArrayLike, uf: ArrayLike,
+        def terminal_boundary_conditions(tf: float, xf: ArrayLike, lamf: ArrayLike, uf: ArrayLike, p: ArrayLike,
                                          nuf: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_bcf(tf, xf, lamf, uf, nuf, k))
+            return np.array(lam_bcf(tf, xf, lamf, uf, p, nuf, k))
 
         return CompBoundaryConditions(
                 jit_compile(initial_boundary_conditions, signature=self.args_numba_signature['initial']),
@@ -77,16 +81,16 @@ class CompDual(Picky):
         lam_ham = lambdify(self.sym_args['dynamic'], self.src_dual.augmented_cost.path)
         lam_cost_f = lambdify(self.sym_args['terminal'], self.src_dual.augmented_cost.terminal)
 
-        def initial_aug_cost(t0: float, x0: ArrayLike, lam0: ArrayLike, u0: ArrayLike,
+        def initial_aug_cost(t0: float, x0: ArrayLike, lam0: ArrayLike, u0: ArrayLike, p: ArrayLike,
                              nu0: ArrayLike, k: ArrayLike) -> float:
-            return lam_cost_0(t0, x0, lam0, u0, nu0, k)
+            return lam_cost_0(t0, x0, lam0, u0, p, nu0, k)
 
-        def hamiltonian(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike) -> float:
-            return lam_ham(t, x, lam, u, k)
+        def hamiltonian(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
+            return lam_ham(t, x, lam, u, p, k)
 
-        def terminal_aug_cost(tf: float, xf: ArrayLike, lamf: ArrayLike, uf: ArrayLike,
+        def terminal_aug_cost(tf: float, xf: ArrayLike, lamf: ArrayLike, uf: ArrayLike, p: ArrayLike,
                               nuf: ArrayLike, k: ArrayLike) -> float:
-            return lam_cost_f(tf, xf, lamf, uf, nuf, k)
+            return lam_cost_f(tf, xf, lamf, uf, p, nuf, k)
 
         return CompCost(
                 jit_compile(initial_aug_cost, signature=self.args_numba_signature['initial']),
@@ -100,8 +104,9 @@ class CompAlgControlHandler:
         self.src_handler = deepcopy(source_handler)
         self.comp_dual = comp_dual
         self.sym_args = (self.comp_dual.src_ocp.independent, self.comp_dual.src_ocp.states.flat(),
-                         self.comp_dual.src_dual.costates.flat(), self.comp_dual.src_ocp.constants.flat())
-        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+                         self.comp_dual.src_dual.costates.flat(), self.comp_dual.src_ocp.parameters.flat(),
+                         self.comp_dual.src_ocp.constants.flat())
+        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
         self.control = self.compile_control()
 
     def compile_control(self):
@@ -112,18 +117,18 @@ class CompAlgControlHandler:
         if num_options == 1:
             lam_control = lambdify(self.sym_args, list(control_law[-1]))
 
-            def control(t: float, x: ArrayLike, lam: ArrayLike, k: ArrayLike):
-                return np.array(lam_control(t, x, lam, k))
+            def control(t: float, x: ArrayLike, lam: ArrayLike, p: ArrayLike, k: ArrayLike):
+                return np.array(lam_control(t, x, lam, p, k))
 
         else:
             hamiltonian = self.comp_dual.hamiltonian
             lam_control = lambdify(self.sym_args, SymMatrix(control_law))
 
-            def control(t: float, x: ArrayLike, lam: ArrayLike, k: ArrayLike):
-                control_options = lam_control(t, x, lam, k)
+            def control(t: float, x: ArrayLike, lam: ArrayLike, p: ArrayLike, k: ArrayLike):
+                control_options = lam_control(t, x, lam, p, k)
                 hamiltonians = np.empty((num_options,))
                 for idx in range(num_options):
-                    hamiltonians[idx] = hamiltonian(t, x, lam, control_options[idx], k)
+                    hamiltonians[idx] = hamiltonian(t, x, lam, control_options[idx], p, k)
 
                 return control_options[np.argmin(hamiltonians)]
 
@@ -143,16 +148,16 @@ class CompDiffControlHandler:
     def compile_control_rate(self):
         lam_control_dynamics = lambdify(self.sym_args, self.src_handler.control_dynamics.flat())
 
-        def control_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike):
-            return np.array(lam_control_dynamics(t, x, lam, u, k))
+        def control_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike):
+            return np.array(lam_control_dynamics(t, x, lam, u, p, k))
 
         return jit_compile(control_dynamics, self.args_numba_signature)
 
     def compile_control_bc(self):
         lam_control_bc = lambdify(self.sym_args, self.src_handler.h_u.flat())
 
-        def control_bc(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, k: ArrayLike):
-            return np.array(lam_control_bc(t, x, lam, u, k))
+        def control_bc(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike):
+            return np.array(lam_control_bc(t, x, lam, u, p, k))
 
         return jit_compile(control_bc, self.args_numba_signature)
 

@@ -1,15 +1,13 @@
 ---
 title: Giuseppe TODOs and Ideas
 author: Sean Matthew Nolan
-date: 3/25/22
+date: 4/6/22
 ---
 
 # TODOs
 
 - Add guess generators
-- Add parameter support
 - Add inequality constraints 
-- Add interface for OCP for SciPy solver
 
 # Ideas
 
