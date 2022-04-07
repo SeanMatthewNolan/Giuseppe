@@ -1,29 +1,39 @@
 from typing import Union
-from collections.abc import Sized
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from ..problems.bvp import CompBVP, BVPSol
+from ..problems.dual import DualSol, DualOCPSol
+from ..problems.dual.utils import sift_ocp_and_dual
+from ..problems.dual.solution import Solution
 from ..problems.ocp import CompOCP, OCPSol
 
 
-def generate_ones_ocp_guess(prob: Union[CompBVP, CompOCP], t_span: Union[float, ArrayLike] = 0.1,
-                            multiplier: float = 1.) -> Union[BVPSol, OCPSol]:
+def generate_constant_guess(comp_prob: Union[CompBVP, CompOCP], t_span: Union[float, ArrayLike] = 0.1,
+                            constant: float = 1.) -> Union[BVPSol, OCPSol, DualSol, DualOCPSol]:
+    prob, dual = sift_ocp_and_dual(comp_prob)
+
+    data = {'converged': False}
+
     if isinstance(t_span, float) or isinstance(t_span, int):
-        t = np.array([0., t_span], dtype=float)
+        data['t'] = np.array([0., t_span], dtype=float)
     else:
-        t = np.array(t_span)
+        data['t'] = np.array(t_span, dtype=float)
 
-    num_t_steps = len(t)
+    num_t_steps = len(data['t'])
 
-    x = np.ones((prob.num_states, num_t_steps)) * multiplier
-    p = np.ones((prob.num_parameters,)) * multiplier
-    k = prob.src_bvp.default_values
+    if prob is not None:
+        data['x'] = np.ones((prob.num_states, num_t_steps)) * constant
+        data['p'] = np.ones((prob.num_parameters,)) * constant
+        data['k'] = prob.src_bvp.default_values
 
-    if isinstance(prob, CompBVP):
-        return BVPSol(t=t, x=x, p=p, k=k)
+    if isinstance(prob, CompOCP):
+        data['u'] = np.ones((prob.num_controls, num_t_steps)) * constant
 
-    elif isinstance(prob, CompOCP):
-        u = np.ones((prob.num_controls, num_t_steps)) * multiplier
-        return OCPSol(t=t, x=x, u=u, p=p, k=k)
+    if dual is not None:
+        data['lam'] = np.ones((dual.num_costates, num_t_steps)) * constant
+        data['nu0'] = np.ones((dual.num_initial_adjoints,)) * constant
+        data['nuf'] = np.ones((dual.num_terminal_adjoints,)) * constant
+
+    return Solution(**data)

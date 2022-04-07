@@ -3,11 +3,11 @@ import pickle
 import numpy as np
 
 import giuseppe
-from giuseppe.io import InputOCP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP, DualSol
-from giuseppe.problems.ocp import SymOCP
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.continuation import ContinuationHandler, SolutionSet
+from giuseppe.io import InputOCP
+from giuseppe.numeric_solvers.bvp import ScipySolveBVP
+from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP, DualOCPSol
+from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
 
 giuseppe.utils.complilation.JIT_COMPILE = True
@@ -45,8 +45,8 @@ with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    comp_dual_ocp = CompDualOCP(sym_bvp, use_jit_compile=False)
-    num_solver = ScipySolveBVP(comp_dual_ocp, use_jit_compile=False)
+    comp_dual_ocp = CompDualOCP(sym_bvp)
+    num_solver = ScipySolveBVP(comp_dual_ocp)
 
 n = 2
 t = np.linspace(0, 0.25, n)
@@ -56,7 +56,7 @@ nu0 = np.array([-0.1, -0.1, -0.1, -0.1])
 nuf = np.array([-0.1, -0.1])
 k = sym_ocp.default_values
 
-guess = num_solver.solve(k, DualSol(t=t, x=x, lam=lam, nu0=nu0, nuf=nuf, k=k))
+guess = num_solver.solve(k, DualOCPSol(t=t, x=x, lam=lam, nu0=nu0, nuf=nuf, k=k))
 sol_set = SolutionSet(sym_bvp, guess)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)

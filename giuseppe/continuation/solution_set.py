@@ -1,11 +1,11 @@
-from copy import deepcopy
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence, Hashable
+from copy import deepcopy
 from typing import Union, overload
 
 from ..problems.bvp import SymBVP, BVPSol
-from ..problems.ocp import SymOCP
 from ..problems.dual import SymDualOCP
+from ..problems.ocp import SymOCP
 from ..utils.mixins import Picky
 
 
@@ -35,33 +35,39 @@ class SolutionSet(MutableSequence, Picky):
 
     @overload
     @abstractmethod
-    def __getitem__(self, i: int) -> BVPSol: ...
+    def __getitem__(self, i: int) -> BVPSol:
+        ...
 
     @overload
     @abstractmethod
-    def __getitem__(self, s: slice) -> MutableSequence[BVPSol]: ...
+    def __getitem__(self, s: slice) -> MutableSequence[BVPSol]:
+        ...
 
     def __getitem__(self, i: int) -> BVPSol:
         return self.solutions.__getitem__(i)
 
     @overload
     @abstractmethod
-    def __setitem__(self, i: int, o: BVPSol) -> None: ...
+    def __setitem__(self, i: int, o: BVPSol) -> None:
+        ...
 
     @overload
     @abstractmethod
-    def __setitem__(self, s: slice, o: Iterable[BVPSol]) -> None: ...
+    def __setitem__(self, s: slice, o: Iterable[BVPSol]) -> None:
+        ...
 
     def __setitem__(self, i: int, o: BVPSol) -> None:
         self.__setitem__(i, o)
 
     @overload
     @abstractmethod
-    def __delitem__(self, i: int) -> None: ...
+    def __delitem__(self, i: int) -> None:
+        ...
 
     @overload
     @abstractmethod
-    def __delitem__(self, i: slice) -> None: ...
+    def __delitem__(self, i: slice) -> None:
+        ...
 
     def __delitem__(self, i: int) -> None:
         self.solutions.__delitem__(i)

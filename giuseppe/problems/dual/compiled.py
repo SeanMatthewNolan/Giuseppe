@@ -27,20 +27,20 @@ class CompDual(Picky):
         self.num_terminal_adjoints = len(self.src_dual.terminal_adjoints)
 
         self.sym_args = {
-            'initial': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
-                        self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
-                        self.src_dual.initial_adjoints.flat(), self.src_ocp.constants.flat()),
-            'dynamic': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
-                        self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
-                        self.src_ocp.constants.flat()),
+            'initial' : (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
+                         self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
+                         self.src_dual.initial_adjoints.flat(), self.src_ocp.constants.flat()),
+            'dynamic' : (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
+                         self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
+                         self.src_ocp.constants.flat()),
             'terminal': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_dual.costates.flat(),
                          self.src_ocp.controls.flat(), self.src_ocp.parameters.flat(),
                          self.src_dual.terminal_adjoints, self.src_ocp.constants.flat())
         }
 
         self.args_numba_signature = {
-            'initial': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-            'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'initial' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'dynamic' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
             'terminal': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
         }
 
@@ -53,7 +53,7 @@ class CompDual(Picky):
         lam_func = lambdify(self.sym_args['dynamic'], tuple(self.src_dual.costate_dynamics.flat()),
                             use_jit_compile=self.use_jit_compile)
 
-        def costate_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike)\
+        def costate_dynamics(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike) \
                 -> ArrayLike:
             return np.array(lam_func(t, x, lam, u, p, k))
 

@@ -1,1 +1,1 @@
-from .constant import generate_ones_ocp_guess
+from .constant import generate_constant_guess

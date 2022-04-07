@@ -6,7 +6,7 @@ from numpy import ndarray
 from scipy.integrate import solve_bvp
 
 from ...problems.bvp import CompBVP, BVPSol
-from ...problems.dual import CompDualOCP, DualSol
+from ...problems.dual import CompDualOCP, DualOCPSol
 from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler
 from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
@@ -198,7 +198,7 @@ class ScipySolveBVP(Picky):
         return boundary_conditions
 
     @staticmethod
-    def _preprocess_ocp_alg_sol(sol: DualSol) -> tuple[NPArray, NPArray, NPArray]:
+    def _preprocess_ocp_alg_sol(sol: DualOCPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
         p_guess = np.concatenate((sol.p, sol.nu0, sol.nuf, np.array([t0, tf])))
@@ -207,7 +207,7 @@ class ScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_postprocess_ocp_alg_sol(dual_ocp: CompDualOCP) \
-            -> Callable[[_scipy_bvp_sol, ndarray], DualSol]:
+            -> Callable[[_scipy_bvp_sol, ndarray], DualOCPSol]:
 
         n_x = dual_ocp.comp_ocp.num_states
         n_p = dual_ocp.comp_ocp.num_parameters
@@ -217,7 +217,7 @@ class ScipySolveBVP(Picky):
 
         control = dual_ocp.control_handler.control
 
-        def _postprocess_ocp_alg_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualSol:
+        def _postprocess_ocp_alg_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualOCPSol:
             tau: NPArray = scipy_sol.x
             t0, tf = scipy_sol.p[-2], scipy_sol.p[-1]
             t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
@@ -231,7 +231,7 @@ class ScipySolveBVP(Picky):
 
             u = np.array([control(ti, xi, lami, p, k) for ti, xi, lami in zip(t, x.T, lam.T)]).T
 
-            return DualSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
+            return DualOCPSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
 
         return _postprocess_ocp_alg_sol
 
@@ -310,7 +310,7 @@ class ScipySolveBVP(Picky):
         return boundary_conditions
 
     @staticmethod
-    def _preprocess_ocp_diff_sol(sol: DualSol) -> tuple[NPArray, NPArray, NPArray]:
+    def _preprocess_ocp_diff_sol(sol: DualOCPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
         p_guess = np.concatenate((sol.p, sol.nu0, sol.nuf, np.array([t0, tf])))
@@ -319,7 +319,7 @@ class ScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_postprocess_ocp_diff_sol(dual_ocp: CompDualOCP) \
-            -> Callable[[_scipy_bvp_sol, ndarray], DualSol]:
+            -> Callable[[_scipy_bvp_sol, ndarray], DualOCPSol]:
 
         n_x = dual_ocp.comp_ocp.num_states
         n_p = dual_ocp.comp_ocp.num_parameters
@@ -329,7 +329,7 @@ class ScipySolveBVP(Picky):
         n_nu_0 = dual_ocp.comp_dual.num_initial_adjoints
         n_nu_f = dual_ocp.comp_dual.num_terminal_adjoints
 
-        def _postprocess_ocp_diff_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualSol:
+        def _postprocess_ocp_diff_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualOCPSol:
             tau: NPArray = scipy_sol.x
             t0, tf = scipy_sol.p[-2], scipy_sol.p[-1]
             t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
@@ -342,7 +342,7 @@ class ScipySolveBVP(Picky):
             nu_0: NPArray = scipy_sol.p[n_p:n_p + n_nu_0]
             nu_f: NPArray = scipy_sol.p[n_p + n_nu_0:n_p + n_nu_0 + n_nu_f]
 
-            return DualSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
+            return DualOCPSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
 
         return _postprocess_ocp_diff_sol
 

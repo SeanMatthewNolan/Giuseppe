@@ -3,8 +3,8 @@ import pickle
 import numpy as np
 
 from giuseppe.continuation import SolutionSet, ContinuationHandler
+from giuseppe.guess_generators import generate_constant_guess
 from giuseppe.io import InputBVP
-from giuseppe.guess_generators import generate_ones_ocp_guess
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP
 from giuseppe.utils import Timer
@@ -36,7 +36,7 @@ with Timer(prefix='Complilation Time:'):
     comp_bvp = CompBVP(sym_bvp)
     num_solver = ScipySolveBVP(comp_bvp)
 
-guess = generate_ones_ocp_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
+guess = generate_constant_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
 seed_sol = num_solver.solve(sym_bvp.default_values, guess)
 
 sol_set = SolutionSet(sym_bvp, seed_sol)
