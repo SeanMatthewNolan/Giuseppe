@@ -2,7 +2,7 @@ from typing import Union, Sequence, Callable, Optional
 from warnings import warn
 
 import numba
-from numba.core.errors import NumbaRuntimeError
+from numba.core.errors import NumbaError
 from sympy import lambdify as sympy_lambdify, Expr
 from sympy.utilities.iterables import flatten
 
@@ -43,6 +43,6 @@ def jit_compile(func: Callable, signature: Optional = None):
         else:
             return numba.njit(cache=NUMBA_CACHE)(func)
 
-    except NumbaRuntimeError as e:
+    except NumbaError as e:
         warn(f'Numba error {e} prevented complilation of function {func}. Uncompiled version will be used.')
         return func
