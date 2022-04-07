@@ -1,4 +1,5 @@
-from typing import Union, Callable, TypeVar
+from typing import Union, Callable, TypeVar, Optional
+from warnings import warn
 
 import numpy as np
 from numpy import ndarray
@@ -21,17 +22,24 @@ _postprocess_type = Callable[[_scipy_bvp_sol, NPArray], BVPSol]
 class ScipySolveBVP(Picky):
     SUPPORTED_INPUTS = Union[CompBVP, CompDualOCP]
 
-    def __init__(self, bvp: SUPPORTED_INPUTS, do_jit_compile: bool = True,
+    def __init__(self, bvp: SUPPORTED_INPUTS, use_jit_compile: Optional[bool] = None,
                  tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
         Picky.__init__(self, bvp)
 
         # Options directly for scipy.solve_bvp
+        if use_jit_compile is None:
+            self.use_jit_compile: bool = bvp.use_jit_compile
+        else:
+            if not bvp.use_jit_compile and use_jit_compile:
+                warn('Cannot JIT compile BVP solver with non-JIT compiled BVP! Setting use_jit_compile to False')
+                self.use_jit_compile: bool = False
+            else:
+                self.use_jit_compile: bool = use_jit_compile
+
         self.tol: float = tol
         self.bc_tol: float = bc_tol
-        self.max_nodes = max_nodes
-        self.verbose = verbose
-
-        self.do_jit_compile: bool = do_jit_compile
+        self.max_nodes: int = max_nodes
+        self.verbose: bool = verbose
 
         dynamics, boundary_conditions, preprocess, postprocess = self.load_problem(bvp)
         self.dynamics: _dyn_type = dynamics
@@ -79,7 +87,7 @@ class ScipySolveBVP(Picky):
 
             return x_dot * tau_mult
 
-        if self.do_jit_compile:
+        if self.use_jit_compile:
             dynamics = jit_compile(dynamics, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray))
 
         return dynamics
@@ -93,7 +101,7 @@ class ScipySolveBVP(Picky):
             p = p[:-2]
             return np.concatenate((bvp_bc0(t0, x0, p, k), bvp_bcf(tf, xf, p, k)))
 
-        if self.do_jit_compile:
+        if self.use_jit_compile:
             boundary_conditions = jit_compile(boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
 
         return boundary_conditions
@@ -144,7 +152,7 @@ class ScipySolveBVP(Picky):
 
             return y_dot * tau_mult
 
-        if self.do_jit_compile:
+        if self.use_jit_compile:
             dynamics = jit_compile(dynamics, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray))
 
         return dynamics
@@ -184,7 +192,7 @@ class ScipySolveBVP(Picky):
                 dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k)
             ))
 
-        if self.do_jit_compile:
+        if self.use_jit_compile:
             boundary_conditions = jit_compile(boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
 
         return boundary_conditions
@@ -255,7 +263,7 @@ class ScipySolveBVP(Picky):
 
             return y_dot * tau_mult
 
-        if self.do_jit_compile:
+        if self.use_jit_compile:
             dynamics = jit_compile(dynamics, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray))
 
         return dynamics
@@ -296,7 +304,7 @@ class ScipySolveBVP(Picky):
                 control_bc(t0, x0, lam0, u0, p, k)
             ))
 
-        if self.do_jit_compile:
+        if self.use_jit_compile:
             boundary_conditions = jit_compile(boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
 
         return boundary_conditions

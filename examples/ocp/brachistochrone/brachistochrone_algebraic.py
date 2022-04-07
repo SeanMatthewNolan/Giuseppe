@@ -45,8 +45,8 @@ with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp)
+    comp_dual_ocp = CompDualOCP(sym_bvp, use_jit_compile=False)
+    num_solver = ScipySolveBVP(comp_dual_ocp, use_jit_compile=False)
 
 n = 2
 t = np.linspace(0, 0.25, n)
