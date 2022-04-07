@@ -37,7 +37,7 @@ with Timer(prefix='Complilation Time:'):
     num_solver = ScipySolveBVP(comp_bvp)
 
 guess = generate_constant_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
-seed_sol = num_solver.solve(sym_bvp.default_values, guess)
+seed_sol = num_solver.solve(guess.k, guess)
 
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)

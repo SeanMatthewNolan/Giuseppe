@@ -9,6 +9,7 @@ from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP, DualOCPSol
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
+from giuseppe.guess_generators import generate_constant_guess
 
 giuseppe.utils.complilation.JIT_COMPILE = True
 
@@ -48,23 +49,16 @@ with Timer(prefix='Complilation Time:'):
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp)
 
-n = 2
-t = np.linspace(0, 0.25, n)
-x = np.linspace(np.array([0., 0., 1.]), np.array([1., 1., 8.]), n).T
-lam = np.linspace(np.array([-0.1, -0.1, -0.1]), np.array([-0.1, -0.1, -0.1]), n).T
-nu0 = np.array([-0.1, -0.1, -0.1, -0.1])
-nuf = np.array([-0.1, -0.1])
-k = sym_ocp.default_values
-
-guess = num_solver.solve(k, DualOCPSol(t=t, x=x, lam=lam, nu0=nu0, nuf=nuf, k=k))
-sol_set = SolutionSet(sym_bvp, guess)
+guess = generate_constant_guess(comp_dual_ocp)
+seed_sol = num_solver.solve(guess.k, guess)
+sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
 with Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:
-        for k, guess in series:
-            sol_i = num_solver.solve(k, guess)
+        for k, last_sol in series:
+            sol_i = num_solver.solve(k, last_sol)
             sol_set.append(sol_i)
 
 with open('sol_set.data', 'wb') as file:

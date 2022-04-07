@@ -4,14 +4,16 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ..problems.bvp import CompBVP, BVPSol
-from ..problems.dual import DualSol, DualOCPSol
+from ..problems.dual import CompDual, CompDualOCP, DualSol, DualOCPSol
 from ..problems.dual.utils import sift_ocp_and_dual
 from ..problems.dual.solution import Solution
 from ..problems.ocp import CompOCP, OCPSol
 
 
-def generate_constant_guess(comp_prob: Union[CompBVP, CompOCP], t_span: Union[float, ArrayLike] = 0.1,
-                            constant: float = 1.) -> Union[BVPSol, OCPSol, DualSol, DualOCPSol]:
+def generate_constant_guess(comp_prob: Union[CompBVP, CompOCP, CompDual, CompDualOCP],
+                            t_span: Union[float, ArrayLike] = 0.1, constant: float = 1.)\
+        -> Union[BVPSol, OCPSol, DualSol, DualOCPSol]:
+
     prob, dual = sift_ocp_and_dual(comp_prob)
 
     data = {'converged': False}
@@ -26,7 +28,7 @@ def generate_constant_guess(comp_prob: Union[CompBVP, CompOCP], t_span: Union[fl
     if prob is not None:
         data['x'] = np.ones((prob.num_states, num_t_steps)) * constant
         data['p'] = np.ones((prob.num_parameters,)) * constant
-        data['k'] = prob.src_bvp.default_values
+        data['k'] = prob.default_values
 
     if isinstance(prob, CompOCP):
         data['u'] = np.ones((prob.num_controls, num_t_steps)) * constant

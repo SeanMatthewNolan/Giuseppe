@@ -34,6 +34,8 @@ class CompOCP(Picky):
         self.num_constants = len(self.src_ocp.constants)
         self.num_controls = len(self.src_ocp.controls)
 
+        self.default_values = self.src_ocp.default_values
+
         self.sym_args = {
             'static': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.parameters.flat(),
                        self.src_ocp.constants.flat()),

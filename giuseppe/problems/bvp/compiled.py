@@ -30,6 +30,7 @@ class CompBVP(Picky):
         self.num_states = len(self.src_bvp.states)
         self.num_parameters = len(self.src_bvp.parameters)
         self.num_constants = len(self.src_bvp.constants)
+        self.default_values = self.src_bvp.default_values
 
         self.sym_args = (self.src_bvp.independent, self.src_bvp.states.flat(), self.src_bvp.parameters.flat(),
                          self.src_bvp.constants.flat())
