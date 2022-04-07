@@ -14,13 +14,13 @@ LAMB_MODS = ['numpy']
 
 
 # TODO Find suitable type for expr
-def lambdify(args: Union[Sequence, Expr], expr, flatten_args: bool = False, compile_: bool = True):
+def lambdify(args: Union[Sequence, Expr], expr, flatten_args: bool = False, use_jit_compile: bool = True):
     if flatten_args:
         args = flatten(args)
 
     func = sympy_lambdify(args, expr, cse=CSE, modules=LAMB_MODS)
 
-    if compile_:
+    if use_jit_compile:
         func = jit_compile(func, signature=signature_from_args(args))
 
     return func
