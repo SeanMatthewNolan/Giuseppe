@@ -4,8 +4,9 @@ from copy import deepcopy
 from typing import Union, overload
 
 from ..problems.bvp import SymBVP, BVPSol
-from ..problems.dual import SymDualOCP
-from ..problems.ocp import SymOCP
+from ..problems.dual import SymDualOCP, DualSol, DualOCPSol
+from ..problems.ocp import SymOCP, OCPSol
+from ..problems.typing import AnySolution
 from ..utils.mixins import Picky
 
 
@@ -13,7 +14,7 @@ from ..utils.mixins import Picky
 class SolutionSet(MutableSequence, Picky):
     SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP]
 
-    def __init__(self, problem: Union[SymBVP, SymOCP, SymDualOCP], seed_solution: BVPSol):
+    def __init__(self, problem: Union[SymBVP, SymOCP, SymDualOCP], seed_solution: AnySolution):
         Picky.__init__(self, problem)
 
         self.problem = deepcopy(problem)
@@ -30,33 +31,33 @@ class SolutionSet(MutableSequence, Picky):
         # Annotations
         self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
 
-    def insert(self, index: int, solution: BVPSol) -> None:
+    def insert(self, index: int, solution: AnySolution) -> None:
         self.solutions.insert(index, solution)
 
     @overload
     @abstractmethod
-    def __getitem__(self, i: int) -> BVPSol:
+    def __getitem__(self, i: int) -> AnySolution:
         ...
 
     @overload
     @abstractmethod
-    def __getitem__(self, s: slice) -> MutableSequence[BVPSol]:
+    def __getitem__(self, s: slice) -> MutableSequence[AnySolution]:
         ...
 
-    def __getitem__(self, i: int) -> BVPSol:
+    def __getitem__(self, i: int) -> AnySolution:
         return self.solutions.__getitem__(i)
 
     @overload
     @abstractmethod
-    def __setitem__(self, i: int, o: BVPSol) -> None:
+    def __setitem__(self, i: int, o: AnySolution) -> None:
         ...
 
     @overload
     @abstractmethod
-    def __setitem__(self, s: slice, o: Iterable[BVPSol]) -> None:
+    def __setitem__(self, s: slice, o: Iterable[AnySolution]) -> None:
         ...
 
-    def __setitem__(self, i: int, o: BVPSol) -> None:
+    def __setitem__(self, i: int, o: AnySolution) -> None:
         self.__setitem__(i, o)
 
     @overload
