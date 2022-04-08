@@ -188,7 +188,7 @@ class ScipySolveBVP(Picky):
             uf = control(tf, xf, lamf, p, k)
 
             return np.concatenate((
-                ocp_bc0(t0, x0, p, k), ocp_bcf(tf, xf, p, k),
+                ocp_bc0(t0, x0, u0, p, k), ocp_bcf(tf, xf, uf, p, k),
                 dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k)
             ))
 
@@ -299,7 +299,7 @@ class ScipySolveBVP(Picky):
             t0, tf = _p[-2], _p[-1]
 
             return np.concatenate((
-                ocp_bc0(t0, x0, p, k), ocp_bcf(tf, xf, p, k),
+                ocp_bc0(t0, x0, u0, p, k), ocp_bcf(tf, xf, uf, p, k),
                 dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k),
                 control_bc(t0, x0, lam0, u0, p, k)
             ))

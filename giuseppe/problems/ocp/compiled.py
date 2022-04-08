@@ -36,73 +36,67 @@ class CompOCP(Picky):
 
         self.default_values = self.src_ocp.default_values
 
-        self.sym_args = {
-            'static': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.parameters.flat(),
-                       self.src_ocp.constants.flat()),
-            'dynamic': (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.controls.flat(),
-                        self.src_ocp.parameters.flat(), self.src_ocp.constants.flat())
-        }
+        self.sym_args = (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.controls.flat(),
+                         self.src_ocp.parameters.flat(), self.src_ocp.constants.flat())
 
-        self.args_numba_signature = {
-            'static': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray),
-            'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
-        }
+        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
 
         self.dynamics = self.compile_dynamics()
         self.boundary_conditions = self.compile_boundary_conditions()
         self.cost = self.compile_cost()
 
     def compile_dynamics(self):
-        lam_func = lambdify(self.sym_args['dynamic'], tuple(self.src_ocp.dynamics.flat()),
-                            use_jit_compile=self.use_jit_compile)
+        lam_func = lambdify(self.sym_args, tuple(self.src_ocp.dynamics.flat()), use_jit_compile=self.use_jit_compile)
 
         def dynamics(t: float, x: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike) -> ArrayLike:
             return np.array(lam_func(t, x, u, p, k))
 
         if self.use_jit_compile:
-            return jit_compile(dynamics, signature=self.args_numba_signature['dynamic'])
+            return jit_compile(dynamics, signature=self.args_numba_signature)
         else:
             return dynamics
 
     def compile_boundary_conditions(self):
-        lam_bc0 = lambdify(self.sym_args['static'], tuple(self.src_ocp.boundary_conditions.initial.flat()),
+        lam_bc0 = lambdify(self.sym_args, tuple(self.src_ocp.boundary_conditions.initial.flat()),
                            use_jit_compile=self.use_jit_compile)
-        lam_bcf = lambdify(self.sym_args['static'], tuple(self.src_ocp.boundary_conditions.terminal.flat()),
+        lam_bcf = lambdify(self.sym_args, tuple(self.src_ocp.boundary_conditions.terminal.flat()),
                            use_jit_compile=self.use_jit_compile)
 
-        def initial_boundary_conditions(t0: float, x0: ArrayLike, p: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_bc0(t0, x0, p, k))
+        def initial_boundary_conditions(t0: float, x0: ArrayLike, u0: ArrayLike, p: ArrayLike, k: ArrayLike) \
+                -> ArrayLike:
+            return np.array(lam_bc0(t0, x0, u0, p, k))
 
-        def terminal_boundary_conditions(tf: float, xf: ArrayLike, p: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_bcf(tf, xf, p, k))
+        def terminal_boundary_conditions(tf: float, xf: ArrayLike, uf: ArrayLike, p: ArrayLike, k: ArrayLike) \
+                -> ArrayLike:
+            return np.array(lam_bcf(tf, xf, uf, p, k))
 
         if self.use_jit_compile:
             return CompBoundaryConditions(
-                    jit_compile(initial_boundary_conditions, signature=self.args_numba_signature['static']),
-                    jit_compile(terminal_boundary_conditions, signature=self.args_numba_signature['static']),
+                    jit_compile(initial_boundary_conditions, signature=self.args_numba_signature),
+                    jit_compile(terminal_boundary_conditions, signature=self.args_numba_signature),
             )
         else:
             return CompBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
 
     def compile_cost(self):
-        lam_cost_0 = lambdify(self.sym_args['static'], self.src_ocp.cost.initial, use_jit_compile=self.use_jit_compile)
-        lam_cost_path = lambdify(self.sym_args['dynamic'], self.src_ocp.cost.path, use_jit_compile=self.use_jit_compile)
-        lam_cost_f = lambdify(self.sym_args['static'], self.src_ocp.cost.terminal, use_jit_compile=self.use_jit_compile)
+        lam_cost_0 = lambdify(self.sym_args, self.src_ocp.cost.initial, use_jit_compile=self.use_jit_compile)
+        lam_cost_path = lambdify(self.sym_args, self.src_ocp.cost.path, use_jit_compile=self.use_jit_compile)
+        lam_cost_f = lambdify(self.sym_args, self.src_ocp.cost.terminal, use_jit_compile=self.use_jit_compile)
 
-        def initial_cost(t0: float, x0: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
-            return lam_cost_0(t0, x0, p, k)
+        def initial_cost(t0: float, x0: ArrayLike, u0: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
+            return lam_cost_0(t0, x0, u0, p, k)
 
         def path_cost(t: float, x: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
             return lam_cost_path(t, x, u, p, k)
 
-        def terminal_cost(tf: float, xf: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
-            return lam_cost_f(tf, xf, p, k)
+        def terminal_cost(tf: float, xf: ArrayLike, uf: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
+            return lam_cost_f(tf, xf, uf, p, k)
 
         if self.use_jit_compile:
             return CompCost(
-                    jit_compile(initial_cost, signature=self.args_numba_signature['static']),
-                    jit_compile(path_cost, signature=self.args_numba_signature['dynamic']),
-                    jit_compile(terminal_cost, signature=self.args_numba_signature['static']),
+                    jit_compile(initial_cost, signature=self.args_numba_signature),
+                    jit_compile(path_cost, signature=self.args_numba_signature),
+                    jit_compile(terminal_cost, signature=self.args_numba_signature),
             )
         else:
             return CompCost(initial_cost, path_cost, terminal_cost)
