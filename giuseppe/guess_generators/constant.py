@@ -3,16 +3,14 @@ from typing import Union
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ..problems.bvp import CompBVP, BVPSol
-from ..problems.dual import CompDual, CompDualOCP, DualSol, DualOCPSol
 from ..problems.dual.utils import sift_ocp_and_dual
 from ..problems.dual.solution import Solution
-from ..problems.ocp import CompOCP, OCPSol
+from ..problems.ocp import CompOCP
+from ..problems.typing import AnyProblem, AnySolution
 
 
-def generate_constant_guess(comp_prob: Union[CompBVP, CompOCP, CompDual, CompDualOCP],
-                            t_span: Union[float, ArrayLike] = 0.1, constant: float = 1.)\
-        -> Union[BVPSol, OCPSol, DualSol, DualOCPSol]:
+def generate_constant_guess(comp_prob: AnyProblem, t_span: Union[float, ArrayLike] = 0.1, constant: float = 1.) \
+        -> AnySolution:
 
     prob, dual = sift_ocp_and_dual(comp_prob)
 
