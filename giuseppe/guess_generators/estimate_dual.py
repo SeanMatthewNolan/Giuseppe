@@ -1,8 +1,7 @@
 from typing import Union
 
+from ..problems.dual import CompDualOCP
 from ..problems.ocp import CompOCP, OCPSol
-from ..problems.dual import CompDualOCP, DualOCPSol
-from ..utils.numerical_derivatives import central_difference as diff, central_difference_jacobian as jac
 
 
 def estimate_dual(comp_prob: Union[CompOCP, CompDualOCP], ocp_guess: OCPSol):

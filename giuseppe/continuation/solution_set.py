@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Union, overload
 
 from ..problems.bvp import SymBVP, BVPSol
-from ..problems.dual import SymDualOCP, DualSol, DualOCPSol
-from ..problems.ocp import SymOCP, OCPSol
+from ..problems.dual import SymDualOCP
+from ..problems.ocp import SymOCP
 from ..problems.typing import AnySolution
 from ..utils.mixins import Picky
 

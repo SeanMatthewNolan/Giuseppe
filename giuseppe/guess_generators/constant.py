@@ -3,8 +3,8 @@ from typing import Union
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ..problems.dual.utils import sift_ocp_and_dual
 from ..problems.dual.solution import Solution
+from ..problems.dual.utils import sift_ocp_and_dual
 from ..problems.ocp import CompOCP
 from ..problems.typing import AnyProblem, AnySolution
 

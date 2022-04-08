@@ -1,15 +1,13 @@
 import pickle
 
-import numpy as np
-
 import giuseppe
 from giuseppe.continuation import ContinuationHandler, SolutionSet
+from giuseppe.guess_generators import generate_constant_guess
 from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP, DualOCPSol
+from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
-from giuseppe.guess_generators import generate_constant_guess
 
 giuseppe.utils.complilation.JIT_COMPILE = True
 
