@@ -8,8 +8,8 @@ from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
 from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
-from ..bvp.compiled import CompBoundaryConditions
-from ..ocp.compiled import CompCost, CompOCP
+from ..components.compiled import CompBoundaryConditions, CompCost
+from ..ocp.compiled import CompOCP
 
 
 class CompDual(Picky):
@@ -87,32 +87,14 @@ class CompDual(Picky):
             return CompBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
 
     def compile_augemented_cost(self):
-        lam_cost_0 = lambdify(self.sym_args['initial'], self.src_dual.augmented_cost.initial,
-                              use_jit_compile=self.use_jit_compile)
-        lam_ham = lambdify(self.sym_args['dynamic'], self.src_dual.augmented_cost.path,
-                           use_jit_compile=self.use_jit_compile)
-        lam_cost_f = lambdify(self.sym_args['terminal'], self.src_dual.augmented_cost.terminal,
-                              use_jit_compile=self.use_jit_compile)
+        initial_aug_cost = lambdify(self.sym_args['initial'], self.src_dual.augmented_cost.initial,
+                                    use_jit_compile=self.use_jit_compile)
+        hamiltonian = lambdify(self.sym_args['dynamic'], self.src_dual.augmented_cost.path,
+                               use_jit_compile=self.use_jit_compile)
+        terminal_aug_cost = lambdify(self.sym_args['terminal'], self.src_dual.augmented_cost.terminal,
+                                     use_jit_compile=self.use_jit_compile)
 
-        def initial_aug_cost(t0: float, x0: ArrayLike, lam0: ArrayLike, u0: ArrayLike, p: ArrayLike,
-                             nu0: ArrayLike, k: ArrayLike) -> float:
-            return lam_cost_0(t0, x0, lam0, u0, p, nu0, k)
-
-        def hamiltonian(t: float, x: ArrayLike, lam: ArrayLike, u: ArrayLike, p: ArrayLike, k: ArrayLike) -> float:
-            return lam_ham(t, x, lam, u, p, k)
-
-        def terminal_aug_cost(tf: float, xf: ArrayLike, lamf: ArrayLike, uf: ArrayLike, p: ArrayLike,
-                              nuf: ArrayLike, k: ArrayLike) -> float:
-            return lam_cost_f(tf, xf, lamf, uf, p, nuf, k)
-
-        if self.use_jit_compile:
-            return CompCost(
-                    jit_compile(initial_aug_cost, signature=self.args_numba_signature['initial']),
-                    jit_compile(hamiltonian, signature=self.args_numba_signature['dynamic']),
-                    jit_compile(terminal_aug_cost, signature=self.args_numba_signature['terminal']),
-            )
-        else:
-            return CompCost(initial_aug_cost, hamiltonian, terminal_aug_cost)
+        return CompCost(initial_aug_cost, hamiltonian, terminal_aug_cost)
 
 
 class CompAlgControlHandler:

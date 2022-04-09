@@ -1,6 +1,8 @@
 from copy import deepcopy
 
-from giuseppe.problems.ocp.symbolic import SymOCP, SymBoundaryConditions, SymCost
+from giuseppe.problems.components.symbolic import SymCost
+from giuseppe.problems.ocp.symbolic import SymOCP
+from giuseppe.problems.components.symbolic import SymBoundaryConditions
 from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic, Picky
 from giuseppe.utils.typing import Symbol, SymMatrix

@@ -1,22 +1,9 @@
-from dataclasses import dataclass
 from typing import Optional
 
 from giuseppe.problems.bvp import SymBVP
+from giuseppe.problems.components.symbolic import SymCost
 from giuseppe.problems.ocp.input import InputOCP
-from giuseppe.utils.typing import SymExpr, SymMatrix, EMPTY_SYM_MATRIX, SYM_ZERO
-
-
-@dataclass
-class SymCost:
-    initial: SymExpr = SYM_ZERO
-    path: SymExpr = SYM_ZERO
-    terminal: SymExpr = SYM_ZERO
-
-
-@dataclass
-class SymBoundaryConditions:
-    initial: SymMatrix = EMPTY_SYM_MATRIX
-    terminal: SymMatrix = EMPTY_SYM_MATRIX
+from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX
 
 
 class SymOCP(SymBVP):

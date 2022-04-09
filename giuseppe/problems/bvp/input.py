@@ -1,22 +1,8 @@
-from dataclasses import dataclass
+from typing import Optional
 
-
-@dataclass
-class InputState:
-    name: str
-    eom: str
-
-
-@dataclass
-class InputConstant:
-    name: str
-    default_value: float = 0.
-
-
-class InputConstraints:
-    def __init__(self):
-        self.initial: list[str] = []
-        self.terminal: list[str] = []
+from giuseppe.problems.components.input import InputState, InputConstant, InputConstraints, InputInequalityConstraint, \
+    InputInequalityConstraints
+from giuseppe.problems.regularization import Regularizer
 
 
 class InputBVP:
@@ -30,6 +16,7 @@ class InputBVP:
         self.parameters: list[str] = []
         self.constants: list[InputConstant] = []
         self.constraints: InputConstraints = InputConstraints()
+        self.inequality_constraints: InputInequalityConstraints = InputInequalityConstraints()
 
     def set_independent(self, var_name: str):
         self.independent = var_name
@@ -49,4 +36,14 @@ class InputBVP:
 
     def add_constraint(self, location: str, expr: str):
         self.constraints.__getattribute__(location).append(expr)
+        return self
+
+    def add_inequality_constraint(
+            self, location: str, expr: str, lower_limit: Optional[str] = None, upper_limit: Optional[str] = None,
+            regularizer: Optional[Regularizer] = None):
+
+        self.inequality_constraints.__getattribute__(location).append(
+                InputInequalityConstraint(
+                        expr, lower_limit=lower_limit, upper_limit=upper_limit, regularizer=regularizer))
+
         return self

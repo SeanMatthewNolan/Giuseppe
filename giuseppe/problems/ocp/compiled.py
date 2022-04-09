@@ -1,6 +1,4 @@
-from collections.abc import Callable
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import Union
 
 import numpy as np
@@ -10,14 +8,7 @@ from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray
 from .symbolic import SymOCP
-from ..bvp.compiled import CompBoundaryConditions
-
-
-@dataclass
-class CompCost:
-    initial: Callable
-    path: Callable
-    terminal: Callable
+from ..components.compiled import CompBoundaryConditions, CompCost
 
 
 class CompOCP(Picky):
@@ -57,9 +48,9 @@ class CompOCP(Picky):
             return dynamics
 
     def compile_boundary_conditions(self):
-        lam_bc0 = lambdify(self.sym_args, tuple(self.src_ocp.boundary_conditions.initial.flat()),
+        lam_bc0 = lambdify(self.sym_args, self.src_ocp.boundary_conditions.initial.flat(),
                            use_jit_compile=self.use_jit_compile)
-        lam_bcf = lambdify(self.sym_args, tuple(self.src_ocp.boundary_conditions.terminal.flat()),
+        lam_bcf = lambdify(self.sym_args, self.src_ocp.boundary_conditions.terminal.flat(),
                            use_jit_compile=self.use_jit_compile)
 
         def initial_boundary_conditions(t0: float, x0: ArrayLike, u0: ArrayLike, p: ArrayLike, k: ArrayLike) \

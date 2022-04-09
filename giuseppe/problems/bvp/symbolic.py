@@ -1,18 +1,13 @@
-from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
 from sympy import Symbol
 
 from giuseppe.problems.bvp.input import InputBVP
+from giuseppe.problems.components.input import InputInequalityConstraints
+from giuseppe.problems.components.symbolic import SymBoundaryConditions
 from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL
-
-
-@dataclass
-class SymBoundaryConditions:
-    initial: SymMatrix = EMPTY_SYM_MATRIX
-    terminal: SymMatrix = EMPTY_SYM_MATRIX
 
 
 class SymBVP(Symbolic):
@@ -46,6 +41,16 @@ class SymBVP(Symbolic):
         self.boundary_conditions.terminal = SymMatrix(
                 [self.sympify(constraint) for constraint in input_data.constraints.terminal])
 
+    def process_inequality_constraints(self, input_inequality_constraints: InputInequalityConstraints):
+        # TODO Evaluate symbolically before
+        for position in ['initial', 'path', 'terminal', 'control']:
+            for constraint in input_inequality_constraints.__getattribute__(position):
+                if constraint.regularizer is None:
+                    raise NotImplementedError('Inequality constraint without regularizer not yet implemented')
+                else:
+                    constraint.regularizer.apply(self, constraint)
+
     def process_data_from_input(self, input_data: InputBVP):
         self.process_variables_from_input(input_data)
         self.process_expr_from_input(input_data)
+        self.process_inequality_constraints(input_data.inequality_constraints)

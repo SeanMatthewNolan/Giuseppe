@@ -1,13 +1,5 @@
-from dataclasses import dataclass
-
 from giuseppe.problems.bvp.input import InputBVP
-
-
-@dataclass
-class InputCost:
-    initial: str = '0'
-    path: str = '0'
-    terminal: str = '0'
+from giuseppe.problems.components.input import InputCost
 
 
 class InputOCP(InputBVP):

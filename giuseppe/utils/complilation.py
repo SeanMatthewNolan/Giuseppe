@@ -10,7 +10,7 @@ JIT_COMPILE = True
 CSE = True
 EAGER_COMPILE = True
 NUMBA_CACHE = False
-LAMB_MODS = ['numpy']
+LAMB_MODS = ['numpy', 'math']
 
 
 # TODO Find suitable type for expr

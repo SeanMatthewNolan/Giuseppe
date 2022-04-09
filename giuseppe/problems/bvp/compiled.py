@@ -1,6 +1,4 @@
-from collections.abc import Callable
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import Union
 
 import numpy as np
@@ -10,12 +8,7 @@ from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray
 from .symbolic import SymBVP
-
-
-@dataclass
-class CompBoundaryConditions:
-    initial: Callable
-    terminal: Callable
+from ..components.compiled import CompBoundaryConditions
 
 
 class CompBVP(Picky):
