@@ -33,32 +33,12 @@ class CompBVP(Picky):
         self.boundary_conditions = self.compile_boundary_conditions()
 
     def compile_dynamics(self):
-        lam_func = lambdify(self.sym_args, tuple(self.src_bvp.dynamics.flat()), use_jit_compile=self.use_jit_compile)
-
-        def dynamics(t: float, x: ArrayLike, p: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_func(t, x, p, k))
-
-        if self.use_jit_compile:
-            return jit_compile(dynamics, signature=self.args_numba_signature)
-        else:
-            return dynamics
+        return lambdify(self.sym_args, self.src_bvp.dynamics.flat(), use_jit_compile=self.use_jit_compile)
 
     def compile_boundary_conditions(self):
-        lam_bc0 = lambdify(self.sym_args, tuple(self.src_bvp.boundary_conditions.initial.flat()),
-                           use_jit_compile=self.use_jit_compile)
-        lam_bcf = lambdify(self.sym_args, tuple(self.src_bvp.boundary_conditions.terminal.flat()),
-                           use_jit_compile=self.use_jit_compile)
+        initial_boundary_conditions = lambdify(self.sym_args, tuple(self.src_bvp.boundary_conditions.initial.flat()),
+                                               use_jit_compile=self.use_jit_compile)
+        terminal_boundary_conditions = lambdify(self.sym_args, tuple(self.src_bvp.boundary_conditions.terminal.flat()),
+                                                use_jit_compile=self.use_jit_compile)
 
-        def initial_boundary_conditions(t0: float, x0: ArrayLike, p: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_bc0(t0, x0, p, k))
-
-        def terminal_boundary_conditions(tf: float, xf: ArrayLike, p: ArrayLike, k: ArrayLike) -> ArrayLike:
-            return np.array(lam_bcf(tf, xf, p, k))
-
-        if self.use_jit_compile:
-            return CompBoundaryConditions(
-                    jit_compile(initial_boundary_conditions, signature=self.args_numba_signature),
-                    jit_compile(terminal_boundary_conditions, signature=self.args_numba_signature),
-            )
-        else:
-            return CompBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
+        return CompBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)

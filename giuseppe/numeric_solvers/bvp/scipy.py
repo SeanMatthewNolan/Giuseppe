@@ -99,7 +99,7 @@ class ScipySolveBVP(Picky):
         def boundary_conditions(x0: NPArray, xf: NPArray, p: NPArray, k: NPArray):
             t0, tf = p[-2], p[-1]
             p = p[:-2]
-            return np.concatenate((bvp_bc0(t0, x0, p, k), bvp_bcf(tf, xf, p, k)))
+            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)), np.asarray(bvp_bcf(tf, xf, p, k))))
 
         if self.use_jit_compile:
             boundary_conditions = jit_compile(boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
@@ -188,8 +188,8 @@ class ScipySolveBVP(Picky):
             uf = control(tf, xf, lamf, p, k)
 
             return np.concatenate((
-                ocp_bc0(t0, x0, u0, p, k), ocp_bcf(tf, xf, uf, p, k),
-                dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k)
+                np.asarray(ocp_bc0(t0, x0, u0, p, k)), np.asarray(ocp_bcf(tf, xf, uf, p, k)),
+                np.asarray(dual_bc0(t0, x0, lam0, u0, p, nu0, k)), np.asarray(dual_bcf(tf, xf, lamf, uf, p, nuf, k))
             ))
 
         if self.use_jit_compile:
@@ -299,9 +299,9 @@ class ScipySolveBVP(Picky):
             t0, tf = _p[-2], _p[-1]
 
             return np.concatenate((
-                ocp_bc0(t0, x0, u0, p, k), ocp_bcf(tf, xf, uf, p, k),
-                dual_bc0(t0, x0, lam0, u0, p, nu0, k), dual_bcf(tf, xf, lamf, uf, p, nuf, k),
-                control_bc(t0, x0, lam0, u0, p, k)
+                np.asarray(ocp_bc0(t0, x0, u0, p, k)), np.asarray(ocp_bcf(tf, xf, uf, p, k)),
+                np.asarray(dual_bc0(t0, x0, lam0, u0, p, nu0, k)), np.asarray(dual_bcf(tf, xf, lamf, uf, p, nuf, k)),
+                np.asarray(control_bc(t0, x0, lam0, u0, p, k))
             ))
 
         if self.use_jit_compile:

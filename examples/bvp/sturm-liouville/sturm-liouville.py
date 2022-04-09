@@ -2,6 +2,7 @@ import pickle
 
 import numpy as np
 
+import giuseppe
 from giuseppe.continuation import SolutionSet, ContinuationHandler
 from giuseppe.guess_generators import generate_constant_guess
 from giuseppe.io import InputBVP
