@@ -77,7 +77,7 @@ class ScipySolveBVP(Picky):
         def dynamics(tau_vec: NPArray, x_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
-            t_vec = tau_vec * tau_mult + (tf + t0) / 2
+            t_vec = tau_vec * tau_mult + t0
 
             p = p[:-2]
 
@@ -110,7 +110,7 @@ class ScipySolveBVP(Picky):
     def _preprocess_bvp_sol(sol: BVPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         p_guess = np.concatenate((sol.p, np.array([t0, tf])))
-        tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
+        tau_guess = (sol.t - t0) / (tf - t0)
         return tau_guess, sol.x, p_guess
 
     @staticmethod
@@ -120,7 +120,7 @@ class ScipySolveBVP(Picky):
         p: NPArray = scipy_sol.p
 
         t0, tf = p[-2], p[-1]
-        t = (tf - t0) * tau + (t0 + tf) / 2
+        t = (tf - t0) * tau + t0
         p = p[:-2]
 
         return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
@@ -138,7 +138,7 @@ class ScipySolveBVP(Picky):
         def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
-            t_vec = tau_vec * tau_mult + (tf + t0) / 2
+            t_vec = tau_vec * tau_mult + t0
             p = p[:n_p]
 
             y_dot = np.empty_like(y_vec)  # Need to pre-allocate for Numba
@@ -200,7 +200,7 @@ class ScipySolveBVP(Picky):
     @staticmethod
     def _preprocess_ocp_alg_sol(sol: DualOCPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
-        tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
+        tau_guess = (sol.t - t0) / (tf - t0)
         p_guess = np.concatenate((sol.p, sol.nu0, sol.nuf, np.array([t0, tf])))
         y = np.vstack((sol.x, sol.lam))
         return tau_guess, y, p_guess
@@ -220,7 +220,7 @@ class ScipySolveBVP(Picky):
         def _postprocess_ocp_alg_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualOCPSol:
             tau: NPArray = scipy_sol.x
             t0, tf = scipy_sol.p[-2], scipy_sol.p[-1]
-            t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
+            t: NPArray = (tf - t0) * tau + t0
 
             x: NPArray = scipy_sol.y[:n_x]
             lam: NPArray = scipy_sol.y[n_x:n_x + n_lam]
@@ -248,7 +248,7 @@ class ScipySolveBVP(Picky):
         def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
-            t_vec = tau_vec * tau_mult + (tf + t0) / 2
+            t_vec = tau_vec * tau_mult + t0
             p = p[:n_p]
 
             y_dot = np.empty_like(y_vec)  # Need to pre-allocate for Numba
@@ -312,7 +312,7 @@ class ScipySolveBVP(Picky):
     @staticmethod
     def _preprocess_ocp_diff_sol(sol: DualOCPSol) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
-        tau_guess = (sol.t - (t0 + tf) / 2) / (tf - t0)
+        tau_guess = (sol.t - t0) / (tf - t0)
         p_guess = np.concatenate((sol.p, sol.nu0, sol.nuf, np.array([t0, tf])))
         y = np.vstack((sol.x, sol.lam, sol.u))
         return tau_guess, y, p_guess
@@ -332,7 +332,7 @@ class ScipySolveBVP(Picky):
         def _postprocess_ocp_diff_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualOCPSol:
             tau: NPArray = scipy_sol.x
             t0, tf = scipy_sol.p[-2], scipy_sol.p[-1]
-            t: NPArray = (tf - t0) * tau + (t0 + tf) / 2
+            t: NPArray = (tf - t0) * tau + t0
 
             x: NPArray = scipy_sol.y[:n_x]
             lam: NPArray = scipy_sol.y[n_x:n_x + n_lam]
