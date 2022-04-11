@@ -7,6 +7,7 @@
 
 ## Ideas
 
+- Explore using "post-processers" on problems for solution transformations/computations (e.g. true control, aux values, cost)
 - Use SciPy's PPoly to represent some solutions
 - Explore "custom functions" via making function to evaluate `Derivative(*, *)`
 - Explore SymPy's `Piecewise` for univariate tables
