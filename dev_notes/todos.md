@@ -1,15 +1,17 @@
 ---
 title: Giuseppe TODOs and Ideas
 author: Sean Matthew Nolan
-date: 4/6/22
+date: 4/11/22
 ---
 
-# TODOs
+# Ongoing Work
+
+## TODOs
 
 - Add guess generators
 - Add inequality constraints 
 
-# Ideas
+## Ideas
 
 - Use SciPy's PPoly to represent some solutions
 - Explore "custom functions" via making function to evaluate `Derivative(*, *)`

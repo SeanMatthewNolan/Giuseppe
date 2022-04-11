@@ -1,4 +1,6 @@
-# Giuseppe: Indirect OCP Solver
+# README
+
+## Giuseppe: Indirect OCP Solver
 
 The goal of Giuseppe is to a general-purpose optimal control problem (OCP) solver which leverages indirect methods to produce high quality solutions.
 It also aims to be a platform for future research into the use of indirect methods for solving OCPs.
