@@ -3,7 +3,8 @@ name = "Giuseppe"
 version = "0.1.0"
 description = "A general purpose OCP solver"
 authors = [
-    {name = "Sean Matthew Nolan", email = "Sean.Matthew.Nolan@gmail.com"}
+    {name = "Sean Matthew Nolan", email = "Sean.Matthew.Nolan@gmail.com"},
+    {name = "Winston C. Levin", email = "winstonclevin@gmail.com"}
 ]
 
 [build-system]
