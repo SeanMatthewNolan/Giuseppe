@@ -38,7 +38,7 @@ class ScipySolveBVP(Picky):
 
         Parameters
         ----------
-        bvp : Union[CompBVP, CompDualOCP]
+        bvp : CompBVP or CompDualOCP
             the BVP (or dualized OCP) to solve
         use_jit_compile : bool, optional, default=None
             whether to JIT compile wrapper function with Numba
@@ -381,14 +381,14 @@ class ScipySolveBVP(Picky):
 
         Parameters
         ----------
-        constants : NPArray
+        constants : np.ndarray
             array of constants which define the problem numerically
-        guess : Union[BVPSol, DualOCPSol]
+        guess : BVPSol or DualOCPSol
             previous solution (or approximate solution) to serve as guess for BVP solver
 
         Returns
         -------
-        solution : Union[BVPSol, DualOCPSol]
+        solution : BVPSol or DualOCPSol
             solution to the BVP for given constants
 
         """
