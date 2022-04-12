@@ -5,9 +5,10 @@ Welcome to Giuseppe's documentation!
    :caption: Contents:
 
    README.rst
-   abbreviations.rst
+   dev_notes/abbreviations.md
    code.rst
-   dev_notes.rst
+   dev_notes/design_philosophy.md
+   dev_notes/todos.md
 
 Indices and tables
 ==================
