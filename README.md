@@ -19,3 +19,8 @@ pip install -e <installation_directory>
 ```
 Currently, the project only supports Python 3.10, but it should soon support back until 3.8.
 Also, I hope to soon add the project to PyPA once it is a little more mature.
+
+## Documentation
+
+See [documentation](https://giuseppe-ocp-solver.rtfd.io) for more details.
+
