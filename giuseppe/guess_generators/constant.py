@@ -9,8 +9,30 @@ from ..problems.ocp import CompOCP
 from ..problems.typing import AnyProblem, AnySolution
 
 
-def generate_constant_guess(comp_prob: AnyProblem, t_span: Union[float, ArrayLike] = 0.1, constant: float = 1.) \
+def generate_constant_guess(comp_prob: AnyProblem, constant: float = 1., t_span: Union[float, ArrayLike] = 0.1) \
         -> AnySolution:
+    """
+    Generate guess where all variables (excluding the indenpendent) are set to a single constant
+
+    Main purpose is to initialize a solution object for more advanced guess generators
+
+    Parameters
+    ----------
+    comp_prob : AnyProblem
+        the problem that the guess is for, needed to shape/size of arrays
+
+    constant : float, default=1.
+        the constant all variables are set to
+
+    t_span :  Union[float, ArrayLike], default=0.1
+        values for the independent variable, t
+        if float, t = np.array([0., t_span])
+
+    Returns
+    -------
+    guess : AnySolution
+
+    """
 
     prob, dual = sift_ocp_and_dual(comp_prob)
 

@@ -20,10 +20,39 @@ _postprocess_type = Callable[[_scipy_bvp_sol, NPArray], BVPSol]
 
 
 class ScipySolveBVP(Picky):
+    """
+    Class to use SciPy's BVP solver from scipy.integrate.solve_bvp
+
+    The class takes in a supported problem type and wraps the boundary condition and dynamics functions to work.
+    The class will also generate pre- and post-processing methods so that it can take in and output solutions in
+    Giuseppe's native formats.
+
+    """
+
     SUPPORTED_INPUTS = Union[CompBVP, CompDualOCP]
 
     def __init__(self, bvp: SUPPORTED_INPUTS, use_jit_compile: Optional[bool] = None,
                  tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
+        """
+        Initialize ScipySolveBVP
+
+        Parameters
+        ----------
+        bvp : Union[CompBVP, CompDualOCP]
+            the BVP (or dualized OCP) to solve
+        use_jit_compile : bool, optional, default=None
+            whether to JIT compile wrapper function with Numba
+            if None, the solver will match the given BVP
+        tol : float, default=0.001
+            sets `tol` kwarg for `scipy.integrate.solve_bvp`
+        bc_tol : float, default=0.001
+            sets `bc_tol` kwarg for `scipy.integrate.solve_bvp`
+        max_nodes: int, default=1000
+            sets `max_nodes` kwarg for `scipy.integrate.solve_bvp`
+        verbose : bool, default=False
+            sets `verbose` kwarg for `scipy.integrate.solve_bvp`
+        """
+
         Picky.__init__(self, bvp)
 
         # Options directly for scipy.solve_bvp
@@ -346,7 +375,23 @@ class ScipySolveBVP(Picky):
 
         return _postprocess_ocp_diff_sol
 
-    def solve(self, constants: NPArray, guess: Union[BVPSol]) -> Union[BVPSol]:
+    def solve(self, constants: NPArray, guess: Union[BVPSol, DualOCPSol]) -> Union[BVPSol, DualOCPSol]:
+        """
+        Solve BVP (or dualized OCP) with instance of ScipySolveBVP
+
+        Parameters
+        ----------
+        constants : NPArray
+            array of constants which define the problem numerically
+        guess : Union[BVPSol, DualOCPSol]
+            previous solution (or approximate solution) to serve as guess for BVP solver
+
+        Returns
+        -------
+        solution : Union[BVPSol, DualOCPSol]
+            solution to the BVP for given constants
+
+        """
 
         tau_guess, x_guess, p_guess = self.preprocess(guess)
         k = constants

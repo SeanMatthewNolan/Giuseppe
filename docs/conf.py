@@ -18,6 +18,7 @@ extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
+    'sphinx_autodoc_typehints',
     'sphinx.ext.napoleon'
 ]
 

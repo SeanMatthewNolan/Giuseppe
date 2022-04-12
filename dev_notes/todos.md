@@ -1,11 +1,11 @@
-## Ongoing Work
+# Ongoing Work
 
-### TODOs
+## TODOs
 
 - Add guess generators
 - Add inequality constraints 
 
-### Ideas
+## Ideas
 
 - Use SciPy's PPoly to represent some solutions
 - Explore "custom functions" via making function to evaluate `Derivative(*, *)`
