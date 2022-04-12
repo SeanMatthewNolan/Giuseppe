@@ -7,10 +7,13 @@ from giuseppe.problems.regularization import Regularizer
 
 class InputBVP:
     """
-    Class to input boundary value problem data for symbolic processing
+    Class to input boundary value problem data as strings primarily for symbolic processing.
     """
 
     def __init__(self):
+        """
+        Initilize InputBVP
+        """
         self.independent = None
         self.states: list[InputState] = []
         self.parameters: list[str] = []
@@ -19,6 +22,20 @@ class InputBVP:
         self.inequality_constraints: InputInequalityConstraints = InputInequalityConstraints()
 
     def set_independent(self, var_name: str):
+        """
+        Set the name of the independent variable (usually time, t)
+
+        Parameters
+        ----------
+        var_name : str
+            the name of the independent variable
+
+        Returns
+        -------
+        self : InputBVP
+            returns the problem object
+
+        """
         self.independent = var_name
         return self
 

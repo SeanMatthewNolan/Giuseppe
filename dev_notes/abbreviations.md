@@ -1,10 +1,6 @@
----
-title: Giuseppe Abbreviations and Definitions
-author: Sean Matthew Nolan
-date: 3/11/22
----
+# Abbreviations and Definitions
 
-# Abbreviations
+## Abbreviations
 
 - **BVP**: Boundary Value Problem
 - **Comp**: Compiled, for problems and functions with have been turned in regular Python functions or/and the JIT compiled with Numba
@@ -15,7 +11,7 @@ date: 3/11/22
 - **Sym**: Symbolic, in code refers to objects which use SymPy to represent symbolic expressions 
 
 
-# Definitions
+## Definitions
 
 The below definitions cover how these words are used in Giuseppe:
 
@@ -41,4 +37,3 @@ The below definitions cover how these words are used in Giuseppe:
 - **state**: **dynamic** unknown in problems (constrained by specified **dynamics**)
 - **terminal**: evaluated at end point of **trajectory**
 - **trajectory**: numerical data for the variables of interest over the interval of interests 
-

@@ -1,17 +1,11 @@
----
-title: Giuseppe Design Philosophy
-author: Sean Matthew Nolan
-date: 4/11/22
----
+## Design Philosophy
 
-# Design Philosophy
-
-## General Discussion
+### General Discussion
 
 This project will generally use object-oriented programming (OOP).
 Though in recent years, many discourage OOP, OOP is best suited to the "structural" nature of the necessary problem transformations.
 
-## Guidelines
+### Guidelines
 
 Nothing is strictly binding, but for consistency and to avoid beluga's issues, these showed serve as guidelines when developing Giuseppe:
 
