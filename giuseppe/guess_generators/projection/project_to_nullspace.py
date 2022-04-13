@@ -11,6 +11,8 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
+# TODO Use Armijo step etc. to make more stable
+# TODO Explore options based on stability (linear vs. nonlinear)
 def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int] = 8,
                          abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> np.ndarray:
     """
@@ -36,7 +38,7 @@ def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Option
 
     """
 
-    arr = np.asarray(arr)
+    arr = np.array(arr)
 
     converged, step_num = False, 1
     while not converged:

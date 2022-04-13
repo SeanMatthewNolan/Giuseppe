@@ -7,7 +7,7 @@ from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
-from giuseppe.guess_generators.projection import project_to_nullspace
+from giuseppe.guess_generators.projection import project_to_nullspace, match_constants_to_bcs
 from giuseppe.utils import Timer
 
 giuseppe.utils.complilation.JIT_COMPILE = True
@@ -41,6 +41,7 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
+
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
@@ -62,7 +63,7 @@ with Timer(prefix='Continuation Time:'):
             sol_set.append(sol_i)
 
 sol = sol_set[-1]
-guess = generate_constant_guess(comp_dual_ocp, constant=100.)
+guess = generate_constant_guess(comp_dual_ocp, constant=0.1)
 
 t = guess.t
 x = guess.x
@@ -78,3 +79,5 @@ psi_f = comp_dual_ocp.comp_ocp.boundary_conditions.terminal
 
 x0_star = project_to_nullspace(lambda x0: np.asarray(psi_0(t[0], x0, u[:, 0], p, k)), x[:, 0])
 xf_star = project_to_nullspace(lambda xf: np.asarray(psi_f(t[-1], xf, u[:, -1], p, k)), x[:, -1])
+
+k_star = match_constants_to_bcs(comp_dual_ocp.comp_ocp, guess)
