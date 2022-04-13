@@ -1,5 +1,5 @@
 # Giuseppe Specific
-dev_notes/**/*.html
+sandbox
 *.data
 
 # Byte-compiled / optimized / DLL files
