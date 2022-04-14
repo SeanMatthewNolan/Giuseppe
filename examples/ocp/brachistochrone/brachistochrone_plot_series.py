@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 with open('sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
 
-fig = plt.figure(figsize=(2.75,2.75))
+fig = plt.figure()
 fig.suptitle('Brachistochrone')
 
 ax1 = fig.add_subplot(2, 1, 1)

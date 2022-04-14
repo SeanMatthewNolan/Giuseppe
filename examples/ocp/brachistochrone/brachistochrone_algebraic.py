@@ -1,6 +1,5 @@
 import pickle
 
-import giuseppe
 from giuseppe.continuation import ContinuationHandler, SolutionSet
 from giuseppe.guess_generators import generate_single_constant_guess
 from giuseppe.io import InputOCP
@@ -8,8 +7,6 @@ from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
-
-giuseppe.utils.complilation.JIT_COMPILE = True
 
 ocp = InputOCP()
 

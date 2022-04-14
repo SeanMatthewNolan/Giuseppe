@@ -1,1 +1,2 @@
-from .constant import generate_single_constant_guess, generate_constant_guess
+from .constant import generate_single_constant_guess, generate_constant_guess, auto_constant_guess
+from .projection import project_to_nullspace, match_constants_to_bcs
