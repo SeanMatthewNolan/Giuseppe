@@ -14,11 +14,11 @@ input_ocp = InputOCP()
 
 input_ocp.set_independent('t')
 
-input_ocp.add_state('x', 'v*cos(theta)')
-input_ocp.add_state('y', 'v*sin(theta)')
-input_ocp.add_state('v', '-g*sin(theta)')
+input_ocp.add_state('x', 'v*cos(θ)')
+input_ocp.add_state('y', 'v*sin(θ)')
+input_ocp.add_state('v', '-g*sin(θ)')
 
-input_ocp.add_control('theta')
+input_ocp.add_control('θ')
 
 input_ocp.add_constant('g', 32.2)
 
