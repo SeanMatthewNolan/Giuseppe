@@ -36,7 +36,7 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=False)
     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=False)
 
-guess = giuseppe.guess_generators.generate_constant_guess(comp_dual_ocp, constant=0.01)
+guess = giuseppe.guess_generators.generate_constant_guess(comp_dual_ocp)
 sol = num_solver.solve(guess.k, guess)
 
 with open('sol.data', 'wb') as file:
