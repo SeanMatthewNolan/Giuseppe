@@ -13,22 +13,8 @@ from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
 from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
 from .compiled import CompDual, CompDualOCP
+from ..components.adiff import AdiffBoundaryConditions, AdiffCost
 from ..ocp.compiled import CompCost, CompOCP
-
-
-# TODO refactor into bvp/adiff.py? Or generalize "CompBoundaryConditions" to "BoundaryConditions"? -wlevin 4/8/2022
-@dataclass
-class AdiffBoundaryConditions:
-    initial: Callable
-    terminal: Callable
-
-
-# TODO refactor into ocp/adiff.py? Or generalize "CompCost" to "Cost"
-@dataclass
-class AdiffCost:
-    initial: Callable
-    path: Callable
-    terminal: Callable
 
 
 class AdiffDual(Picky):
