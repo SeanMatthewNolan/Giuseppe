@@ -1,6 +1,7 @@
 # Giuseppe Specific
 sandbox
 *.data
+*.eps
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
