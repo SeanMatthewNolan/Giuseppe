@@ -1,1 +1,1 @@
-from .constant import generate_constant_guess
+from .constant import generate_single_constant_guess, generate_constant_guess

@@ -2,12 +2,13 @@ import numpy as np
 
 import giuseppe
 from giuseppe.continuation import ContinuationHandler, SolutionSet
-from giuseppe.guess_generators import generate_constant_guess
+from giuseppe.guess_generators import generate_single_constant_guess
 from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.guess_generators.projection import project_to_nullspace, match_constants_to_bcs
+from giuseppe.guess_generators.constant.simple import update_value_constant
 from giuseppe.utils import Timer
 
 giuseppe.utils.complilation.JIT_COMPILE = True
@@ -50,7 +51,7 @@ with Timer(prefix='Complilation Time:'):
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp)
 
-guess = generate_constant_guess(comp_dual_ocp)
+guess = generate_single_constant_guess(comp_dual_ocp)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
@@ -63,7 +64,7 @@ with Timer(prefix='Continuation Time:'):
             sol_set.append(sol_i)
 
 sol = sol_set[-1]
-guess = generate_constant_guess(comp_dual_ocp, constant=0.1)
+guess = generate_single_constant_guess(comp_dual_ocp, constant=0.1)
 
 t = guess.t
 x = guess.x

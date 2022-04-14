@@ -4,7 +4,7 @@ import numpy as np
 
 import giuseppe
 from giuseppe.continuation import SolutionSet, ContinuationHandler
-from giuseppe.guess_generators import generate_constant_guess
+from giuseppe.guess_generators import generate_single_constant_guess
 from giuseppe.io import InputBVP
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP
@@ -37,7 +37,7 @@ with Timer(prefix='Complilation Time:'):
     comp_bvp = CompBVP(sym_bvp)
     num_solver = ScipySolveBVP(comp_bvp)
 
-guess = generate_constant_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
+guess = generate_single_constant_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
 seed_sol = num_solver.solve(guess.k, guess)
 
 sol_set = SolutionSet(sym_bvp, seed_sol)
