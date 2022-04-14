@@ -1,7 +1,5 @@
 import pickle
 
-import numpy as np
-
 import giuseppe
 
 goddard = giuseppe.io.InputOCP()

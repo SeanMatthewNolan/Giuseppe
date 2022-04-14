@@ -40,7 +40,8 @@ class ContinuationHandler:
         """
         Add a linear series to the continuation handler
 
-        The linear series will take linearly spaced steps torward the specified target values using the last solution as the next guess
+        The linear series will take linearly spaced steps torward the specified target values using the last solution as
+        the next guess
 
         Parameters
         ----------

@@ -1,6 +1,5 @@
 from typing import Union, Tuple, TYPE_CHECKING, TypeVar
 
-import numpy as np
 import sympy
 
 from giuseppe.problems.regularization.generic import Regularizer
@@ -111,8 +110,8 @@ class ControlConstraintHandler(Regularizer):
 
         control_func = (upper_limit - lower_limit) * ((1 + sympy.exp(-pseudo_control / regulator))**-1 - 1 / 2) \
             + (upper_limit + lower_limit) / 2
-        error_func = - 2 * regulator * sympy.log((1 +1 + (pseudo_control ** 2 / regulator ** 2)) / 2) \
-            + 2 * pseudo_control * ((1 + (pseudo_control ** 2 / regulator ** 2)) ** -1 - 1)
+        error_func = - 2 * regulator * sympy.log((1 + sympy.exp(-pseudo_control / regulator)) / 2) \
+            + 2 * pseudo_control * ((1 + sympy.exp(-pseudo_control / regulator)) ** -1 - 1)
 
         return control_func, error_func
 

@@ -1,10 +1,7 @@
 from copy import deepcopy
 from typing import Union
 
-import numpy as np
-from numpy.typing import ArrayLike
-
-from giuseppe.utils.complilation import lambdify, jit_compile
+from giuseppe.utils.complilation import lambdify
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray
 from .symbolic import SymOCP

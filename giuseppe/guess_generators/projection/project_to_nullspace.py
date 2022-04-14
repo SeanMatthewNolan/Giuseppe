@@ -1,11 +1,10 @@
 from copy import copy
-from typing import Union, Callable, Optional
+from typing import Union, Optional
 
 import numpy as np
 
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
 from giuseppe.utils.numerical_derivatives.finite_difference import central_difference_jacobian as jac, ArrayFunction
-
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]

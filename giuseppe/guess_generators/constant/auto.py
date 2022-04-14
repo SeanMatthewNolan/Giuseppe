@@ -1,6 +1,6 @@
 from copy import deepcopy
-from warnings import warn
 from typing import Union, Optional
+from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike

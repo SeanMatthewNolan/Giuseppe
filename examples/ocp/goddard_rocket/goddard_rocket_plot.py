@@ -1,7 +1,7 @@
 import pickle
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 with open('sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
