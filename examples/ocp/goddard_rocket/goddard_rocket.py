@@ -19,7 +19,7 @@ goddard.add_constant('c', 1580.9425279876559)
 goddard.add_constant('h_ref', 23_800)
 
 goddard.add_constant('h_0', 0)
-goddard.add_constant('v_0', 100)
+goddard.add_constant('v_0', 0)
 goddard.add_constant('m_0', 3)
 
 goddard.add_constant('m_f', 2.95)
@@ -46,11 +46,10 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp)
     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp)
 
-guess = giuseppe.guess_generators.constant.auto_constant_guess(comp_dual_ocp)
+guess = giuseppe.guess_generators.auto_linear_guess(comp_dual_ocp)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(1, {'v_0': 0})
 cont.add_linear_series(10, {'m_f': 1})
 cont.add_logarithmic_series(20, {'eps_thrust': 1e-6})
 
