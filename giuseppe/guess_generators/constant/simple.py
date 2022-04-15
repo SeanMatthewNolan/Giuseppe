@@ -10,10 +10,10 @@ from giuseppe.problems.ocp import CompOCP
 from giuseppe.problems.typing import AnyProblem, AnySolution
 
 
-def generate_single_constant_guess(comp_prob: AnyProblem, constant: float = 1., t_span: Union[float, ArrayLike] = 0.1) \
-        -> AnySolution:
+def initialize_guess_w_default_value(
+        comp_prob: AnyProblem, default_value: float = 1., t_span: Union[float, ArrayLike] = 0.1) -> AnySolution:
     """
-    Generate guess where all variables (excluding the indenpendent) are set to a single constant
+    Generate guess where all variables (excluding the indenpendent) are set to a default single constant
 
     Main purpose is to initialize a solution object for more advanced guess generators
 
@@ -22,7 +22,7 @@ def generate_single_constant_guess(comp_prob: AnyProblem, constant: float = 1., 
     comp_prob : CompBVP, CompOCP, CompDual or CompDualOCP
         the problem that the guess is for, needed to shape/size of arrays
 
-    constant : float, default=1.
+    default_value : float, default=1.
         the constant all variables, except time (t_span) and constants (problem's default_values), are set to
 
     t_span : float or ArrayLike, default=0.1
@@ -47,22 +47,22 @@ def generate_single_constant_guess(comp_prob: AnyProblem, constant: float = 1., 
     num_t_steps = len(data['t'])
 
     if prob is not None:
-        data['x'] = np.ones((prob.num_states, num_t_steps)) * constant
-        data['p'] = np.ones((prob.num_parameters,)) * constant
+        data['x'] = np.ones((prob.num_states, num_t_steps)) * default_value
+        data['p'] = np.ones((prob.num_parameters,)) * default_value
         data['k'] = prob.default_values
 
     if isinstance(prob, CompOCP):
-        data['u'] = np.ones((prob.num_controls, num_t_steps)) * constant
+        data['u'] = np.ones((prob.num_controls, num_t_steps)) * default_value
 
     if dual is not None:
-        data['lam'] = np.ones((dual.num_costates, num_t_steps)) * constant
-        data['nu0'] = np.ones((dual.num_initial_adjoints,)) * constant
-        data['nuf'] = np.ones((dual.num_terminal_adjoints,)) * constant
+        data['lam'] = np.ones((dual.num_costates, num_t_steps)) * default_value
+        data['nu0'] = np.ones((dual.num_initial_adjoints,)) * default_value
+        data['nuf'] = np.ones((dual.num_terminal_adjoints,)) * default_value
 
     return Solution(**data)
 
 
-def update_value_constant(guess: AnySolution, name: str, values: Optional[Union[float, ArrayLike]]) -> AnySolution:
+def update_constant_value(guess: AnySolution, name: str, values: Optional[Union[float, ArrayLike]]) -> AnySolution:
     """
     Update values in guess to given constant values
 
@@ -140,14 +140,14 @@ def generate_constant_guess(
 
     """
 
-    guess = generate_single_constant_guess(comp_prob, constant=default_value, t_span=t_span)
+    guess = initialize_guess_w_default_value(comp_prob, default_value=default_value, t_span=t_span)
 
-    update_value_constant(guess, 'x', x)
-    update_value_constant(guess, 'lam', lam)
-    update_value_constant(guess, 'u', u)
-    update_value_constant(guess, 'p', p)
-    update_value_constant(guess, 'nu_0', nu_0)
-    update_value_constant(guess, 'nu_f', nu_f)
-    update_value_constant(guess, 'k', k)
+    update_constant_value(guess, 'x', x)
+    update_constant_value(guess, 'lam', lam)
+    update_constant_value(guess, 'u', u)
+    update_constant_value(guess, 'p', p)
+    update_constant_value(guess, 'nu_0', nu_0)
+    update_constant_value(guess, 'nu_f', nu_f)
+    update_constant_value(guess, 'k', k)
 
     return guess

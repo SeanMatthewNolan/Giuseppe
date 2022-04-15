@@ -1,7 +1,7 @@
 import pickle
 
 from giuseppe.continuation import ContinuationHandler, SolutionSet
-from giuseppe.guess_generators import generate_single_constant_guess
+from giuseppe.guess_generators import initialize_guess_w_default_value
 from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
@@ -45,7 +45,7 @@ with Timer(prefix='Complilation Time:'):
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp)
 
-guess = generate_single_constant_guess(comp_dual_ocp)
+guess = initialize_guess_w_default_value(comp_dual_ocp)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)

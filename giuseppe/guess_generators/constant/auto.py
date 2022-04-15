@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike
 
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
-from .simple import generate_single_constant_guess, update_value_constant
+from .simple import initialize_guess_w_default_value, update_constant_value
 from ..projection import project_to_nullspace
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
@@ -44,7 +44,7 @@ def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, Arra
     if isinstance(default, BVPSol):
         guess = deepcopy(default)
     else:
-        guess = generate_single_constant_guess(comp_prob, constant=default, t_span=t_span)
+        guess = initialize_guess_w_default_value(comp_prob, default_value=default, t_span=t_span)
 
     if constants is not None:
         if constants.shape != prob.default_values.shape:
@@ -69,8 +69,8 @@ def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, Arra
 
         values_guess = np.concatenate((np.mean(guess.x, axis=1), guess.p))
         out_x, out_p = map_values(project_to_nullspace(bc_func, values_guess, abs_tol=abs_tol, rel_tol=rel_tol))
-        update_value_constant(guess, 'x', out_x)
-        update_value_constant(guess, 'p', out_p)
+        update_constant_value(guess, 'x', out_x)
+        update_constant_value(guess, 'p', out_p)
 
     elif isinstance(prob, CompOCP):
 
@@ -90,9 +90,9 @@ def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, Arra
 
         values_guess = np.concatenate((np.mean(guess.x, axis=1), np.mean(guess.u, axis=1), guess.p))
         out_x, out_u, out_p = map_values(project_to_nullspace(bc_func, values_guess, abs_tol=abs_tol, rel_tol=rel_tol))
-        update_value_constant(guess, 'x', out_x)
-        update_value_constant(guess, 'u', out_u)
-        update_value_constant(guess, 'p', out_p)
+        update_constant_value(guess, 'x', out_x)
+        update_constant_value(guess, 'u', out_u)
+        update_constant_value(guess, 'p', out_p)
 
         if dual is not None:
 
@@ -133,12 +133,12 @@ def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, Arra
             out_x, out_lam, out_u, out_p, out_nu0, out_nuf = map_dual_values(
                     project_to_nullspace(dual_bc_func, values_guess, abs_tol=abs_tol, rel_tol=rel_tol)
             )
-            update_value_constant(guess, 'x', out_x)
-            update_value_constant(guess, 'lam', out_lam)
-            update_value_constant(guess, 'u', out_u)
-            update_value_constant(guess, 'p', out_p)
-            update_value_constant(guess, 'nu0', out_nu0)
-            update_value_constant(guess, 'nuf', out_nuf)
+            update_constant_value(guess, 'x', out_x)
+            update_constant_value(guess, 'lam', out_lam)
+            update_constant_value(guess, 'u', out_u)
+            update_constant_value(guess, 'p', out_p)
+            update_constant_value(guess, 'nu0', out_nu0)
+            update_constant_value(guess, 'nuf', out_nuf)
 
     else:
         raise ValueError(f'Problem type {type(comp_prob)} not supported')
