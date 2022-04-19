@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import update_linear_value
-from ..constant import initialize_guess_w_default_value, update_constant_value
+from ..constant import initialize_guess_for_auto, update_constant_value
 from ..projection import project_to_nullspace
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
@@ -41,16 +41,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
     """
     prob, dual = sift_ocp_and_dual(comp_prob)
-
-    if isinstance(default, BVPSol):
-        guess = deepcopy(default)
-    else:
-        guess = initialize_guess_w_default_value(comp_prob, default_value=default, t_span=t_span)
-
-    if constants is not None:
-        if constants.shape != prob.default_values.shape:
-            warn(f'Inconsistant constants shape! Expected {prob.default_values.shape}')
-        guess.k = constants
+    guess = initialize_guess_for_auto(comp_prob, t_span=t_span, constants=constants, default=default)
 
     # Project states, (controls, ) and parameters to BCs
     num_x = prob.num_states

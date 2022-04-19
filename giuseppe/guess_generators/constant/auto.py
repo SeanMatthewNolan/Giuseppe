@@ -14,6 +14,23 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
+def initialize_guess_for_auto(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
+                              constants: Optional[ArrayLike] = None, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1) \
+        -> SUPPORTED_SOLUTIONS:
+
+    if isinstance(default, BVPSol):
+        guess = deepcopy(default)
+    else:
+        guess = initialize_guess_w_default_value(comp_prob, default_value=default, t_span=t_span)
+
+    if constants is not None:
+        if constants.shape != comp_prob.default_values.shape:
+            warn(f'Inconsistant constants shape! Expected {comp_prob.default_values.shape}')
+        guess.k = constants
+
+    return guess
+
+
 def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
                         constants: Optional[ArrayLike] = None, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
                         abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
@@ -40,16 +57,7 @@ def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, Arra
 
     """
     prob, dual = sift_ocp_and_dual(comp_prob)
-
-    if isinstance(default, BVPSol):
-        guess = deepcopy(default)
-    else:
-        guess = initialize_guess_w_default_value(comp_prob, default_value=default, t_span=t_span)
-
-    if constants is not None:
-        if constants.shape != prob.default_values.shape:
-            warn(f'Inconsistant constants shape! Expected {prob.default_values.shape}')
-        guess.k = constants
+    guess = initialize_guess_for_auto(comp_prob, t_span=t_span, constants=constants, default=default)
 
     # Project states, (controls, ) and parameters to BCs
     num_x = prob.num_states
