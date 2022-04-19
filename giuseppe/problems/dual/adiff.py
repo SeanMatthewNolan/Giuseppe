@@ -13,7 +13,7 @@ from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
 from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
 from .compiled import CompDual, CompDualOCP
-from ..components.adiff import AdiffBoundaryConditions, AdiffCost, wrap_func
+from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
 from ..ocp.compiled import CompCost, CompOCP
 
 
@@ -85,41 +85,41 @@ class AdiffDual(Picky):
 
     # TODO refactor into AdiffOCP class? -wlevin 4/8/2022
     def wrap_dynamics(self):
-        dynamics = wrap_func('f', self.args['ocp'], self.comp_ocp.dynamics, self.iter_args['ocp'],
-                             self.arg_names['ocp'], 'dx_dt')
+        dynamics = ca_wrap('f', self.args['ocp'], self.comp_ocp.dynamics, self.iter_args['ocp'],
+                           self.arg_names['ocp'], 'dx_dt')
         return dynamics
 
     # TODO refactor into AdiffOCP class? -wlevin 4/8/2022
     def wrap_boundary_conditions(self):
-        initial_boundary_conditions = wrap_func('Psi_0', self.args['ocp'], self.comp_ocp.boundary_conditions.initial,
-                                                self.iter_args['ocp'], self.arg_names['ocp'])
-        terminal_boundary_conditions = wrap_func('Psi_f', self.args['ocp'], self.comp_ocp.boundary_conditions.terminal,
-                                                 self.iter_args['ocp'], self.arg_names['ocp'])
+        initial_boundary_conditions = ca_wrap('Psi_0', self.args['ocp'], self.comp_ocp.boundary_conditions.initial,
+                                              self.iter_args['ocp'], self.arg_names['ocp'])
+        terminal_boundary_conditions = ca_wrap('Psi_f', self.args['ocp'], self.comp_ocp.boundary_conditions.terminal,
+                                               self.iter_args['ocp'], self.arg_names['ocp'])
         return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
 
     # TODO refactor into AdiffOCP class? -wlevin 4/8/2022
     def wrap_cost(self):
-        initial_cost = wrap_func('Phi_0', self.args['ocp'], self.comp_ocp.cost.initial,
-                                 self.iter_args['ocp'], self.arg_names['ocp'])
-        path_cost = wrap_func('L', self.args['ocp'], self.comp_ocp.cost.path,
-                              self.iter_args['ocp'], self.arg_names['ocp'])
-        terminal_cost = wrap_func('Phi_f', self.args['ocp'], self.comp_ocp.cost.terminal,
-                                  self.iter_args['ocp'], self.arg_names['ocp'])
+        initial_cost = ca_wrap('Phi_0', self.args['ocp'], self.comp_ocp.cost.initial,
+                               self.iter_args['ocp'], self.arg_names['ocp'])
+        path_cost = ca_wrap('L', self.args['ocp'], self.comp_ocp.cost.path,
+                            self.iter_args['ocp'], self.arg_names['ocp'])
+        terminal_cost = ca_wrap('Phi_f', self.args['ocp'], self.comp_ocp.cost.terminal,
+                                self.iter_args['ocp'], self.arg_names['ocp'])
 
         return AdiffCost(initial_cost, path_cost, terminal_cost)
 
     def wrap_costate_dynamics(self):
-        costate_dynamics = wrap_func('dlam_dt', self.args['dynamic'], self.comp_dual.costate_dynamics,
-                                     self.iter_args['dynamic'], self.arg_names['dynamic'])
+        costate_dynamics = ca_wrap('dlam_dt', self.args['dynamic'], self.comp_dual.costate_dynamics,
+                                   self.iter_args['dynamic'], self.arg_names['dynamic'])
         return costate_dynamics
 
     def wrap_adjoined_boundary_conditions(self):
-        initial_boundary_conditions = wrap_func('Psi_0adj', self.args['initial'],
-                                                self.comp_dual.adjoined_boundary_conditions.initial,
-                                                self.iter_args['initial'], self.arg_names['initial'])
-        terminal_boundary_conditions = wrap_func('Psi_fadj', self.args['terminal'],
-                                                 self.comp_dual.adjoined_boundary_conditions.terminal,
-                                                 self.iter_args['terminal'], self.arg_names['terminal'])
+        initial_boundary_conditions = ca_wrap('Psi_0adj', self.args['initial'],
+                                              self.comp_dual.adjoined_boundary_conditions.initial,
+                                              self.iter_args['initial'], self.arg_names['initial'])
+        terminal_boundary_conditions = ca_wrap('Psi_fadj', self.args['terminal'],
+                                               self.comp_dual.adjoined_boundary_conditions.terminal,
+                                               self.iter_args['terminal'], self.arg_names['terminal'])
 
         return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
 
@@ -138,7 +138,7 @@ class AdiffAlgControlHandler:
 
 
     def wrap_control(self):
-        return wrap_func('u', self.args, self.comp_control, self.iter_args, self.arg_names)
+        return ca_wrap('u', self.args, self.comp_control, self.iter_args, self.arg_names)
 
 
 # TODO convert CompDiffControlHandler to AdiffDiffControlHandler -wlevin 4/8/2022
@@ -158,11 +158,11 @@ class AdiffDiffControlHandler:
 
 
     def wrap_control_dynamics(self):
-        return wrap_func('u_dot', self.args, self.comp_control_dynamics, self.iter_args, self.arg_names)
+        return ca_wrap('u_dot', self.args, self.comp_control_dynamics, self.iter_args, self.arg_names)
 
 
     def compile_control_bc(self):
-        return wrap_func('Hu_f', self.comp_control_bc, self.args, self.iter_args, self.arg_names)
+        return ca_wrap('Hu_f', self.comp_control_bc, self.args, self.iter_args, self.arg_names)
 
 
 class AdiffDualOCP(Picky):

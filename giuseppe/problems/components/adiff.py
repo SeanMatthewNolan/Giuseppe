@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import casadi as ca
-from typing import Callable
+from typing import Callable, Iterable, Optional
 
 
 @dataclass
@@ -16,7 +16,8 @@ class AdiffCost:
     terminal: ca.Function
 
 
-def wrap_func(name: str, ca_args, function: Callable, func_args, ca_arg_names, out_name: str = None) -> ca.Function:
+def ca_wrap(name: str, ca_args: Iterable, function: Callable, func_args: Iterable,
+            ca_arg_names: Iterable, out_name: Optional[str] = None) -> ca.Function:
     if out_name is None:
         out_name = name
 
