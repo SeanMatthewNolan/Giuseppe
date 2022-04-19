@@ -111,19 +111,28 @@ class AdiffDual(Picky):
 
         return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
 
+    def wrap_augmented_cost(self):
+        initial_aug_cost = ca_wrap('Phi_0adj', self.args['initial'], self.comp_dual.augmented_cost.initial,
+                                   self.iter_args['initial'], self.arg_names['initial'])
+        hamiltonian = ca_wrap('H', self.args['dynamic'], self.comp_dual.augmented_cost.path,
+                            self.iter_args['dynamic'], self.arg_names['dynamic'])
+        terminal_aug_cost = ca_wrap('Phi_fadj', self.args['terminal'], self.comp_dual.augmented_cost.terminal,
+                                self.iter_args['terminal'], self.arg_names['terminal'])
+
+        return AdiffCost(initial_aug_cost, hamiltonian, terminal_aug_cost)
+
 
 class AdiffAlgControlHandler:
-    def __init__(self, source_handler: AlgebraicControlHandler, adiff_dual: AdiffDual):
-        self.src_handler = deepcopy(source_handler)
+    def __init__(self, adiff_dual: AdiffDual, control_handler: CompAlgControlHandler):
         self.adiff_dual = adiff_dual
+        self.control_handler = control_handler
 
-        self.comp_control = self.adiff_dual.comp_dual.control_handler.control
+        self.comp_control = self.control_handler.control
         self.args = self.adiff_dual.args['dynamic']
         self.iter_args = self.adiff_dual.iter_args['dynamic']
         self.arg_names = self.adiff_dual.arg_names['dynamic']
 
         self.ca_control = self.wrap_control()
-
 
     def wrap_control(self):
         return ca_wrap('u', self.args, self.comp_control, self.iter_args, self.arg_names)
@@ -144,10 +153,8 @@ class AdiffDiffControlHandler:
         self.ca_control_dynamics = self.wrap_control_dynamics()
         self.ca_control_bc = self.wrap_control_bc()
 
-
     def wrap_control_dynamics(self):
         return ca_wrap('u_dot', self.args, self.comp_control_dynamics, self.iter_args, self.arg_names)
-
 
     def compile_control_bc(self):
         return ca_wrap('Hu_f', self.comp_control_bc, self.args, self.iter_args, self.arg_names)
@@ -176,8 +183,8 @@ class AdiffDualOCP(Picky):
 
     def compile_control_handler(self):
         comp_control_handler = self.comp_dualocp.control_handler
-        if type(comp_control_handler) is AlgebraicControlHandler:
-            return AdiffAlgControlHandler(comp_control_handler, self.adiff_dual)
+        if isinstance(comp_control_handler, CompAlgControlHandler):
+            return AdiffAlgControlHandler(self.adiff_dual)
 
-        elif type(comp_control_handler) is DifferentialControlHandler:
-            return AdiffDiffControlHandler(comp_control_handler, self.adiff_dual)
+        elif isinstance(comp_control_handler, CompDiffControlHandler):
+            return AdiffDiffControlHandler(self.adiff_dual)
