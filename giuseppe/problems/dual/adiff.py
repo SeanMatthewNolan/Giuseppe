@@ -1,24 +1,19 @@
-from collections.abc import Callable
 from copy import deepcopy
 from typing import Union
 from warnings import warn
-from dataclasses import dataclass
 
-import numpy as np
 import casadi as ca
-from numpy.typing import ArrayLike
 
-from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
-from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
 from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
 from .compiled import CompDual, CompDualOCP
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
 from ..ocp.compiled import CompCost, CompOCP
+from ..dual.compiled import CompAlgControlHandler, CompDiffControlHandler
 
 
 class AdiffDual(Picky):
-    SUPPORTED_INPUTS: type = Union[SymDual, CompDual]
+    SUPPORTED_INPUTS: type = Union[SymDual, CompDual]  # TODO change to take in SymOCP, CompOCP
 
     def __init__(self, source_dual: SUPPORTED_INPUTS):
         Picky.__init__(self, source_dual)
@@ -34,15 +29,6 @@ class AdiffDual(Picky):
                 self.comp_dual: CompDual = deepcopy(self.src_dual)
         else:
             self.comp_dual: CompDual = CompDual(self.src_dual, use_jit_compile=False)
-
-        # if isinstance(source_dualocp, CompDualOCP):
-        #     if source_dualocp.use_jit_compile:
-        #         warn('AdiffDualOCP cannot accept JIT compiled CompDualOCP! Recompiling CompDualOCP without JIT')
-        #         self.comp_dualocp: CompDualOCP = CompDualOCP(source_dualocp.src_dualocp, use_jit_compile=False)
-        #     else:
-        #         self.comp_dualocp: CompDualOCP = deepcopy(source_dualocp)
-        # else:
-        #     self.comp_dualocp: CompDualOCP = CompDualOCP(source_dualocp, use_jit_compile=False)
 
         self.comp_ocp: CompOCP = CompOCP(self.src_ocp, use_jit_compile=False)
 
@@ -72,16 +58,18 @@ class AdiffDual(Picky):
         for key in self.arg_names:
             self.args[key] = [ca.SX.sym(name, length) for name, length in zip(self.arg_names[key], arg_lens[key])]
             self.iter_args[key] = [ca.vertsplit(arg, 1) for arg in self.args[key]]
+            self.iter_args[key][0] = self.iter_args[key][0][0]  # TODO 't' not treated as list, but as primitive. How can this be more elegant?
+
 
         # TODO refactor into AdiffOCP class? -wlevin 4/8/2022
         self.ca_dynamics = self.wrap_dynamics()
-        # self.ca_boundary_conditions = self.wrap_boundary_conditions()
+        self.ca_boundary_conditions = self.wrap_boundary_conditions()
         self.ca_cost = self.wrap_cost()
-
-        # TODO boundary_conditions compiled BCs wrap with np.array, can't be wrapped with ca.Function -wlevin 4/8/2022
 
         self.ca_costate_dynamics = self.wrap_costate_dynamics()
         self.ca_adjoined_boundary_conditions = self.wrap_adjoined_boundary_conditions()
+        self.ca_augmented_cost = self.wrap_augmented_cost()
+        self.ca_hamiltonian = self.ca_augmented_cost.path
 
     # TODO refactor into AdiffOCP class? -wlevin 4/8/2022
     def wrap_dynamics(self):
