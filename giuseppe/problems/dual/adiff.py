@@ -5,7 +5,7 @@ from warnings import warn
 import casadi as ca
 
 from giuseppe.utils.mixins import Picky
-from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
+from .symbolic import SymDual, SymDualOCP, SymOCP
 from .compiled import CompDual, CompDualOCP
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
 from ..ocp.compiled import CompCost, CompOCP
@@ -144,8 +144,8 @@ class AdiffDiffControlHandler:
         self.src_handler = deepcopy(source_handler)
         self.adiff_dual = adiff_dual
 
-        self.comp_control_dynamics = self.adiff_dual.comp_dual.control_handler.control_dynamics
-        self.comp_control_bc = self.adiff_dual.comp_dual.control_handler.control_bc
+        self.comp_control_dynamics = self.src_handler.control_dynamics
+        self.comp_control_bc = self.src_handler.control_bc
         self.args = self.adiff_dual.args['dynamic']
         self.iter_args = self.adiff_dual.iter_args['dynamic']
         self.arg_names = self.adiff_dual.arg_names['dynamic']
@@ -156,8 +156,8 @@ class AdiffDiffControlHandler:
     def wrap_control_dynamics(self):
         return ca_wrap('u_dot', self.args, self.comp_control_dynamics, self.iter_args, self.arg_names)
 
-    def compile_control_bc(self):
-        return ca_wrap('Hu_f', self.comp_control_bc, self.args, self.iter_args, self.arg_names)
+    def wrap_control_bc(self):
+        return ca_wrap('Hu_f', self.args, self.comp_control_bc, self.iter_args, self.arg_names)
 
 
 class AdiffDualOCP(Picky):
