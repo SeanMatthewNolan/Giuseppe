@@ -40,9 +40,9 @@ class AdiffOCP(Picky):
         self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]
         self.iter_args.insert(0, self.args[0])  # Insert time separately b/c not wrapped in list
 
-        self.dynamics = self.wrap_dynamics()
-        self.boundary_conditions = self.wrap_boundary_conditions()
-        self.cost = self.wrap_cost()
+        self.ca_dynamics = self.wrap_dynamics()
+        self.ca_boundary_conditions = self.wrap_boundary_conditions()
+        self.ca_cost = self.wrap_cost()
 
     def wrap_dynamics(self):
         dynamics = ca_wrap('f', self.args, self.comp_ocp.dynamics, self.iter_args,
