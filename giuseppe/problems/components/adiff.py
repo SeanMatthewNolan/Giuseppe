@@ -20,8 +20,13 @@ def wrap_func(name: str, ca_args, function: Callable, func_args, ca_arg_names, o
     if out_name is None:
         out_name = name
 
+    if hasattr(function(*func_args), '__len__'):
+        expression = function(*func_args)
+    else:
+        expression = (function(*func_args),)
+
     return ca.Function(name,
                        ca_args,
-                       (ca.vcat(function(*func_args)),),
+                       (ca.vcat(expression),),
                        ca_arg_names,
                        (out_name,))

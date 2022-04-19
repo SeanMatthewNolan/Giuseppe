@@ -103,8 +103,8 @@ class AdiffDual(Picky):
                                  self.iter_args['ocp'], self.arg_names['ocp'])
         path_cost = wrap_func('L', self.args['ocp'], self.comp_ocp.cost.path,
                               self.iter_args['ocp'], self.arg_names['ocp'])
-        terminal_cost = ca.Function('Phi_f', self.args['ocp'], self.comp_ocp.cost.terminal,
-                                    self.iter_args['ocp'], self.arg_names['ocp'])
+        terminal_cost = wrap_func('Phi_f', self.args['ocp'], self.comp_ocp.cost.terminal,
+                                  self.iter_args['ocp'], self.arg_names['ocp'])
 
         return AdiffCost(initial_cost, path_cost, terminal_cost)
 
