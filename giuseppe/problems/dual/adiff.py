@@ -123,7 +123,7 @@ class AdiffDual(Picky):
 
 
 class AdiffAlgControlHandler:
-    def __init__(self, adiff_dual: AdiffDual, control_handler: CompAlgControlHandler):
+    def __init__(self, control_handler: CompAlgControlHandler, adiff_dual: AdiffDual):
         self.adiff_dual = adiff_dual
         self.control_handler = control_handler
 
@@ -140,7 +140,7 @@ class AdiffAlgControlHandler:
 
 # TODO convert CompDiffControlHandler to AdiffDiffControlHandler -wlevin 4/8/2022
 class AdiffDiffControlHandler:
-    def __init__(self, source_handler: DifferentialControlHandler, adiff_dual: AdiffDual):
+    def __init__(self, source_handler: CompDiffControlHandler, adiff_dual: AdiffDual):
         self.src_handler = deepcopy(source_handler)
         self.adiff_dual = adiff_dual
 
@@ -184,7 +184,7 @@ class AdiffDualOCP(Picky):
     def compile_control_handler(self):
         comp_control_handler = self.comp_dualocp.control_handler
         if isinstance(comp_control_handler, CompAlgControlHandler):
-            return AdiffAlgControlHandler(self.adiff_dual)
+            return AdiffAlgControlHandler(comp_control_handler, self.adiff_dual)
 
         elif isinstance(comp_control_handler, CompDiffControlHandler):
-            return AdiffDiffControlHandler(self.adiff_dual)
+            return AdiffDiffControlHandler(comp_control_handler, self.adiff_dual)
