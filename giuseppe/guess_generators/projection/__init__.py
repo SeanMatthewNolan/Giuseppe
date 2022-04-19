@@ -1,2 +1,3 @@
 from .match_constants_to_bcs import match_constants_to_bcs
 from .project_to_nullspace import project_to_nullspace
+from .project_dual import project_dual
