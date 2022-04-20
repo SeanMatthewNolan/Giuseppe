@@ -1,6 +1,4 @@
-from copy import deepcopy
 from typing import Union, Optional
-from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -17,19 +15,25 @@ SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
                       constants: Optional[ArrayLike] = None, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
-                      abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
-
+                      use_dynamics: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
     """
-    Automatically generate guess where variables (excluding the indenpendent) are set to constant values
+    Automatically generate guess where variables (excluding the indenpendent) with initial and terminal values fitted
+    to the boundary conditions and dynamics
 
     Parameters
     ----------
     comp_prob : CompBVP, CompOCP, or CompDualOCP 
+        the problem that the guess is for
     t_span : float or ArrayLike, default=0.1
+        values for the independent variable, t
+        if float, t = np.array([0., t_span])
     constants : ArrayLike, optional
+        constant  values
     default : float, BVPSol, OCPSol, or DualOCPSol, default=0.1
         if float, default value for set variables
         if solution type, guess to modify from which unmodified values will be taken
+    use_dynamics : bool, default=True
+        specifies whether the values are fitted with respect to a linear approximation of the dynamics or BC alone
     abs_tol : float, default=1e-3
         absolute tolerance
     rel_tol : float, default=1e-3
@@ -54,11 +58,21 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
             _p = values[2 * num_x:2 * num_x + num_p]
             return _x0, _xf, _p
 
-        def bc_func(values):
-            _x0, _xf, _p = map_values(values)
-            psi_0 = prob.boundary_conditions.initial(guess.t[0], _x0, _p, guess.k)
-            psi_f = prob.boundary_conditions.terminal(guess.t[-1], _xf, _p, guess.k)
-            return np.concatenate((np.asarray(psi_0), np.asarray(psi_f)))
+        if use_dynamics:
+            def bc_func(values):
+                _x0, _xf, _p = map_values(values)
+                psi_0 = prob.boundary_conditions.initial(guess.t[0], _x0, _p, guess.k)
+                dyn_res = _xf - _x0 - (guess.t[-1] - guess.t[0]) \
+                    * np.asarray(prob.dynamics((guess.t[-1] + guess.t[0]) / 2, (_xf + _x0) / 2, _p, guess.k))
+                psi_f = prob.boundary_conditions.terminal(guess.t[-1], _xf, _p, guess.k)
+                return np.concatenate((np.asarray(psi_0), dyn_res, np.asarray(psi_f)))
+
+        else:
+            def bc_func(values):
+                _x0, _xf, _p = map_values(values)
+                psi_0 = prob.boundary_conditions.initial(guess.t[0], _x0, _p, guess.k)
+                psi_f = prob.boundary_conditions.terminal(guess.t[-1], _xf, _p, guess.k)
+                return np.concatenate((np.asarray(psi_0), np.asarray(psi_f)))
 
         values_guess = np.concatenate(guess.x[:, 0], guess.x[:, -1], guess.p)
         out_x0, out_xf, out_p = map_values(project_to_nullspace(bc_func, values_guess, abs_tol=abs_tol, rel_tol=rel_tol))
@@ -77,11 +91,21 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
             _p = values[2 * (num_x + num_u):2 * (num_x + num_u) + num_p]
             return _x0, _xf, _u0, _uf, _p
 
-        def bc_func(values):
-            _x0, _xf, _u0, _uf, _p = map_values(values)
-            psi_0 = prob.boundary_conditions.initial(guess.t[0], _x0, _u0, _p, guess.k)
-            psi_f = prob.boundary_conditions.terminal(guess.t[-1], _xf, _uf, _p, guess.k)
-            return np.concatenate((np.asarray(psi_0), np.asarray(psi_f)))
+        if use_dynamics:
+            def bc_func(values):
+                _x0, _xf, _u0, _uf, _p = map_values(values)
+                psi_0 = prob.boundary_conditions.initial(guess.t[0], _x0, _u0, _p, guess.k)
+                dyn_res = _xf - _x0 - (guess.t[-1] - guess.t[0]) * np.asarray(
+                    prob.dynamics((guess.t[-1] + guess.t[0]) / 2, (_xf + _x0) / 2, (_uf + _u0) / 2, _p, guess.k))
+                psi_f = prob.boundary_conditions.terminal(guess.t[-1], _xf, _uf, _p, guess.k)
+                return np.concatenate((np.asarray(psi_0), dyn_res, np.asarray(psi_f)))
+
+        else:
+            def bc_func(values):
+                _x0, _xf, _u0, _uf, _p = map_values(values)
+                psi_0 = prob.boundary_conditions.initial(guess.t[0], _x0, _u0, _p, guess.k)
+                psi_f = prob.boundary_conditions.terminal(guess.t[-1], _xf, _uf, _p, guess.k)
+                return np.concatenate((np.asarray(psi_0), np.asarray(psi_f)))
 
         values_guess = np.concatenate((guess.x[:, 0], guess.x[:, -1], guess.u[:, 0], guess.u[:, -1], guess.p))
         out_x0, out_xf, out_u0, out_uf, out_p = map_values(
@@ -113,16 +137,40 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                               2 * (num_x + num_lam + num_u) + num_p + num_nu0 + num_nuf]
                 return _x0, _xf, _lam0, _lamf, _u0, _uf, _p, _nu0, _nuf
 
-            def dual_bc_func(values):
-                _x0, _xf, _lam0, _lamf, _u0, _uf, _p, _nu0, _nuf = map_dual_values(values)
+            if use_dynamics:
+                def dual_bc_func(values):
+                    _x0, _xf, _lam0, _lamf, _u0, _uf, _p, _nu0, _nuf = map_dual_values(values)
 
-                psi_0 = ocp_bc.initial(guess.t[0], _x0, _u0, _p, guess.k)
-                psi_f = ocp_bc.terminal(guess.t[-1], _xf, _uf, _p, guess.k)
+                    psi_0 = ocp_bc.initial(guess.t[0], _x0, _u0, _p, guess.k)
+                    dyn_res = _xf - _x0 - (guess.t[-1] - guess.t[0]) * np.asarray(prob.dynamics(
+                        (guess.t[-1] + guess.t[0]) / 2, (_xf + _x0) / 2, (_uf + _u0) / 2, _p, guess.k))
+                    psi_f = ocp_bc.terminal(guess.t[-1], _xf, _uf, _p, guess.k)
 
-                adj_bc0 = dual_bc.initial(guess.t[0], _x0, _lam0, _u0, _p, _nu0, guess.k)
-                adj_bcf = dual_bc.terminal(guess.t[-1], _xf, _lamf, _uf, _p, _nuf, guess.k)
+                    adj_bc0 = dual_bc.initial(guess.t[0], _x0, _lam0, _u0, _p, _nu0, guess.k)
+                    costate_dyn_res = _lamf - _lam0 - (guess.t[-1] - guess.t[0]) \
+                        * np.asarray(dual.costate_dynamics((guess.t[-1] + guess.t[0]) / 2, (_xf + _x0) / 2,
+                                                           (_lamf + _lam0) / 2, (_uf + _u0) / 2, _p, guess.k))
+                    adj_bcf = dual_bc.terminal(guess.t[-1], _xf, _lamf, _uf, _p, _nuf, guess.k)
 
-                return np.concatenate((np.asarray(psi_0), np.asarray(psi_f), np.asarray(adj_bc0), np.asarray(adj_bcf)))
+                    return np.concatenate((
+                        np.asarray(psi_0), dyn_res, np.asarray(psi_f),
+                        np.asarray(adj_bc0), costate_dyn_res, np.asarray(adj_bcf)
+                    ))
+
+            else:
+                def dual_bc_func(values):
+                    _x0, _xf, _lam0, _lamf, _u0, _uf, _p, _nu0, _nuf = map_dual_values(values)
+
+                    psi_0 = ocp_bc.initial(guess.t[0], _x0, _u0, _p, guess.k)
+                    psi_f = ocp_bc.terminal(guess.t[-1], _xf, _uf, _p, guess.k)
+
+                    adj_bc0 = dual_bc.initial(guess.t[0], _x0, _lam0, _u0, _p, _nu0, guess.k)
+                    adj_bcf = dual_bc.terminal(guess.t[-1], _xf, _lamf, _uf, _p, _nuf, guess.k)
+
+                    return np.concatenate((
+                        np.asarray(psi_0), np.asarray(psi_f),
+                        np.asarray(adj_bc0), np.asarray(adj_bcf)
+                    ))
 
             values_guess = np.concatenate(
                     (guess.x[:, 0], guess.lam[:, 0], guess.u[:, 0], guess.x[:, -1], guess.lam[:, -1], guess.u[:, -1],
