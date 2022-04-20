@@ -1,9 +1,9 @@
 from copy import deepcopy
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 import numpy as np
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, BVPSol, OCPSol, DualOCPSol
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .project_to_nullspace import project_to_nullspace
 
@@ -126,22 +126,62 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS
     x = project_to_nullspace(bc_func, guess.x, rel_tol=rel_tol, abs_tol=abs_tol)
 
     if dual is not None and project_costates:
-        dual_bc = dual.adjoined_boundary_conditions
-
-        if location.lower() == 'initial':
-            def adj_bc_func(_lam):
-                adj_bc0 = dual_bc.initial(
-                    guess.t[0], x, _lam, guess.u[:, 0], guess.p, guess.nu0, guess.k)
-                return np.asarray(adj_bc0)
-        else:
-            def adj_bc_func(_lam):
-                adj_bcf = dual_bc.terminal(
-                    guess.t[-1], x, _lam, guess.u[:, -1], guess.p, guess.nuf, guess.k)
-                return np.asarray(adj_bcf)
-
-        lam = project_to_nullspace(adj_bc_func, guess.lam, rel_tol=rel_tol, abs_tol=abs_tol)
-
+        lam = match_costates_to_bc(comp_prob, guess, location=location, states=x, rel_tol=rel_tol, abs_tol=abs_tol)
         return x, lam
-
     else:
         return x
+
+
+def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: DualOCPSol, location: str = 'initial',
+                         states: Optional[np.ndarray] = None,
+                         rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> np.ndarray:
+    """
+    Projects the costates of a guess to the problem's boundary conditions to get the closest match
+
+    Parameters
+    ----------
+    comp_prob : CompDualOCP
+        problem whose BCs are to be matched
+    guess : DualOCPSol
+        guess from which to match the states (and costates)
+    location : 'initial' or 'terminal', default='initial'
+        specifies which BC to match
+    states : np.ndarray, optional
+        states at boundary to use
+    abs_tol : float, default=1e-3
+       absolute tolerance
+    rel_tol : float, default=1e-3
+       relative tolerance
+
+    Returns
+    -------
+    projected costates
+
+    """
+    if not (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, CompDual)):
+        raise ValueError(f'Problem type {type(comp_prob)} not supported')
+
+    if location.lower() not in ['initial', 'terminal']:
+        raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
+
+    _, dual = sift_ocp_and_dual(comp_prob)
+    dual_bc = dual.adjoined_boundary_conditions
+
+    if location.lower() == 'initial':
+        if states is None:
+            states = guess.x[:, 0]
+
+        def adj_bc_func(_lam):
+            adj_bc0 = dual_bc.initial(guess.t[0], states, _lam, guess.u[:, 0], guess.p, guess.nu0, guess.k)
+            return np.asarray(adj_bc0)
+    else:
+        if states is None:
+            states = guess.x[:, -1]
+
+        def adj_bc_func(_lam):
+            adj_bcf = dual_bc.terminal(guess.t[-1], states, _lam, guess.u[:, -1], guess.p, guess.nuf, guess.k)
+            return np.asarray(adj_bcf)
+
+    lam = project_to_nullspace(adj_bc_func, guess.lam, rel_tol=rel_tol, abs_tol=abs_tol)
+
+    return lam
