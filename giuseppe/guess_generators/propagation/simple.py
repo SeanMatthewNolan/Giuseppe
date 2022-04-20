@@ -5,7 +5,7 @@ from numpy.typing import ArrayLike
 from scipy.integrate import solve_ivp
 
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
-from ..constant import update_constant_value, generate_constant_guess
+from ..constant import update_constant_value, generate_constant_guess, initialize_guess_for_auto
 from ..projection import match_constants_to_bcs, project_dual
 
 _IVP_SOL = TypeVar('_IVP_SOL')
@@ -16,10 +16,11 @@ SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 # TODO Allow for reverse integration
 def propagate_guess(
-        comp_prob: SUPPORTED_PROBLEMS, default_value: float = 0.1, t_span: Union[float, ArrayLike] = 0.1,
-        initial_states: Optional[ArrayLike] = None, initial_costates: Optional[ArrayLike] = None,
-        control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None, p: Optional[Union[float, ArrayLike]] = None,
-        k: Optional[Union[float, ArrayLike]] = None, use_project_dual: bool = True, use_match_constants: bool = True,
+        comp_prob: SUPPORTED_PROBLEMS, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
+        t_span: Union[float, ArrayLike] = 0.1, initial_states: Optional[ArrayLike] = None,
+        initial_costates: Optional[ArrayLike] = None, control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
+        p: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None,
+        use_project_dual: bool = True, use_match_constants: bool = True,
         abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
     """
     Propagate a guess with a constant control value or control function.
@@ -33,7 +34,7 @@ def propagate_guess(
     ----------
     comp_prob : CompBVP, CompOCP, or CompDualOCP
         the problem that the guess is for
-    default_value : float, default=0.1
+    default : float, BVPSol, OCPSol or DualOCPSol, default=0.1
         value used if no value is given
     t_span : float or ArrayLike, default=0.1
         values for the independent variable, t
@@ -67,7 +68,10 @@ def propagate_guess(
 
     """
 
-    guess = generate_constant_guess(comp_prob, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k)
+    guess = initialize_guess_for_auto(comp_prob, default=default, t_span=t_span, constants=k)
+
+    if p is not None:
+        update_constant_value(guess, 'p', p)
 
     if initial_states is None:
         initial_states = guess.x[:, 0]

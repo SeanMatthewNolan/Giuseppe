@@ -14,9 +14,9 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
-def initialize_guess_for_auto(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
-                              constants: Optional[ArrayLike] = None, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1) \
-        -> SUPPORTED_SOLUTIONS:
+def initialize_guess_for_auto(
+        comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1, constants: Optional[ArrayLike] = None,
+        default: Union[float, SUPPORTED_SOLUTIONS] = 0.1) -> SUPPORTED_SOLUTIONS:
 
     if isinstance(default, BVPSol):
         guess = deepcopy(default)

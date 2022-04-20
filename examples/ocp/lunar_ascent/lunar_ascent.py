@@ -51,12 +51,12 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=True)
     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=True)
 
-guess = giuseppe.guess_generators.propagate_guess(
-        comp_dual_ocp, initial_states=np.array([0, 0, 0, 0]), control=85/180*3.14159, t_span=T_GUESS)
+guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45/180*3.14159, t_span=T_GUESS)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(10, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
+# cont.add_linear_series(1, {'h_0': 0, 'x_0': 0, 'v_h_0': 0, 'v_x_0': 0, 'a': 3 * G, 'g': G, 'r_m': 938 * NM2FT})
+cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
 
 with giuseppe.utils.Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:

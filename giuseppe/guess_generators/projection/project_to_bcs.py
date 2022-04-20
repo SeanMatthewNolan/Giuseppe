@@ -95,7 +95,11 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS
     """
     prob, dual = sift_ocp_and_dual(comp_prob)
 
-    if location.lower() not in ['initial', 'terminal']:
+    if location.lower() == 'initial':
+        x_guess = guess.x[:, 0]
+    elif location.lower() == 'terminal':
+        x_guess = guess.x[:, -1]
+    else:
         raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
 
     if isinstance(prob, CompBVP):
@@ -123,7 +127,7 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS
     else:
         raise ValueError(f'Problem type {type(prob)} not supported')
 
-    x = project_to_nullspace(bc_func, guess.x, rel_tol=rel_tol, abs_tol=abs_tol)
+    x = project_to_nullspace(bc_func, x_guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     if dual is not None and project_costates:
         lam = match_costates_to_bc(comp_prob, guess, location=location, states=x, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -161,9 +165,12 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: DualOCP
     if not (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, CompDual)):
         raise ValueError(f'Problem type {type(comp_prob)} not supported')
 
-    if location.lower() not in ['initial', 'terminal']:
+    if location.lower() == 'initial':
+        lam_guess = guess.lam[:, 0]
+    elif location.lower() == 'terminal':
+        lam_guess = guess.lam[:, -1]
+    else:
         raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
-
     _, dual = sift_ocp_and_dual(comp_prob)
     dual_bc = dual.adjoined_boundary_conditions
 
@@ -182,6 +189,6 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: DualOCP
             adj_bcf = dual_bc.terminal(guess.t[-1], states, _lam, guess.u[:, -1], guess.p, guess.nuf, guess.k)
             return np.asarray(adj_bcf)
 
-    lam = project_to_nullspace(adj_bc_func, guess.lam, rel_tol=rel_tol, abs_tol=abs_tol)
+    lam = project_to_nullspace(adj_bc_func, lam_guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     return lam
