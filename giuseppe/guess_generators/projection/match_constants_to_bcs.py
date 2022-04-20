@@ -10,7 +10,8 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
-def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS) -> SUPPORTED_SOLUTIONS:
+def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS,
+                           rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
     """
     Projects the constant array of a guess to the problem's boundary conditions to get the closest match
 
@@ -20,6 +21,10 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS)
         problem whose BCs are to be matched
     guess : BVPSol or OCPSol or DualOCPSol
         guess from which to match the constants
+    abs_tol : float, default=1e-3
+       absolute tolerance
+    rel_tol : float, default=1e-3
+       relative tolerance
 
     Returns
     -------
@@ -57,5 +62,5 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS)
         raise ValueError(f'Problem type {type(prob)} not supported')
 
     guess = deepcopy(guess)
-    guess.k = project_to_nullspace(bc_func, guess.k)
+    guess.k = project_to_nullspace(bc_func, guess.k, rel_tol=rel_tol, abs_tol=abs_tol)
     return guess

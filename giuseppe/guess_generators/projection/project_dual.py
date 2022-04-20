@@ -6,7 +6,7 @@ from giuseppe.problems.dual import CompDualOCP, DualOCPSol
 from . import project_to_nullspace
 
 
-def project_dual(comp_prob: CompDualOCP, guess: DualOCPSol):
+def project_dual(comp_prob: CompDualOCP, guess: DualOCPSol, rel_tol: float = 1e-3, abs_tol: float = 1e-3):
 
     t = guess.t
     x = guess.x
@@ -52,6 +52,7 @@ def project_dual(comp_prob: CompDualOCP, guess: DualOCPSol):
         return np.concatenate((bc_0, np.array(dyn_res).flatten(), bc_f))
 
     adj_vars_guess = np.concatenate((guess.nu0, guess.lam.T.flatten(), guess.nuf))
-    guess.nu0, guess.lam, guess.nuf = unpack_values(project_to_nullspace(residual, adj_vars_guess))
+    guess.nu0, guess.lam, guess.nuf = unpack_values(
+            project_to_nullspace(residual, adj_vars_guess, rel_tol=rel_tol, abs_tol=abs_tol))
 
     return guess

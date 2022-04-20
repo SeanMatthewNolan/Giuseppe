@@ -155,9 +155,9 @@ def propagate_guess(
             guess.u = np.vstack([guess.u[:, 0] for _ in guess.t]).T
 
     if isinstance(comp_prob, CompDualOCP) and use_project_dual:
-        guess = project_dual(comp_prob, guess)
+        guess = project_dual(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     if use_match_constants:
-        guess = match_constants_to_bcs(comp_prob, guess)
+        guess = match_constants_to_bcs(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     return guess
