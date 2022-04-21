@@ -6,7 +6,7 @@ import giuseppe
 from giuseppe.continuation import ContinuationHandler, SolutionSet
 from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, AdiffDualOCP  # , DualOCPSol
+from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
 from giuseppe.problems.ocp import SymOCP, AdiffOCP
 # from giuseppe.guess_generators import generate_constant_guess
 from giuseppe.utils import Timer
@@ -44,10 +44,12 @@ ocp.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
+    adiff_dual = AdiffDual(sym_ocp)
     adiff_ocp = AdiffOCP(sym_ocp)
-    sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    adiff_dualocp = AdiffDualOCP(sym_bvp)
+    # adiff_ocp = AdiffOCP(sym_ocp)
+    # sym_dual = SymDual(sym_ocp)
+    # sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
+    adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual)
 #     num_solver = ScipySolveBVP(comp_dual_ocp)
 #
 # n = 2
