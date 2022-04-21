@@ -6,58 +6,57 @@ import giuseppe
 
 G = 5.3
 NM2FT = 6076.1
-T_GUESS = 10
-R_M = 938 * NM2FT
+T_GUESS = 2.5
 
 lunar = giuseppe.io.InputOCP()
 
 lunar.set_independent('t')
 
-lunar.add_state('h', 'h_dot')
-lunar.add_state('θ', 'θ_dot')
-lunar.add_state('h_dot', 'a * sin(β) - g')
-lunar.add_state('θ_dot', '(a * cos(β) + h_dot * θ_dot) / (r_m + h)')
+lunar.add_state('h', 'v_h')
+lunar.add_state('x', 'v_x')
+lunar.add_state('v_h', 'a * sin(β) - g')
+lunar.add_state('v_x', 'a git* cos(β)')
 
 lunar.add_control('β')
 
 lunar.add_constant('a', 3 * G)
 lunar.add_constant('g', G)
-lunar.add_constant('r_m', R_M)
+lunar.add_constant('r_m', 938 * NM2FT)
 
 lunar.add_constant('h_0', 0)
-lunar.add_constant('θ_0', 0)
-lunar.add_constant('h_dot_0', 0)
-lunar.add_constant('θ_dot_0', 0)
+lunar.add_constant('x_0', 0)
+lunar.add_constant('v_h_0', 0)
+lunar.add_constant('v_x_0', 0)
 
 lunar.add_constant('h_f', G * T_GUESS ** 2)
-lunar.add_constant('h_dot_f', G * T_GUESS)
-lunar.add_constant('θ_dot_f', G * T_GUESS / R_M)
+lunar.add_constant('v_h_f', G * T_GUESS)
+lunar.add_constant('v_x_f', G * T_GUESS)
 
 lunar.set_cost('0', '0', 't')
 
 lunar.add_constraint('initial', 't')
 lunar.add_constraint('initial', 'h - h_0')
-lunar.add_constraint('initial', 'θ - θ_0')
-lunar.add_constraint('initial', 'h_dot - h_dot_0')
-lunar.add_constraint('initial', 'θ_dot - θ_dot_0')
+lunar.add_constraint('initial', 'x - x_0')
+lunar.add_constraint('initial', 'v_h - v_h_0')
+lunar.add_constraint('initial', 'v_x - v_x_0')
 
 lunar.add_constraint('terminal', 'h - h_f')
-lunar.add_constraint('terminal', 'h_dot - h_dot_f')
-lunar.add_constraint('terminal', 'θ_dot - θ_dot_f')
+lunar.add_constraint('terminal', 'v_h - v_h_f')
+lunar.add_constraint('terminal', 'v_x - v_x_f')
 
 with giuseppe.utils.Timer(prefix='Complilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(lunar)
     sym_dual = giuseppe.problems.SymDual(sym_ocp)
     sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=True)
-    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=True, verbose=True)
+    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=True)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(
-        comp_dual_ocp, control=45/180*3.14159, t_span=T_GUESS, abs_tol=1e-6)
+guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45/180*3.14159, t_span=T_GUESS)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(15, {'h_f': 50_000, 'h_dot_f': 0, 'θ_dot_f': 5_780 / (R_M + 50_000)}, bisection=10)
+# cont.add_linear_series(1, {'h_0': 0, 'x_0': 0, 'v_h_0': 0, 'v_x_0': 0, 'a': 3 * G, 'g': G, 'r_m': 938 * NM2FT})
+cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
 
 with giuseppe.utils.Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:
