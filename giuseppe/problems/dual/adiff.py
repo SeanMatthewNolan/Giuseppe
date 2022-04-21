@@ -39,6 +39,7 @@ class AdiffDual(Picky):
         self.num_terminal_adjoints = self.adiff_ocp.ca_boundary_conditions.terminal.size_out(0)[0]
 
         # TODO conversion from ocp_args to args makes ocp_args "free" -- refactor to extend OCP args
+
         arg_lens = {'initial': (1, self.num_states, self.num_costates, self.num_controls,
                                 self.num_parameters, self.num_initial_adjoints, self.num_constants),
                     'dynamic': (1, self.num_states, self.num_costates, self.num_controls,
@@ -47,17 +48,24 @@ class AdiffDual(Picky):
                                  self.num_parameters, self.num_terminal_adjoints, self.num_constants),
                     'ocp': (1, self.num_states, self.num_controls, self.num_parameters, self.num_constants)}
 
-        self.arg_names = {'initial': ('t', 'x', 'lam', 'u', 'p', '_nu_0', 'k'),
+        self.arg_names = {'ocp': self.adiff_ocp.arg_names,
+                          'initial': ('t', 'x', 'lam', 'u', 'p', '_nu_0', 'k'),
                           'dynamic': ('t', 'x', 'lam', 'u', 'p', 'k'),
-                          'terminal': ('t', 'x', 'lam', 'u', 'p', '_nu_f', 'k'),
-                          'ocp': ('t', 'x', 'u', 'p', 'k')}
+                          'terminal': ('t', 'x', 'lam', 'u', 'p', '_nu_f', 'k')}
 
-        self.args = {}
-        self.iter_args = {}
-        for key in self.arg_names:
-            self.args[key] = [ca.SX.sym(name, length) for name, length in zip(self.arg_names[key], arg_lens[key])]
-            self.iter_args[key] = [ca.vertsplit(arg, 1) for arg in self.args[key][1:]]
-            self.iter_args[key].insert(0, self.args[key][0])  # Insert time separately b/c not wrapped in list
+        self.args = {'ocp': self.adiff_ocp.args}
+        self.args['dynamic'] = self.args['ocp'].copy()
+        self.args['dynamic'].insert(2, ca.SX.sym('lam', self.num_costates))
+        self.args['initial'] = self.args['dynamic'].copy()
+        self.args['initial'].insert(5, ca.SX.sym('_nu_0', self.num_initial_adjoints))
+        self.args['terminal'] = self.args['dynamic'].copy()
+        self.args['terminal'].insert(5, ca.SX.sym('_nu_f', self.num_terminal_adjoints))
+
+        # self.iter_args = {}
+        # for key in self.arg_names:
+        #     self.args[key] = [ca.SX.sym(name, length) for name, length in zip(self.arg_names[key], arg_lens[key])]
+        #     self.iter_args[key] = [ca.vertsplit(arg, 1) for arg in self.args[key][1:]]
+        #     self.iter_args[key].insert(0, self.args[key][0])  # Insert time separately b/c not wrapped in list
 
         self.t = self.args['dynamic'][0]
         self.x = self.args['dynamic'][1]
@@ -131,9 +139,9 @@ class AdiffDiffControlHandler:
         self.adiff_dual: AdiffDual = adiff_dual
 
         args = self.adiff_dual.args['dynamic']
-        ocp_args = self.adiff_ocp.args
+        ocp_args = self.adiff_dual.args['ocp']
         arg_names = self.adiff_dual.arg_names['dynamic']
-        ocp_arg_names = self.adiff_ocp.arg_names
+        ocp_arg_names = self.adiff_dual.arg_names['ocp']
 
         _h_u = ca.jacobian(self.adiff_dual.ca_hamiltonian(*args), self.adiff_dual.u)
         _h_uu = ca.jacobian(_h_u, self.adiff_dual.u)

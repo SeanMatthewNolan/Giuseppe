@@ -12,6 +12,7 @@ from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.utils import Timer
 
 giuseppe.utils.complilation.JIT_COMPILE = True
+giuseppe.utils.complilation.LAMB_MODS = ['numpy']
 
 ocp = InputOCP()
 
@@ -42,7 +43,7 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
-with Timer(prefix='Complilation Time:'):
+with Timer(prefix='Compilation Time:'):
     sym_ocp = SymOCP(ocp)
     adiff_dual = AdiffDual(sym_ocp)
     adiff_ocp = AdiffOCP(sym_ocp)
