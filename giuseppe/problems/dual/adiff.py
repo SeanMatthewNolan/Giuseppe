@@ -34,12 +34,11 @@ class AdiffDual(Picky):
         self.num_controls = self.adiff_ocp.num_controls
         self.num_parameters = self.adiff_ocp.num_parameters
         self.num_constants = self.adiff_ocp.num_constants
-
-        # TODO implement num_costates, num_initial_adjoints, num_terminal_adjoints
         self.num_costates = self.num_states + self.num_parameters
         self.num_initial_adjoints = self.adiff_ocp.ca_boundary_conditions.initial.size_out(0)[0]
         self.num_terminal_adjoints = self.adiff_ocp.ca_boundary_conditions.terminal.size_out(0)[0]
 
+        # TODO conversion from ocp_args to args makes ocp_args "free" -- refactor to extend OCP args
         arg_lens = {'initial': (1, self.num_states, self.num_costates, self.num_controls,
                                 self.num_parameters, self.num_initial_adjoints, self.num_constants),
                     'dynamic': (1, self.num_states, self.num_costates, self.num_controls,
