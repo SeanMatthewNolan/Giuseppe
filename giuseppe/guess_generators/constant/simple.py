@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike
 
 from giuseppe.problems.dual.solution import Solution
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
-from giuseppe.problems.ocp import CompOCP
+from giuseppe.problems.ocp import CompOCP, AdiffOCP
 from giuseppe.problems.typing import AnyProblem, AnySolution
 
 
@@ -51,7 +51,7 @@ def initialize_guess_w_default_value(
         data['p'] = np.ones((prob.num_parameters,)) * default_value
         data['k'] = prob.default_values
 
-    if isinstance(prob, CompOCP):
+    if isinstance(prob, CompOCP) or isinstance(prob, AdiffOCP):
         data['u'] = np.ones((prob.num_controls, num_t_steps)) * default_value
 
     if dual is not None:
@@ -100,7 +100,7 @@ def update_constant_value(guess: AnySolution, name: str, values: Optional[Union[
 
 
 def generate_constant_guess(
-        comp_prob: AnyProblem, default_value: float = 0.1, t_span: Union[float, ArrayLike] = 0.1,
+        prob: AnyProblem, default_value: float = 0.1, t_span: Union[float, ArrayLike] = 0.1,
         x: Optional[Union[float, ArrayLike]] = None, lam: Optional[Union[float, ArrayLike]] = None,
         u: Optional[Union[float, ArrayLike]] = None, p: Optional[Union[float, ArrayLike]] = None,
         nu_0: Optional[Union[float, ArrayLike]] = None, nu_f: Optional[Union[float, ArrayLike]] = None,
@@ -112,7 +112,7 @@ def generate_constant_guess(
 
     Parameters
     ----------
-    comp_prob : CompBVP, CompOCP, CompDual or CompDualOCP
+    prob : CompBVP, CompOCP, CompDual or CompDualOCP
         the problem that the guess is for, needed to shape/size of arrays
     default_value : float, default=0.1
         value used if no value is given
@@ -140,7 +140,7 @@ def generate_constant_guess(
 
     """
 
-    guess = initialize_guess_w_default_value(comp_prob, default_value=default_value, t_span=t_span)
+    guess = initialize_guess_w_default_value(prob, default_value=default_value, t_span=t_span)
 
     update_constant_value(guess, 'x', x)
     update_constant_value(guess, 'lam', lam)

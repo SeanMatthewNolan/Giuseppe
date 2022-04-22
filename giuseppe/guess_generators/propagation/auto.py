@@ -59,7 +59,7 @@ def auto_propagate_guess(
     use_match_constants : bool, default=True
         if True, match_constants will be called to update the constants to most closely match the formed guess
     use_project_dual : bool, default=True
-        if True and comp_prob is an instance CompDualOCP, project_dual will be called to estimate dual values from guess
+        if True and prob is an instance CompDualOCP, project_dual will be called to estimate dual values from guess
     abs_tol : float, default=1e-3
        absolute tolerance
     rel_tol : float, default=1e-3

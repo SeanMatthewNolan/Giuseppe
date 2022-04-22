@@ -86,13 +86,14 @@ class AdiffScipySolveBVP(Picky):
     def _generate_bvp_dynamics(bvp: AdiffBVP, map_size: int) -> _dyn_type:
         bvp_dyn = bvp.ca_dynamics
         bvp_dyn_map = bvp_dyn.map(map_size, "thread", map_size)
+        n_p = bvp.num_parameters
 
         def dynamics(tau_vec: NPArray, x_vec: NPArray, p: NPArray, k_vec: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
 
-            p = p[:-2]
+            p = p[:n_p]
             p_vec = np.linspace(p, p, map_size).T
 
             # TODO examine if N threads is best
@@ -106,10 +107,12 @@ class AdiffScipySolveBVP(Picky):
         bvp_bc0 = bvp.ca_boundary_conditions.initial
         bvp_bcf = bvp.ca_boundary_conditions.terminal
 
+        n_p = bvp.num_parameters
+
         def boundary_conditions(x0: NPArray, xf: NPArray, p: NPArray, k: NPArray):
             t0, tf = p[-2], p[-1]
-            p = p[:-2]
-            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)), np.asarray(bvp_bcf(tf, xf, p, k))))
+            p = p[:n_p]
+            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)), np.asarray(bvp_bcf(tf, xf, p, k)))).flatten()
 
         return boundary_conditions
 
@@ -136,15 +139,17 @@ class AdiffScipySolveBVP(Picky):
     def _generate_ocp_diff_dynamics(dual_ocp: AdiffDualOCP, map_size: int) -> _dyn_type:
         args = dual_ocp.dual.args['dynamic']
         arg_names = dual_ocp.dual.arg_names['dynamic']
-        _x_dot = dual_ocp.ocp.ca_dynamics(*args)
+        _x_dot = dual_ocp.ocp.ca_dynamics(*dual_ocp.ocp.args)
         _lam_dot = dual_ocp.dual.ca_costate_dynamics(*args)
-        _u_dot = dual_ocp.control_handler.control_dynamics(*args)
+        _u_dot = dual_ocp.control_handler.ca_control_dynamics(*args)
         y_dyn = ca.Function('dy_dt', args, (ca.vcat((_x_dot, _lam_dot, _u_dot)),), arg_names, ('dy_dt',))
         y_dyn_map = y_dyn.map(map_size, "thread", map_size)
 
         n_x = dual_ocp.dual.num_states
         n_lam = dual_ocp.dual.num_costates
+        n_p = dual_ocp.dual.num_parameters
 
+        ind_nu0 = n_p
         ind_lam0 = n_x
         ind_u0 = n_x + n_lam
 
@@ -152,7 +157,7 @@ class AdiffScipySolveBVP(Picky):
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
-            p = p[:-2]
+            p = p[:n_p]
             p_vec = np.linspace(p, p, map_size).T
 
             x_vec = y_vec[:ind_lam0, :]
@@ -205,7 +210,7 @@ class AdiffScipySolveBVP(Picky):
                 np.asarray(dual_bc0(t0, x0, lam0, u0, p, nu0, k)),
                 np.asarray(dual_bcf(tf, xf, lamf, uf, p, nuf, k)),
                 np.asarray(control_bc(t0, x0, lam0, u0, p, k))
-            ))
+            )).flatten()
 
             return residual
 

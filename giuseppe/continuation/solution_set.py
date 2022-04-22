@@ -4,23 +4,29 @@ from collections.abc import Iterable, MutableSequence, Hashable
 from copy import deepcopy
 from typing import Union, overload
 
-from ..problems.bvp import SymBVP, BVPSol
-from ..problems.dual import SymDualOCP
-from ..problems.ocp import SymOCP
+from ..problems.bvp import SymBVP, AdiffBVP, BVPSol
+from ..problems.dual import SymDualOCP, AdiffDual, AdiffDualOCP
+from ..problems.ocp import SymOCP, AdiffOCP
 from ..problems.typing import AnySolution
 from ..utils.mixins import Picky
 
 
 # TODO: add annotations to solution set
 class SolutionSet(MutableSequence, Picky):
-    SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP]
+    SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 
-    def __init__(self, problem: Union[SymBVP, SymOCP, SymDualOCP], seed_solution: AnySolution):
+    def __init__(self, problem: SUPPORTED_INPUTS, seed_solution: AnySolution):
         Picky.__init__(self, problem)
 
         self.problem = deepcopy(problem)
         if type(problem) is SymDualOCP:
             self.constants = self.problem.ocp.constants
+        elif isinstance(problem, AdiffDualOCP):
+            self.constants = self.problem.dual.adiff_ocp.constants
+        elif isinstance(problem, AdiffDual):
+            self.constants = self.problem.adiff_ocp.constants
+        elif isinstance(problem, AdiffOCP):
+            self.constants = self.problem.constants
         else:
             self.constants = self.problem.constants
 

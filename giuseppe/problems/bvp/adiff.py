@@ -5,7 +5,7 @@ from warnings import warn
 import casadi as ca
 
 from giuseppe.utils.mixins import Picky
-from giuseppe.utils.typing import NumbaFloat, NumbaArray
+from giuseppe.utils.typing import SymMatrix
 from .symbolic import SymBVP
 from .compiled import CompBVP
 from ..components.adiff import AdiffBoundaryConditions, ca_wrap
@@ -14,7 +14,7 @@ from ..components.adiff import AdiffBoundaryConditions, ca_wrap
 class AdiffBVP(Picky):
     SUPPORTED_INPUTS: type = Union[SymBVP, CompBVP]
 
-    def __init__(self, source_bvp: SUPPORTED_INPUTS, use_jit_compile=True):
+    def __init__(self, source_bvp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_bvp)
 
         self.src_bvp = deepcopy(source_bvp)
@@ -25,8 +25,10 @@ class AdiffBVP(Picky):
                 self.comp_bvp: CompBVP = CompBVP(self.src_bvp.src_bvp, use_jit_compile=False)
             else:
                 self.comp_bvp: CompBVP = deepcopy(self.src_bvp)
+            self.constants: SymMatrix = self.src_bvp.src_bvp.constants
         else:
             self.comp_bvp: CompBVP = CompBVP(self.src_bvp, use_jit_compile=False)
+            self.constants: SymMatrix = self.src_bvp.constants
 
         self.num_states = self.comp_bvp.num_states
         self.num_parameters = self.comp_bvp.num_parameters

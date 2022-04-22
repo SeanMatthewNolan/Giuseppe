@@ -5,6 +5,7 @@ from warnings import warn
 import casadi as ca
 
 from giuseppe.utils.mixins import Picky
+from giuseppe.utils.typing import SymMatrix
 from .symbolic import SymOCP
 from .compiled import CompOCP
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
@@ -23,8 +24,10 @@ class AdiffOCP(Picky):
                 self.comp_ocp: CompOCP = CompOCP(self.src_ocp.src_ocp, use_jit_compile=False)
             else:
                 self.comp_ocp: CompOCP = deepcopy(self.src_ocp)
+            self.constants: SymMatrix = self.src_ocp.src_ocp.constants
         else:
             self.comp_ocp: CompOCP = CompOCP(self.src_ocp, use_jit_compile=False)
+            self.constants: SymMatrix = self.src_ocp.constants
 
         self.num_states = self.comp_ocp.num_states
         self.num_parameters = self.comp_ocp.num_parameters
