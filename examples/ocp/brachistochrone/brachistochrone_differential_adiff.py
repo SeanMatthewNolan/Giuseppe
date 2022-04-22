@@ -48,7 +48,7 @@ with Timer(prefix='Compilation Time:'):
     adiff_ocp = AdiffOCP(sym_ocp)
     adiff_dual = AdiffDual(adiff_ocp)
     adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual)
-    # num_solver = AdiffScipySolveBVP(adiff_dualocp)
+    num_solver = AdiffScipySolveBVP(adiff_dualocp)
 #
 # n = 2
 # t = np.linspace(0, 0.25, n)
