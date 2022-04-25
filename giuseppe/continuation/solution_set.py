@@ -18,17 +18,17 @@ class SolutionSet(MutableSequence, Picky):
     def __init__(self, problem: SUPPORTED_INPUTS, seed_solution: AnySolution):
         Picky.__init__(self, problem)
 
-        self.problem = deepcopy(problem)
+        problem = deepcopy(problem)
         if type(problem) is SymDualOCP:
-            self.constants = self.problem.ocp.constants
+            self.constants = problem.ocp.constants
         elif isinstance(problem, AdiffDualOCP):
-            self.constants = self.problem.dual.adiff_ocp.constants
+            self.constants = problem.dual.adiff_ocp.constants
         elif isinstance(problem, AdiffDual):
-            self.constants = self.problem.adiff_ocp.constants
+            self.constants = problem.adiff_ocp.constants
         elif isinstance(problem, AdiffOCP):
-            self.constants = self.problem.constants
+            self.constants = problem.constants
         else:
-            self.constants = self.problem.constants
+            self.constants = problem.constants
 
         if not seed_solution.converged:
             warnings.warn(

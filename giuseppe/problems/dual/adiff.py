@@ -29,6 +29,8 @@ class AdiffDual(Picky):
                 self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
         elif isinstance(self.src_ocp, SymOCP):
             self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
+        else:
+            raise TypeError(f"AdiffDual cannot be initialized with a {type(source_ocp)} object!")
 
         self.num_states = self.adiff_ocp.num_states
         self.num_controls = self.adiff_ocp.num_controls
@@ -37,16 +39,6 @@ class AdiffDual(Picky):
         self.num_costates = self.num_states + self.num_parameters
         self.num_initial_adjoints = self.adiff_ocp.ca_boundary_conditions.initial.size_out(0)[0]
         self.num_terminal_adjoints = self.adiff_ocp.ca_boundary_conditions.terminal.size_out(0)[0]
-
-        # TODO conversion from ocp_args to args makes ocp_args "free" -- refactor to extend OCP args
-
-        arg_lens = {'initial': (1, self.num_states, self.num_costates, self.num_controls,
-                                self.num_parameters, self.num_initial_adjoints, self.num_constants),
-                    'dynamic': (1, self.num_states, self.num_costates, self.num_controls,
-                                self.num_parameters, self.num_constants),
-                    'terminal': (1, self.num_states, self.num_costates, self.num_controls,
-                                 self.num_parameters, self.num_terminal_adjoints, self.num_constants),
-                    'ocp': (1, self.num_states, self.num_controls, self.num_parameters, self.num_constants)}
 
         self.arg_names = {'ocp': self.adiff_ocp.arg_names,
                           'initial': ('t', 'x', 'lam', 'u', 'p', '_nu_0', 'k'),
@@ -81,6 +73,7 @@ class AdiffDual(Picky):
         psi0 = self.adiff_ocp.ca_boundary_conditions.initial
         psif = self.adiff_ocp.ca_boundary_conditions.terminal
 
+        # TODO debug adjoints not agreeing with compiled solution
         self.ca_hamiltonian = ca.Function('H', self.args['dynamic'],
                                           (self.adiff_ocp.ca_cost.path(*self.adiff_ocp.args)
                                            + ca.dot(self.lam, self.adiff_ocp.ca_dynamics(*self.adiff_ocp.args)),),

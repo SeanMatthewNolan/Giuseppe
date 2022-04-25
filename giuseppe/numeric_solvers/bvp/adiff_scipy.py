@@ -51,27 +51,26 @@ class AdiffScipySolveBVP(Picky):
 
         Picky.__init__(self, bvp)
 
-        self.bvp = bvp
         self.tol: float = tol
         self.bc_tol: float = bc_tol
         self.max_nodes: int = max_nodes
         self.verbose: bool = verbose
 
-        dynamics_generator, boundary_conditions, preprocess, postprocess = self.load_problem(bvp)
-        self.dynamics_generator: Callable = dynamics_generator
+        dynamics, boundary_conditions, preprocess, postprocess = self.load_problem(bvp)
+        self.dynamics: _dyn_type = dynamics
         self.boundary_conditions: _bc_type = boundary_conditions
         self.preprocess: _preprocess_type = preprocess
         self.postprocess: _postprocess_type = postprocess
 
     def load_problem(self, bvp: SUPPORTED_INPUTS) -> tuple[Callable, _bc_type, _preprocess_type, _postprocess_type]:
         if type(bvp) is AdiffBVP:
-            dynamics_generator = self._generate_bvp_dynamics
+            dynamics = self._generate_bvp_dynamics(bvp)
             boundary_conditions = self._generate_bvp_bcs(bvp)
             preprocess = self._preprocess_bvp_sol
             postprocess = self._postprocess_bvp_sol
         elif type(bvp) is AdiffDualOCP:
             if type(bvp.control_handler) is AdiffDiffControlHandler:
-                dynamics_generator = self._generate_ocp_diff_dynamics
+                dynamics = self._generate_ocp_diff_dynamics(bvp)
                 boundary_conditions = self._generate_ocp_diff_bcs(bvp)
                 preprocess = self._preprocess_ocp_diff_sol
                 postprocess = self._generate_postprocess_ocp_diff_sol(bvp)
@@ -80,24 +79,25 @@ class AdiffScipySolveBVP(Picky):
         else:
             raise TypeError
 
-        return dynamics_generator, boundary_conditions, preprocess, postprocess
+        return dynamics, boundary_conditions, preprocess, postprocess
 
     @staticmethod
-    def _generate_bvp_dynamics(bvp: AdiffBVP, map_size: int) -> _dyn_type:
+    def _generate_bvp_dynamics(bvp: AdiffBVP) -> _dyn_type:
         bvp_dyn = bvp.ca_dynamics
-        bvp_dyn_map = bvp_dyn.map(map_size, "thread", map_size)
         n_p = bvp.num_parameters
 
-        def dynamics(tau_vec: NPArray, x_vec: NPArray, p: NPArray, k_vec: NPArray) -> NPArray:
+        def dynamics(tau_vec: NPArray, x_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
+            map_size = len(tau_vec)
 
             p = p[:n_p]
-            p_vec = np.linspace(p, p, map_size).T
+            # p_vec = np.linspace(p, p, map_size).T
+            # k_vec = np.linspace(k, k, map_size).T
 
-            # TODO examine if N threads is best
-            x_dot = np.asarray(bvp_dyn_map(t_vec, x_vec, p_vec, k_vec))
+            bvp_dyn_map = bvp_dyn.map(map_size)
+            x_dot = np.asarray(bvp_dyn_map(t_vec, x_vec, p, k))
             return x_dot * tau_mult
 
         return dynamics
@@ -136,35 +136,39 @@ class AdiffScipySolveBVP(Picky):
         return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
 
     @staticmethod
-    def _generate_ocp_diff_dynamics(dual_ocp: AdiffDualOCP, map_size: int) -> _dyn_type:
+    def _generate_ocp_diff_dynamics(dual_ocp: AdiffDualOCP) -> _dyn_type:
         args = dual_ocp.dual.args['dynamic']
         arg_names = dual_ocp.dual.arg_names['dynamic']
         _x_dot = dual_ocp.ocp.ca_dynamics(*dual_ocp.ocp.args)
         _lam_dot = dual_ocp.dual.ca_costate_dynamics(*args)
         _u_dot = dual_ocp.control_handler.ca_control_dynamics(*args)
         y_dyn = ca.Function('dy_dt', args, (ca.vcat((_x_dot, _lam_dot, _u_dot)),), arg_names, ('dy_dt',))
-        y_dyn_map = y_dyn.map(map_size, "thread", map_size)
 
         n_x = dual_ocp.dual.num_states
         n_lam = dual_ocp.dual.num_costates
         n_p = dual_ocp.dual.num_parameters
 
-        ind_nu0 = n_p
+        ind_nu00 = n_p
         ind_lam0 = n_x
         ind_u0 = n_x + n_lam
 
-        def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k_vec: NPArray) -> NPArray:
+        def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
             t0, tf = p[-2], p[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
-            p = p[:n_p]
-            p_vec = np.linspace(p, p, map_size).T
+            p = p[:ind_nu00]
+
+            map_size = len(tau_vec)
+            # p_vec = np.linspace(p, p, map_size).T
+            # k_vec = np.linspace(k, k, map_size).T
 
             x_vec = y_vec[:ind_lam0, :]
             lam_vec = y_vec[ind_lam0:ind_u0, :]
             u_vec = y_vec[ind_u0:, :]
 
-            y_dot = np.asarray(y_dyn_map(t_vec, x_vec, lam_vec, u_vec, p_vec, k_vec))
+            y_dyn_map = y_dyn.map(map_size)
+
+            y_dot = np.asarray(y_dyn_map(t_vec, x_vec, lam_vec, u_vec, p, k))
 
             return y_dot * tau_mult
 
@@ -201,8 +205,8 @@ class AdiffScipySolveBVP(Picky):
 
             t0, tf = _p[-2], _p[-1]
             p = _p[:ind_nu00]
-            nu0 = p[ind_nu00:ind_nuf0]
-            nuf = p[ind_nuf0:-2]
+            nu0 = _p[ind_nu00:ind_nuf0]
+            nuf = _p[ind_nuf0:-2]
 
             residual = np.concatenate((
                 np.asarray(ocp_bc0(t0, x0, u0, p, k)),
@@ -273,11 +277,9 @@ class AdiffScipySolveBVP(Picky):
 
         tau_guess, x_guess, p_guess = self.preprocess(guess)
         k = constants
-        k_vec = np.linspace(k, k, len(tau_guess)).T  # pre-vectorize k for CasADi map
-        dynamics = self.dynamics_generator(self.bvp, len(tau_guess))
 
         sol: _scipy_bvp_sol = solve_bvp(
-                lambda tau_vec, x_vec, p: dynamics(tau_vec, x_vec, p, k_vec),
+                lambda tau_vec, x_vec, p: self.dynamics(tau_vec, x_vec, p, k),
                 lambda x0, xf, p: self.boundary_conditions(x0, xf, p, k),
                 tau_guess, x_guess, p_guess,
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
