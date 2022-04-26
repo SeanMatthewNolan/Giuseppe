@@ -41,7 +41,6 @@ with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    sym_bvp.control_handler.control_law.pop(0)
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp)
 
