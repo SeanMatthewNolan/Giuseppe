@@ -25,6 +25,7 @@ ocp.add_state('h', 'v*sin(gamma)')
 ocp.add_state('theta', 'v*cos(gamma)/(re + h)')
 ocp.add_state('v', '-' + D + '/m - mu*sin(gamma)/(re + h)**2')
 ocp.add_state('gamma', L + '/(m*v) + (v/(re + h) - mu/(v*(re + h)**2))*cos(gamma)')
+# ocp.add_state('constraint_violation', g1 + ' * ' + g1 + '* Heaviside(' + g1 + ')')
 
 ocp.add_control('alpha')
 
@@ -48,7 +49,7 @@ theta_0 = 0
 v_0 = 3e3
 gamma_0 = -10 * np.pi/180
 h_f = 0
-theta_f = 250e3 / re
+theta_f = 600e3 / re
 
 h_0_guess = 1e3
 v_0_guess = 300
@@ -62,7 +63,33 @@ ocp.add_constant('gamma_0', gamma_0)
 ocp.add_constant('h_f', h_f)
 ocp.add_constant('theta_f', theta_f_guess)
 
-ocp.set_cost('0', '0', '-v')
+# Path Constraints
+alpha_min = -40 * np.pi / 180
+alpha_max = -alpha_min
+h_min = -10
+h_max = 70e3
+c4_min = -10 * re
+c4_max = 10 * re
+theta_cr = theta_f + 100e3 / re
+ocp.add_constant('alpha_min', alpha_min)
+ocp.add_constant('alpha_max', alpha_max)
+ocp.add_constant('h_min', h_min)
+ocp.add_constant('h_max', h_max)
+ocp.add_constant('C4_min', c4_min)
+ocp.add_constant('C4_max', c4_max)
+ocp.add_constant('theta_cr', theta_cr)
+ocp.add_constant('eps_h', 1e-5)
+ocp.add_constant('eps_alpha', 1.0)
+ocp.add_constant('eps_sensor', 1.0)
+g_h = '(eps_h / cos(pi/2 * (2 * h - h_max - h_min) / (h_max - h_min)))'
+g_alpha = '(eps_alpha / cos(pi/2 * (2 * alpha - alpha_max - alpha_min) / (alpha_max - alpha_min)))'
+
+C4 = '(re * sin(theta) - (re + h) * sin(theta_cr)' + \
+     '+ 1/tan(theta_cr) * (re * cos(theta)) - (re + h) * cos(theta_cr))'
+g_sensor = '(eps_sensor / cos(pi/2 * (2 * ' + C4 + ' - C4_max - C4_min) / (C4_max - C4_min)))'
+
+# ocp.set_cost('0', '0', '-v')
+ocp.set_cost('0', '(' + g_h + ' + ' + g_alpha + ' + ' + g_sensor + ')', '-v')
 
 ocp.add_constraint('initial', 't')
 ocp.add_constraint('initial', 'h - h_0')
@@ -72,6 +99,8 @@ ocp.add_constraint('initial', 'gamma - gamma_0')
 
 ocp.add_constraint('terminal', 'h - h_f')
 ocp.add_constraint('terminal', 'theta - theta_f')
+
+# ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max')
 
 with Timer(prefix='Compilation Time:'):
     sym_ocp = SymOCP(ocp)
@@ -85,11 +114,14 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'h_f': h_f, 'theta_f': theta_f_guess}, bisection=True)
+cont.add_linear_series(10, {'v_0': 302, 'h_0': 1.01e3, 'theta_f': 1.6e3 / re}, bisection=True)
 cont.add_linear_series(10, {'v_0': v_0, 'h_0': 10e3, 'theta_f': 15e3 / re}, bisection=True)
 cont.add_linear_series(10, {'gamma_0': 0 * np.pi/180, 'h_0': 11e3, 'theta_f': 20e3 / re}, bisection=True)
 cont.add_linear_series(10, {'h_0': 20e3, 'theta_f': 40e3 / re}, bisection=True)
 cont.add_linear_series(10, {'h_0': 40e3, 'theta_f': 100e3 / re}, bisection=True)
-cont.add_linear_series(10, {'theta_f': 500e3 / re}, bisection=True)
+cont.add_linear_series(10, {'theta_f': theta_f}, bisection=True)
+cont.add_linear_series(100, {'alpha_min': -10 * np.pi/180, 'alpha_max': 10 * np.pi/180}, bisection=True)
+cont.add_logarithmic_series(20, {'eps_alpha': 1e-5}, bisection=True)
 
 with Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:
