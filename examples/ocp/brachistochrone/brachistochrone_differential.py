@@ -54,11 +54,7 @@ sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
-with Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
+sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
     pickle.dump(sol_set, file)

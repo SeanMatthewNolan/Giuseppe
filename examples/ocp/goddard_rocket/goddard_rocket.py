@@ -49,15 +49,11 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
 guess = giuseppe.guess_generators.auto_linear_guess(comp_dual_ocp)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
+
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'m_f': 1})
 cont.add_logarithmic_series(20, {'eps_thrust': 1e-6})
-
-with giuseppe.utils.Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
+sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
     pickle.dump(sol_set, file)

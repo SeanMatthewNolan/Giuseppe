@@ -42,12 +42,7 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'a': 100})
-
-with Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, guess in series:
-            sol_i = num_solver.solve(k, guess)
-            sol_set.append(sol_i)
+sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
     pickle.dump(sol_set, file)

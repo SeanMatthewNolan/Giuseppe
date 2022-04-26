@@ -42,11 +42,7 @@ sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(6, {'c': 1})
 
-with giuseppe.utils.Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
+cont.run_continuation(num_solver)
 
 with open('current_variation_sol_set.data', 'wb') as file:
     pickle.dump(sol_set, file)

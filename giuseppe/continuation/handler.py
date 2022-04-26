@@ -1,9 +1,11 @@
 from collections.abc import Hashable, Mapping
 from typing import Union
 
+from ..numeric_solvers import ScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
 from .solution_set import SolutionSet
+from ..utils import Timer
 
 
 class ContinuationHandler:
@@ -112,3 +114,25 @@ class ContinuationHandler:
 
         self.continuation_series.append(series)
         return self
+
+    def run_continuation(self, numeric_solver: ScipySolveBVP) -> SolutionSet:
+        """
+        Run continuation set
+
+        Parameters
+        ----------
+        numeric_solver
+           Numeric solver which will be used to solve the problems
+
+        Returns
+        -------
+        solution_set
+
+        """
+
+        with Timer(prefix='Continuation Time:'):
+            for series in self.continuation_series:
+                for k, last_sol in series:
+                    self.solution_set.append(numeric_solver.solve(k, last_sol))
+
+        return self.solution_set

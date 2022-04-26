@@ -55,14 +55,8 @@ guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-# cont.add_linear_series(1, {'h_0': 0, 'x_0': 0, 'v_h_0': 0, 'v_x_0': 0, 'a': 3 * G, 'g': G, 'r_m': 938 * NM2FT})
 cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
-
-with giuseppe.utils.Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
+cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
     pickle.dump(sol_set, file)
