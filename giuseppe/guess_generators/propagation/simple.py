@@ -4,13 +4,13 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.integrate import solve_ivp
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP, BVPSol, OCPSol, DualOCPSol
 from ..constant import update_constant_value, generate_constant_guess, initialize_guess_for_auto
 from ..projection import match_constants_to_bcs, project_dual
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
-SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
+SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
@@ -170,6 +170,79 @@ def propagate_guess(
             guess.t = sol.t[::-1]
             guess.x = sol.y[:num_x, ::-1]
             guess.lam = sol.y[num_x:num_x + num_lam, ::-1]
+
+    elif isinstance(comp_prob, AdiffBVP):
+        dynamics = comp_prob.ca_dynamics
+
+        def wrapped_dynamics(t, x):
+            return np.asarray(dynamics(t, x, guess.p, guess.k)).flatten()
+
+        sol: _IVP_SOL = solve_ivp(
+                wrapped_dynamics, (guess.t[0], guess.t[-1]), initial_states, rtol=rel_tol, atol=abs_tol)
+
+        guess.t = sol.t
+        guess.x = sol.y
+
+    elif isinstance(comp_prob, AdiffOCP):
+        dynamics = comp_prob.ca_dynamics
+
+        if isinstance(control, Callable):
+            def wrapped_dynamics(t, x):
+                return np.asarray(dynamics(t, x, control(t, x, guess.p, guess.k), guess.p, guess.k)).flatten()
+
+        else:
+            update_constant_value(guess, 'u', control)
+
+            def wrapped_dynamics(t, x):
+                return np.asarray(dynamics(t, x, guess.u[:, 0], guess.p, guess.k)).flatten()
+
+        sol: _IVP_SOL = solve_ivp(
+                wrapped_dynamics, (guess.t[0], guess.t[-1]), initial_states, rtol=rel_tol, atol=abs_tol)
+
+        guess.t = sol.t
+        guess.x = sol.y
+
+    elif isinstance(comp_prob, AdiffDualOCP):
+        if initial_costates is None:
+            initial_costates = guess.lam[:, 0]
+
+        dynamics = comp_prob.ocp.ca_dynamics
+        costate_dynamics = comp_prob.dual.ca_costate_dynamics
+
+        num_x = comp_prob.ocp.num_states
+        num_lam = comp_prob.dual.num_costates
+
+        if isinstance(control, Callable):
+            def wrapped_dynamics(t, y):
+                x = y[:num_x]
+                lam = y[num_x:num_x + num_lam]
+                u = control(t, x, guess.p, guess.k)
+
+                x_dot = dynamics(t, x, u, guess.p, guess.k)
+                lam_dot = costate_dynamics(t, x, lam, u, guess.p, guess.k)
+
+                return np.concatenate((np.asarray(x_dot).flatten(), np.asarray(lam_dot).flatten()))
+
+        else:
+            update_constant_value(guess, 'u', control)
+
+            def wrapped_dynamics(t, y):
+                x = y[:num_x]
+                lam = y[num_x:num_x + num_lam]
+                u = guess.u[:, 0]
+
+                x_dot = dynamics(t, x, u, guess.p, guess.k)
+                lam_dot = costate_dynamics(t, x, lam, u, guess.p, guess.k)
+
+                return np.concatenate((np.asarray(x_dot).flatten(), np.asarray(lam_dot).flatten()))
+
+        sol: _IVP_SOL = solve_ivp(
+                wrapped_dynamics, (guess.t[0], guess.t[-1]), np.concatenate((initial_states, initial_costates)),
+                rtol=rel_tol, atol=abs_tol)
+
+        guess.t = sol.t
+        guess.x = sol.y[:num_x]
+        guess.lam = sol.y[num_x:num_x + num_lam]
 
     else:
         raise ValueError(f'Problem type {type(comp_prob)} not supported')

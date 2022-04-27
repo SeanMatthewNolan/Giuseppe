@@ -3,7 +3,7 @@ from typing import Union, Optional, Callable, TypeVar
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP, BVPSol, OCPSol, DualOCPSol
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from ..constant import initialize_guess_for_auto, update_constant_value
 from ..linear import update_linear_value, auto_linear_guess
@@ -12,7 +12,7 @@ from .simple import propagate_guess
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
-SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
+SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 

@@ -3,11 +3,13 @@ from typing import Union, Tuple, Optional
 
 import numpy as np
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, BVPSol, OCPSol, DualOCPSol
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, \
+    AdiffBVP, AdiffOCP, AdiffDual, AdiffDualOCP, \
+    BVPSol, OCPSol, DualOCPSol
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .project_to_nullspace import project_to_nullspace
 
-SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
+SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
@@ -58,6 +60,36 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS,
                     guess.t[-1], guess.x[:, -1], guess.lam[:, -1], guess.u[:, -1], guess.p, guess.nuf, k)
 
             return np.concatenate((np.asarray(psi_0), np.asarray(psi_f), np.asarray(adj_bc0), np.asarray(adj_bcf)))
+    elif isinstance(prob, AdiffBVP):
+        def bc_func(k):
+            psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], guess.x[:, 0], guess.p, k)
+            psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], guess.x[:, -1], guess.p, k)
+            return np.concatenate((np.asarray(psi_0).flatten(), np.asarray(psi_f).flatten()))
+
+    elif isinstance(prob, AdiffOCP):
+        def bc_func(k):
+            psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], guess.x[:, 0], guess.u[:, 0], guess.p, k)
+            psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], guess.x[:, -1], guess.u[:, -1], guess.p, k)
+            return np.concatenate((np.asarray(psi_0).flatten(), np.asarray(psi_f).flatten()))
+
+    elif isinstance(prob, AdiffDualOCP):
+        ocp_bc = prob.ocp.ca_boundary_conditions
+        ocp_bc = prob.ocp.ca_boundary_conditions
+        dual_bc = prob.dual.ca_adj_boundary_conditions
+
+        def bc_func(k):
+            psi_0 = ocp_bc.initial(guess.t[0], guess.x[:, 0], guess.u[:, 0], guess.p, k)
+            psi_f = ocp_bc.terminal(guess.t[-1], guess.x[:, -1], guess.u[:, -1], guess.p, k)
+
+            adj_bc0 = dual_bc.initial(
+                    guess.t[0], guess.x[:, 0], guess.lam[:, 0], guess.u[:, 0], guess.p, guess.nu0, k)
+            adj_bcf = dual_bc.terminal(
+                    guess.t[-1], guess.x[:, -1], guess.lam[:, -1], guess.u[:, -1], guess.p, guess.nuf, k)
+
+            return np.concatenate((np.asarray(psi_0).flatten(),
+                                   np.asarray(psi_f).flatten(),
+                                   np.asarray(adj_bc0).flatten(),
+                                   np.asarray(adj_bcf).flatten()))
 
     else:
         raise ValueError(f'Problem type {type(prob)} not supported')
@@ -123,6 +155,27 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS
             def bc_func(_x):
                 psi_f = prob.boundary_conditions.terminal(guess.t[-1], _x, guess.u[:, -1], guess.p, guess.k)
                 return np.asarray(psi_f)
+    elif isinstance(prob, AdiffBVP):
+        if location.lower() == 'initial':
+            def bc_func(_x):
+                psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], _x, guess.p, guess.k)
+                return np.asarray(psi_0).flatten()
+
+        else:
+            def bc_func(_x):
+                psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], _x, guess.p, guess.k)
+                return np.asarray(psi_f).flatten()
+
+    elif isinstance(prob, AdiffOCP):
+        if location.lower() == 'initial':
+            def bc_func(_x):
+                psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], _x, guess.u[:, 0], guess.p, guess.k)
+                return np.asarray(psi_0).flatten()
+
+        else:
+            def bc_func(_x):
+                psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], _x, guess.u[:, -1], guess.p, guess.k)
+                return np.asarray(psi_f).flatten()
 
     else:
         raise ValueError(f'Problem type {type(prob)} not supported')
@@ -162,32 +215,36 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: DualOCP
     projected costates
 
     """
-    if not (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, CompDual)):
+    _, dual = sift_ocp_and_dual(comp_prob)
+
+    if isinstance(dual, CompDual):
+        dual_bc = dual.adjoined_boundary_conditions
+    elif isinstance(dual, AdiffDual):
+        dual_bc = dual.ca_adj_boundary_conditions
+    else:
         raise ValueError(f'Problem type {type(comp_prob)} not supported')
 
     if location.lower() == 'initial':
         lam_guess = guess.lam[:, 0]
-    elif location.lower() == 'terminal':
-        lam_guess = guess.lam[:, -1]
-    else:
-        raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
-    _, dual = sift_ocp_and_dual(comp_prob)
-    dual_bc = dual.adjoined_boundary_conditions
 
-    if location.lower() == 'initial':
         if states is None:
             states = guess.x[:, 0]
 
         def adj_bc_func(_lam):
             adj_bc0 = dual_bc.initial(guess.t[0], states, _lam, guess.u[:, 0], guess.p, guess.nu0, guess.k)
-            return np.asarray(adj_bc0)
-    else:
+            return np.asarray(adj_bc0).flatten()
+
+    elif location.lower() == 'terminal':
+        lam_guess = guess.lam[:, -1]
         if states is None:
             states = guess.x[:, -1]
 
         def adj_bc_func(_lam):
             adj_bcf = dual_bc.terminal(guess.t[-1], states, _lam, guess.u[:, -1], guess.p, guess.nuf, guess.k)
-            return np.asarray(adj_bcf)
+            return np.asarray(adj_bcf).flatten()
+
+    else:
+        raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
 
     lam = project_to_nullspace(adj_bc_func, lam_guess, rel_tol=rel_tol, abs_tol=abs_tol)
 

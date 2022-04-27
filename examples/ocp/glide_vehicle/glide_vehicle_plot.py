@@ -7,7 +7,7 @@ with open('sol_set.data', 'rb') as file:
     sol = pickle.load(file)[-1]
 
 re = 6.371e6
-theta_cr = 600e3 / re
+theta_cr = 2 * 600e3 / re
 
 t = sol.t
 
@@ -33,8 +33,8 @@ xlabel_2 = ax2.set_xlabel(r'$t$ [s]')
 ylabel_2 = ax2.set_ylabel(r'$\alpha$ [deg]')
 
 ax3 = fig.add_subplot(4, 1, 3)
-ax3.plot(h, v)
-xlabel_3 = ax3.set_xlabel(r'$t$ [s]')
+ax3.plot(h / 1000, v)
+xlabel_3 = ax3.set_xlabel(r'$h$ [km]')
 ylabel_3 = ax3.set_ylabel(r'$v$ [m/s]')
 
 ax4 = fig.add_subplot(4, 1, 4)
@@ -70,7 +70,7 @@ ax24.set_ylabel(r'$\lambda_\gamma$')
 fig_lam.tight_layout()
 
 # Calculation of Sensor violation C4
-c4 = (re * np.sin(theta) - (re + h) * np.sin(theta_cr) + 1/np.tan(theta_cr) * (re * np.cos(theta)) - (re + h) * np.cos(theta_cr))
+c4 = -(re * np.sin(theta) - (re + h) * np.sin(theta_cr) + 1/np.tan(theta_cr) * (re * np.cos(theta)) - (re + h) * np.cos(theta_cr))
 
 fig_constraints = plt.figure()
 fig_constraints.suptitle('Constraints')
