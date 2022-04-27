@@ -211,6 +211,7 @@ def propagate_guess(
 
         num_x = comp_prob.ocp.num_states
         num_lam = comp_prob.dual.num_costates
+        num_control = comp_prob.dual.num_controls
 
         if isinstance(control, Callable):
             def wrapped_dynamics(t, y):
@@ -247,13 +248,14 @@ def propagate_guess(
     else:
         raise ValueError(f'Problem type {type(comp_prob)} not supported')
 
-    if isinstance(comp_prob, CompOCP) or isinstance(comp_prob, CompDualOCP):
+    if isinstance(comp_prob, CompOCP) or isinstance(comp_prob, CompDualOCP)\
+            or isinstance(comp_prob, AdiffOCP) or isinstance(comp_prob, AdiffDualOCP):
         if isinstance(control, Callable):
             guess.u = np.array([control(ti, xi, guess.p, guess.k) for ti, xi in zip(guess.t, guess.x.T)]).T
         else:
             guess.u = np.vstack([guess.u[:, 0] for _ in guess.t]).T
 
-    if isinstance(comp_prob, CompDualOCP) and use_project_dual:
+    if (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, AdiffDualOCP)) and use_project_dual:
         guess = project_dual(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     if use_match_constants:

@@ -1,6 +1,5 @@
 import pickle
 import numpy as np
-from sympy.functions.special.delta_functions import Heaviside
 
 from giuseppe.continuation import ContinuationHandler, SolutionSet
 from giuseppe.guess_generators import auto_propagate_guess

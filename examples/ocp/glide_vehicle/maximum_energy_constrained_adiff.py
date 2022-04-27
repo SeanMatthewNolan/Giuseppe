@@ -43,7 +43,7 @@ ocp.add_constant('m', 1e3)
 ocp.add_constant('mu', 3.986e14)
 ocp.add_constant('pi', np.pi)
 
-h_0 = 40e3
+h_0 = 50e3
 theta_0 = 0
 v_0 = 3e3
 gamma_0 = -10 * np.pi/180
@@ -106,7 +106,7 @@ with Timer(prefix='Compilation Time:'):
     adiff_ocp = AdiffOCP(sym_ocp)
     adiff_dual = AdiffDual(adiff_ocp)
     adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual)
-    num_solver = AdiffScipySolveBVP(adiff_dualocp, verbose=True)
+    num_solver = AdiffScipySolveBVP(adiff_dualocp, verbose=False)
 
 guess = auto_propagate_guess(adiff_dualocp, control=0, t_span=10)
 seed_sol = num_solver.solve(guess.k, guess)
@@ -120,13 +120,13 @@ cont.add_linear_series(10, {'h_0': 20e3, 'theta_f': 40e3 / re}, bisection=True)
 cont.add_linear_series(10, {'h_0': 30e3, 'theta_f': 100e3 / re}, bisection=True)
 cont.add_linear_series(10, {'theta_f': theta_f}, bisection=True)
 cont.add_linear_series(100, {'alpha_min': -10 * np.pi/180, 'alpha_max': 10 * np.pi/180}, bisection=True)
-cont.add_logarithmic_series(20, {'eps_alpha': 1e-5}, bisection=True)
+# cont.add_logarithmic_series(20, {'eps_alpha': 1e-5}, bisection=True)
 
-# with Timer(prefix='Continuation Time:'):
-#     for series in cont.continuation_series:
-#         for k, last_sol in series:
-#             sol_i = num_solver.solve(k, last_sol)
-#             sol_set.append(sol_i)
-#
-# with open('sol_set.data', 'wb') as file:
-#     pickle.dump(sol_set, file)
+with Timer(prefix='Continuation Time:'):
+    for series in cont.continuation_series:
+        for k, last_sol in series:
+            sol_i = num_solver.solve(k, last_sol)
+            sol_set.append(sol_i)
+
+with open('sol_set.data', 'wb') as file:
+    pickle.dump(sol_set, file)

@@ -87,9 +87,8 @@ def auto_propagate_guess(
     if initial_states is None:
         initial_states = match_states_to_bc(prob, guess, location=location, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    if isinstance(comp_prob, CompDualOCP) and initial_costates is None:
-        initial_costates = match_costates_to_bc(
-                dual, guess, states=initial_states, location=location, rel_tol=rel_tol, abs_tol=abs_tol)
+    if (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, AdiffDualOCP)) and initial_costates is None:
+        initial_costates = match_costates_to_bc(dual, guess, states=initial_states, rel_tol=rel_tol, abs_tol=abs_tol)
 
     guess = propagate_guess(
             comp_prob, default=guess, t_span=t_span, initial_states=initial_states, initial_costates=initial_costates,
