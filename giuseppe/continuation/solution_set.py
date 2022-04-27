@@ -1,3 +1,4 @@
+import warnings
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence, Hashable
 from copy import deepcopy
@@ -23,7 +24,13 @@ class SolutionSet(MutableSequence, Picky):
         else:
             self.constants = self.problem.constants
 
+        if not seed_solution.converged:
+            warnings.warn(
+                'Seed solution is not converged! It is suggested to solve seed prior to initialization of solution set.'
+            )
+
         self.seed_solution: BVPSol = seed_solution
+
         self.solutions: list[BVPSol] = [seed_solution]
         self.continuation_slices: list[slice] = []
         self.damned_sols: list[BVPSol] = []

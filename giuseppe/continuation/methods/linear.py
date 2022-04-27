@@ -70,7 +70,11 @@ class BisectionLinearSeries(LinearSeries):
 
         while self._steps:
             next_constants = self._steps[-1]
-            last_sol = self.solution_set[-1]
+
+            if len(self.solution_set) == 0:
+                raise ContinuationError('No solution in solution set!')
+            else:
+                last_sol = self.solution_set[-1]
 
             if last_sol.converged:
                 if self.bisection_counter > 0:
@@ -86,7 +90,10 @@ class BisectionLinearSeries(LinearSeries):
                 self._steps.append(self._bisect_step(last_constants, next_constants))
                 self.solution_set.damned_sols.append(self.solution_set.pop())
 
-                yield self._steps[-1], self.solution_set[-1]
+                if len(self.solution_set) == 0:
+                    raise ContinuationError('No converged solution in solution set!')
+                else:
+                    yield self._steps[-1], self.solution_set[-1]
 
             else:
                 raise ContinuationError('Bisection limit exceeded!')
