@@ -133,5 +133,5 @@ with Timer(prefix='Continuation Time:'):
             sol_i = num_solver.solve(k, last_sol)
             sol_set.append(sol_i)
 
-with open('sol_set.data', 'wb') as file:
+with open('sol_set_adiff.data', 'wb') as file:
     pickle.dump(sol_set, file)

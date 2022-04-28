@@ -8,6 +8,9 @@ with open('sol_set.data', 'rb') as file:
     sols = pickle.load(file)
     sol = sols[-1]
 
+with open('sol_set_adiff.data', 'rb') as file:
+    sol_a = pickle.load(file)[-1]
+
 re = 6.371e6
 theta_cr = 2 * 600e3 / re
 
@@ -20,30 +23,42 @@ gamma = sol.x[3, :]  # rad
 
 alpha = sol.u[0, :]  # rad
 
+t_a = sol_a.t
+
+h_a = sol_a.x[0, :]  # m
+theta_a = sol_a.x[1, :]  # rad
+v_a = sol_a.x[2, :]  # m/s
+gamma_a = sol_a.x[3, :]  # rad
+
+alpha_a = sol_a.u[0, :]  # rad
 
 fig = plt.figure(figsize=(6.5, 5))
 title = fig.suptitle('Glide Vehicle')
 
 ax1 = fig.add_subplot(4, 1, 1)
 ax1.plot(theta * 180/np.pi, h / 1000)
+ax1.plot(theta_a * 180/np.pi, h_a / 1000)
 xlabel_1 = ax1.set_xlabel(r'$\theta$ [deg]')
 ylabel_1 = ax1.set_ylabel(r'$h$ [km]')
 ax1.grid()
 
 ax2 = fig.add_subplot(4, 1, 2)
 ax2.plot(t, alpha * 180 / np.pi)
+ax2.plot(t_a, alpha_a * 180 / np.pi)
 xlabel_2 = ax2.set_xlabel(r'$t$ [s]')
 ylabel_2 = ax2.set_ylabel(r'$\alpha$ [deg]')
 ax2.grid()
 
 ax3 = fig.add_subplot(4, 1, 3)
 ax3.plot(h / 1000, v)
+ax3.plot(h_a / 1000, v_a)
 xlabel_3 = ax3.set_xlabel(r'$h$ [km]')
 ylabel_3 = ax3.set_ylabel(r'$v$ [m/s]')
 ax3.grid()
 
 ax4 = fig.add_subplot(4, 1, 4)
 ax4.plot(t, gamma * 180 / np.pi)
+ax4.plot(t_a, gamma_a * 180 / np.pi)
 xlabel_4 = ax4.set_xlabel(r'$t$ [s]')
 ylabel_4 = ax4.set_ylabel(r'$\gamma$ [deg]')
 ax4.grid()
@@ -55,24 +70,28 @@ fig_lam.suptitle('Costates')
 
 ax21 = fig_lam.add_subplot(4, 1, 1)
 ax21.plot(t, sol.lam[0, :])
+ax21.plot(t_a, sol_a.lam[0, :])
 ax21.set_xlabel(r'$t$')
 ax21.set_ylabel(r'$\lambda_h$')
 ax21.grid()
 
 ax22 = fig_lam.add_subplot(4, 1, 2)
 ax22.plot(t, sol.lam[1, :])
+ax22.plot(t_a, sol_a.lam[1, :])
 ax22.set_xlabel(r'$t$')
 ax22.set_ylabel(r'$\lambda_\theta$')
 ax22.grid()
 
 ax23 = fig_lam.add_subplot(4, 1, 3)
 ax23.plot(t, sol.lam[2, :])
+ax23.plot(t_a, sol_a.lam[2, :])
 ax23.set_xlabel(r'$t$')
 ax23.set_ylabel(r'$\lambda_v$')
 ax23.grid()
 
 ax24 = fig_lam.add_subplot(4, 1, 4)
 ax24.plot(t, sol.lam[3, :])
+ax24.plot(t_a, sol_a.lam[3, :])
 ax24.set_xlabel(r'$t$')
 ax24.set_ylabel(r'$\lambda_\gamma$')
 ax24.grid()
