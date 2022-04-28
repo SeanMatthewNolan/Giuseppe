@@ -1,7 +1,7 @@
 from collections.abc import Hashable, Mapping
 from typing import Union
 
-from ..numeric_solvers import ScipySolveBVP
+from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
 from .solution_set import SolutionSet
@@ -115,7 +115,7 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
-    def run_continuation(self, numeric_solver: ScipySolveBVP) -> SolutionSet:
+    def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP]) -> SolutionSet:
         """
         Run continuation set
 

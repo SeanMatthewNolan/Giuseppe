@@ -1,2 +1,2 @@
 from . import bvp
-from .bvp import ScipySolveBVP
+from .bvp import ScipySolveBVP, AdiffScipySolveBVP
