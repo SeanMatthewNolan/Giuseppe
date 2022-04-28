@@ -25,3 +25,9 @@ class SymOCP(SymBVP):
                 self.sympify(input_data.cost.path),
                 self.sympify(input_data.cost.terminal)
         )
+
+    def sub_named_expr(self):
+        super().perform_substitutions()
+        self.cost.initial = self.substitute(self.cost.initial)
+        self.cost.path = self.substitute(self.cost.path)
+        self.cost.terminal = self.substitute(self.cost.terminal)

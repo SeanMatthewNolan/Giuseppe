@@ -6,7 +6,9 @@ zermelo = giuseppe.io.InputOCP()
 
 zermelo.set_independent('t')
 
-zermelo.add_state('x', 'v*cos(theta) + c*y')
+zermelo.add_expression('current', 'c*y')
+
+zermelo.add_state('x', 'v*cos(theta) + current')
 zermelo.add_state('y', 'v*sin(theta)')
 
 zermelo.add_control('theta')

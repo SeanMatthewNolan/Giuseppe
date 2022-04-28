@@ -1,7 +1,7 @@
 from typing import Optional
 
-from giuseppe.problems.components.input import InputState, InputConstant, InputConstraints, InputInequalityConstraint, \
-    InputInequalityConstraints
+from giuseppe.problems.components.input import InputState, InputConstant, InputNamedExpr, InputConstraints,\
+    InputInequalityConstraint, InputInequalityConstraints
 from giuseppe.problems.regularization import Regularizer
 
 
@@ -20,6 +20,7 @@ class InputBVP:
         self.constants: list[InputConstant] = []
         self.constraints: InputConstraints = InputConstraints()
         self.inequality_constraints: InputInequalityConstraints = InputInequalityConstraints()
+        self.expressions: list[InputNamedExpr] = []
 
     def set_independent(self, var_name: str):
         """
@@ -49,6 +50,10 @@ class InputBVP:
 
     def add_constant(self, name: str, default_value: float = 0.):
         self.constants.append(InputConstant(name, default_value))
+        return self
+
+    def add_expression(self, name: str, expr: str):
+        self.expressions.append(InputNamedExpr(name, expr))
         return self
 
     def add_constraint(self, location: str, expr: str):

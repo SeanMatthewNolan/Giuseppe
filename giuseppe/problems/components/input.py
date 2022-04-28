@@ -16,6 +16,12 @@ class InputConstant:
     default_value: float = 0.
 
 
+@dataclass
+class InputNamedExpr:
+    name: str
+    expr: str
+
+
 class InputConstraints:
     def __init__(self):
         self.initial: list[str] = []

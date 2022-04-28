@@ -1,6 +1,12 @@
 from dataclasses import dataclass
 
-from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SymExpr, SYM_ZERO
+from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SymExpr, SYM_ZERO, Symbol
+
+
+class SymNamedExpr:
+    def __init__(self, sym):
+        self.sym: Symbol = sym
+        self.expr: SymExpr = sym
 
 
 @dataclass
