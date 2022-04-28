@@ -43,21 +43,25 @@ ocp.add_constant('m', 1e3)
 ocp.add_constant('mu', 3.986e14)
 ocp.add_constant('pi', np.pi)
 
-h_0 = 50e3
-theta_0 = 0
-v_0 = 3e3
-gamma_0 = -10 * np.pi/180
+# h_0 = 4.2758e4
+h_0 = 40e3
+theta_0 = 0.0121
+v_0 = 3.8465e3
+gamma_0 = 0
+# gamma_0 = 0.1927
 h_f = 0
 theta_f = 600e3 / re
 
 h_0_guess = 1e3
 v_0_guess = 300
+theta_0_guess = 0
+gamma_0_guess = 0
 theta_f_guess = 1.5e3 / re
 
 ocp.add_constant('h_0', h_0_guess)
-ocp.add_constant('theta_0', theta_0)
+ocp.add_constant('theta_0', theta_0_guess)
 ocp.add_constant('v_0', v_0_guess)
-ocp.add_constant('gamma_0', gamma_0)
+ocp.add_constant('gamma_0', gamma_0_guess)
 
 ocp.add_constant('h_f', h_f)
 ocp.add_constant('theta_f', theta_f_guess)
@@ -115,12 +119,13 @@ cont = ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'h_f': h_f, 'theta_f': theta_f_guess}, bisection=True)
 cont.add_linear_series(10, {'v_0': 302, 'h_0': 1.01e3, 'theta_f': 1.6e3 / re}, bisection=True)
 cont.add_linear_series(10, {'v_0': v_0, 'h_0': 10e3, 'theta_f': 15e3 / re}, bisection=True)
-cont.add_linear_series(10, {'gamma_0': 0 * np.pi/180, 'h_0': 11e3, 'theta_f': 20e3 / re}, bisection=True)
+cont.add_linear_series(10, {'gamma_0': 0, 'h_0': 11e3, 'theta_f': 20e3 / re}, bisection=True)
 cont.add_linear_series(10, {'h_0': 20e3, 'theta_f': 40e3 / re}, bisection=True)
-cont.add_linear_series(10, {'h_0': 30e3, 'theta_f': 100e3 / re}, bisection=True)
-cont.add_linear_series(10, {'theta_f': theta_f}, bisection=True)
-cont.add_linear_series(100, {'alpha_min': -10 * np.pi/180, 'alpha_max': 10 * np.pi/180}, bisection=True)
-# cont.add_logarithmic_series(20, {'eps_alpha': 1e-5}, bisection=True)
+cont.add_linear_series(10, {'h_0': h_0, 'theta_f': 100e3 / re}, bisection=True)
+cont.add_linear_series(10, {'theta_0': theta_0, 'theta_f': theta_f}, bisection=True)
+cont.add_linear_series(10, {'gamma_0': gamma_0}, bisection=True)
+cont.add_linear_series(10, {'alpha_min': -10 * np.pi/180, 'alpha_max': 10 * np.pi/180}, bisection=True)
+cont.add_logarithmic_series(10, {'eps_alpha': 1e-3}, bisection=True)
 
 with Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:

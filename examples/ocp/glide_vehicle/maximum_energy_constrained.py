@@ -119,8 +119,8 @@ cont.add_linear_series(10, {'gamma_0': 0 * np.pi/180, 'h_0': 11e3, 'theta_f': 20
 cont.add_linear_series(10, {'h_0': 20e3, 'theta_f': 40e3 / re}, bisection=True)
 cont.add_linear_series(10, {'h_0': 40e3, 'theta_f': 100e3 / re}, bisection=True)
 cont.add_linear_series(10, {'theta_f': theta_f}, bisection=True)
-cont.add_linear_series(100, {'alpha_min': -10 * np.pi/180, 'alpha_max': 10 * np.pi/180}, bisection=True)
-cont.add_logarithmic_series(20, {'eps_alpha': 1e-5}, bisection=True)
+# cont.add_linear_series(10, {'alpha_min': -10 * np.pi/180, 'alpha_max': 10 * np.pi/180}, bisection=True)
+# cont.add_logarithmic_series(10, {'eps_alpha': 1e-5}, bisection=True)
 
 with Timer(prefix='Continuation Time:'):
     for series in cont.continuation_series:
