@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+from sympy import linsolve
+
 from giuseppe.problems.components.symbolic import SymCost, SymBoundaryConditions
 from giuseppe.problems.ocp.symbolic import SymOCP
 from giuseppe.utils.conversion import matrix_as_scalar
@@ -59,6 +61,20 @@ class AlgebraicControlHandler:
         self.control_law = solve(self.dh_du, self.controls)
 
 
+class DifferentialControlHandlerNumeric:
+    def __init__(self, sym_ocp: SymOCP, sym_dual: SymDual):
+        self.controls: list[Symbol] = list(sym_ocp.controls)
+
+        self.h_u: SymMatrix = SymMatrix([sym_dual.hamiltonian]).jacobian(sym_ocp.controls)
+        self.h_uu: SymMatrix = self.h_u.jacobian(sym_ocp.controls)
+        self.h_ut: SymMatrix = self.h_u.jacobian([sym_ocp.independent])
+        self.h_ux: SymMatrix = self.h_u.jacobian(sym_ocp.states)
+        self.f_u: SymMatrix = sym_ocp.dynamics.jacobian(sym_ocp.controls)
+
+        self.rhs = self.h_ut + self.h_ux @ sym_ocp.dynamics \
+            + self.f_u.T @ sym_dual.costate_dynamics[:len(sym_ocp.states.flat()), :]
+
+
 class DifferentialControlHandler:
     def __init__(self, sym_ocp: SymOCP, sym_dual: SymDual):
         self.controls: list[Symbol] = list(sym_ocp.controls)
@@ -84,6 +100,8 @@ class SymDualOCP:
             self.control_handler = AlgebraicControlHandler(sym_ocp, sym_dual)
         elif control_method.lower() == 'differential':
             self.control_handler = DifferentialControlHandler(sym_ocp, sym_dual)
+        elif control_method.lower() == 'differential_numeric':
+            self.control_handler = DifferentialControlHandlerNumeric(sym_ocp, sym_dual)
         else:
             raise NotImplementedError(
                     f'\"{control_method}\" is not an implemented control method. Try \"differential\".')

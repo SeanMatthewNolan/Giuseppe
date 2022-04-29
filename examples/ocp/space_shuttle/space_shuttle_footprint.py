@@ -7,40 +7,53 @@ from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
+from giuseppe.problems.regularization import ControlConstraintHandler
 from giuseppe.utils import Timer
+
+import giuseppe
+giuseppe.utils.complilation.JIT_COMPILE = True
+
 
 ocp = InputOCP()
 
 ocp.set_independent('t')
 
-rho = 'rho0 * exp(-h/Hscale)'
-cd = '(cd0 + cd1 * alpha + cd2 * alpha**2)'
-cl = '(cl0 + cl1 * alpha)'
-q = '0.5 * ' + rho + '* v**2'
-L = q + ' * s_ref * ' + cl
-D = q + ' * s_ref * ' + cd
+ocp.add_expression('r', 're + h')
+ocp.add_expression('g', 'mu / r**2')
+ocp.add_expression('rho', 'rho_0 * exp(-h / h_ref)')
+ocp.add_expression('dyn_pres', '1 / 2 * rho * v ** 2 ')
+ocp.add_expression('lift', 'c_l * s_ref * dyn_pres')
+ocp.add_expression('drag', 'c_d * s_ref * dyn_pres')
+ocp.add_expression('c_l', 'a_0 + a_1 * alpha_hat')
+ocp.add_expression('c_d', 'b_0 + b_1 * alpha_hat + b_2 * alpha_hat**2')
+ocp.add_expression('alpha_hat', 'alpha * 180 / pi')
 
 ocp.add_state('h', 'v * sin(gamma)')
-ocp.add_state('phi', 'v * cos(gamma) * sin(psi) / ((re + h) * cos(theta))')
-ocp.add_state('theta', 'v * cos(gamma) * cos(psi) / (re + h)')
-ocp.add_state('v', '-' + D + '/ m - mu * sin(gamma) / (re + h)**2')
-ocp.add_state('gamma', L + '/(m*v) + (v/(re + h) - mu/(v*(re + h)**2))*cos(gamma)')
-ocp.add_state('psi', L + '/(m*v) + (v/(re + h) - mu/(v*(re + h)**2))*cos(gamma)')
+ocp.add_state('phi', 'v * cos(gamma) * sin(psi) / (r * cos(theta))')
+ocp.add_state('theta', 'v * cos(gamma) * cos(psi) / r')
+ocp.add_state('v', '-drag / m - g * sin(gamma)')
+ocp.add_state('gamma', 'lift * cos(beta) / (m * v) + cos(gamma) * (v / r - g / v)')
+ocp.add_state('psi', 'lift * sin(beta)/(m * v * cos(gamma)) + v * cos(gamma) * sin(psi) * sin(theta)/(r * cos(theta))')
 
 ocp.add_control('alpha')
+ocp.add_control('beta')
 
 ocp.add_constant('rho_0', 0.002378)
-ocp.add_constant('h_r', 23_800)
-ocp.add_constant('cd0', 0.26943)
-ocp.add_constant('cd1', -0.4113)
-ocp.add_constant('cd2', 18.231)
-ocp.add_constant('cl0', 0.1758)
-ocp.add_constant('cl1', 10.305)
-ocp.add_constant('Sref', 0.35)
+ocp.add_constant('h_ref', 23_800)
 ocp.add_constant('re', 20_902_900)
 ocp.add_constant('m', 203_000 / 32.174)
-ocp.add_constant('mu', 3.986e14)
+ocp.add_constant('mu', 0.14076539e17)
 
+ocp.add_constant('a_0', -0.20704)
+ocp.add_constant('a_1', 0.029244)
+ocp.add_constant('b_0', 0.07854)
+ocp.add_constant('b_1', -0.61592e-2)
+ocp.add_constant('b_2', 0.621408e-3)
+ocp.add_constant('s_ref', 2690)
+
+ocp.add_constant('eps_alpha', 1e-8)
+ocp.add_constant('alpha_min', -40 / 180 * 3.1419)
+ocp.add_constant('alpha_max', 40 / 180 * 3.1419)
 
 ocp.add_constant('h_0', 260_000)
 ocp.add_constant('phi_0', 0)
@@ -49,41 +62,48 @@ ocp.add_constant('v_0', 25_600)
 ocp.add_constant('gamma_0', -1 / 180 * np.pi)
 ocp.add_constant('psi_0', np.pi / 2)
 
-ocp.add_constant('h_f')
-ocp.add_constant('theta_f')
+ocp.add_constant('h_f', 260_000)
+ocp.add_constant('v_f', 25_600)
+ocp.add_constant('gamma_f', -1 / 180 * np.pi)
 
-ocp.set_cost('0', '0', 'v')
+ocp.set_cost('0', '0', '-phi')
 
 ocp.add_constraint('initial', 't')
 ocp.add_constraint('initial', 'h - h_0')
+ocp.add_constraint('initial', 'phi - phi_0')
 ocp.add_constraint('initial', 'theta - theta_0')
 ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('initial', 'gamma - gamma_0')
+ocp.add_constraint('initial', 'psi - psi_0')
 
 ocp.add_constraint('terminal', 'h - h_f')
-ocp.add_constraint('terminal', 'theta - theta_f')
+ocp.add_constraint('terminal', 'v - v_f')
+ocp.add_constraint('terminal', 'gamma - gamma_f')
+
+ocp.add_inequality_constraint('control', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
+                              regularizer=ControlConstraintHandler('eps_alpha', method='sin'))
 
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
+    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential_numeric')
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=0, t_span=10)
+guess = auto_propagate_guess(comp_dual_ocp, control=(5/180*3.14159, 0), t_span=10)
+with open('guess.data', 'wb') as file:
+    pickle.dump(guess, file)
+
 seed_sol = num_solver.solve(guess.k, guess)
+print(seed_sol.converged)
+
+with open('seed.data', 'wb') as file:
+    pickle.dump(seed_sol, file)
+
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(10, {'h_f': h_f, 'theta_f': theta_f_guess}, bisection=True)
-cont.add_linear_series(500, {'v_0': v_0, 'h_0': 10e3, 'theta_f': 15e3 / re}, bisection=True)
-# cont.add_linear_series(500, {'h_0': 20e3, 'theta_f': 40e3 / re}, bisection=True)
-# cont.add_linear_series(1000, {'v_0': v_0, 'h_0': h_0, 'theta_f': theta_f}, bisection=True)
-
-with Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
+cont.add_linear_series(1000, {'h_f': 80000, 'v_f': 2500}, bisection=True)
+sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
     pickle.dump(sol_set, file)

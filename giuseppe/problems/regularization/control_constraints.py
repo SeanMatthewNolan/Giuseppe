@@ -63,6 +63,9 @@ class ControlConstraintHandler(Regularizer):
 
         prob.cost.path = prob.cost.path.subs(bounded_control, control_func) + error_func
 
+        for idx, expr in enumerate(prob.expressions):
+            prob.expressions[idx].expr = expr.expr.subs(bounded_control, control_func)
+
         return prob
 
     @staticmethod

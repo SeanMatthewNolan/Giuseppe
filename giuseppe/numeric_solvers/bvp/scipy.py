@@ -7,7 +7,7 @@ from scipy.integrate import solve_bvp
 
 from ...problems.bvp import CompBVP, BVPSol
 from ...problems.dual import CompDualOCP, DualOCPSol
-from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler
+from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler, CompDiffControlHandlerNumeric
 from ...utils.complilation import jit_compile
 from ...utils.mixins import Picky
 from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
@@ -88,7 +88,7 @@ class ScipySolveBVP(Picky):
                 boundary_conditions = self._generate_ocp_alg_bcs(bvp)
                 preprocess = self._preprocess_ocp_alg_sol
                 postprocess = self._generate_postprocess_ocp_alg_sol(bvp)
-            elif type(bvp.control_handler) is CompDiffControlHandler:
+            elif type(bvp.control_handler) in [CompDiffControlHandler, CompDiffControlHandlerNumeric]:
                 dynamics = self._generate_ocp_diff_dynamics(bvp)
                 boundary_conditions = self._generate_ocp_diff_bcs(bvp)
                 preprocess = self._preprocess_ocp_diff_sol

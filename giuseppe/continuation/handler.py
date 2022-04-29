@@ -132,7 +132,8 @@ class ContinuationHandler:
 
         with Timer(prefix='Continuation Time:'):
             for series in self.continuation_series:
-                for k, last_sol in series:
+                for idx, (k, last_sol) in enumerate(series):
+                    print(idx)
                     self.solution_set.append(numeric_solver.solve(k, last_sol))
 
         return self.solution_set

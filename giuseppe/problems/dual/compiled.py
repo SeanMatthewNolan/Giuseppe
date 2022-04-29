@@ -7,7 +7,8 @@ from numpy.typing import ArrayLike
 from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
-from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler
+from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler,\
+    DifferentialControlHandlerNumeric
 from ..components.compiled import CompBoundaryConditions, CompCost
 from ..ocp.compiled import CompOCP
 
@@ -133,6 +134,35 @@ class CompDiffControlHandler:
         return lambdify(self.sym_args, self.src_handler.h_u.flat(), use_jit_compile=self.use_jit_compile)
 
 
+class CompDiffControlHandlerNumeric:
+    def __init__(self, source_handler: DifferentialControlHandlerNumeric, comp_dual: CompDual):
+        self.src_handler = deepcopy(source_handler)
+        self.comp_dual = comp_dual
+
+        self.use_jit_compile = comp_dual.use_jit_compile
+        self.sym_args = self.comp_dual.sym_args['dynamic']
+        self.args_numba_signature = self.comp_dual.args_numba_signature['dynamic']
+
+        self.control_dynamics = self.compile_control_rate()
+        self.control_bc = self.compile_control_bc()
+
+    def compile_control_rate(self):
+        compute_h_uu = lambdify(self.sym_args, self.src_handler.h_uu, use_jit_compile=self.use_jit_compile)
+        compute_rhs = lambdify(self.sym_args, self.src_handler.rhs.flat(), use_jit_compile=self.use_jit_compile)
+
+        def control_dynamics(_t, _x, _lam, _u, _p, _k):
+            return np.linalg.solve(-compute_h_uu(_t, _x, _lam, _u, _p, _k),
+                                   np.asarray(compute_rhs(_t, _x, _lam, _u, _p, _k)))
+
+        if self.use_jit_compile:
+            control_dynamics = jit_compile(control_dynamics, self.args_numba_signature)
+
+        return control_dynamics
+
+    def compile_control_bc(self):
+        return lambdify(self.sym_args, self.src_handler.h_u.flat(), use_jit_compile=self.use_jit_compile)
+
+
 class CompDualOCP(Picky):
     SUPPORTED_INPUTS: type = Union[SymDualOCP]
 
@@ -153,3 +183,6 @@ class CompDualOCP(Picky):
 
         elif type(sym_control_handler) is DifferentialControlHandler:
             return CompDiffControlHandler(sym_control_handler, self.comp_dual)
+
+        elif type(sym_control_handler) is DifferentialControlHandlerNumeric:
+            return CompDiffControlHandlerNumeric(sym_control_handler, self.comp_dual)

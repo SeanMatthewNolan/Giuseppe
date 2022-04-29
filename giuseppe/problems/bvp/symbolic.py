@@ -1,7 +1,8 @@
+from itertools import permutations
 from typing import Optional, Union
 
 import numpy as np
-from sympy import Symbol
+from sympy import Symbol, topological_sort
 
 from giuseppe.problems.bvp.input import InputBVP
 from giuseppe.problems.components.input import InputInequalityConstraints
@@ -49,6 +50,16 @@ class SymBVP(Symbolic):
 
         for sym_expr, in_expr in zip(self.expressions, input_data.expressions):
             sym_expr.expr = self.sympify(in_expr.expr)
+
+        self.order_named_expressions()
+
+    def order_named_expressions(self):
+        interdependencies = []
+        for expr_i, expr_j in permutations(self.expressions, 2):
+            if expr_i.expr.has(expr_j.sym):
+                interdependencies.append((expr_i, expr_j))
+
+        self.expressions = topological_sort((self.expressions, interdependencies), key=lambda _expr: str(_expr.sym))
 
     def process_inequality_constraints(self, input_inequality_constraints: InputInequalityConstraints):
         # TODO Evaluate symbolically before
