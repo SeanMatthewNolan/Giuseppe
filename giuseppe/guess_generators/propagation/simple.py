@@ -20,7 +20,7 @@ def propagate_guess(
         t_span: Union[float, ArrayLike] = 0.1, initial_states: Optional[ArrayLike] = None,
         initial_costates: Optional[ArrayLike] = None, control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
         p: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None,
-        use_project_dual: bool = True, use_match_constants: bool = True,
+        use_project_dual: bool = True, use_match_constants: bool = True, reverse: bool = False,
         abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
     """
     Propagate a guess with a constant control value or control function.
@@ -57,6 +57,8 @@ def propagate_guess(
         if True, match_constants will be called to update the constants to most closely match the formed guess
     use_project_dual : bool, default=True
         if True and comp_prob is an instance CompDualOCP, project_dual will be called to estimate dual values from guess
+    reverse : bool, default=False
+        if True, will propagate solution from the terminal location
     abs_tol : float, default=1e-3
        absolute tolerance for propagation
     rel_tol : float, default=1e-3
@@ -74,7 +76,15 @@ def propagate_guess(
         update_constant_value(guess, 'p', p)
 
     if initial_states is None:
-        initial_states = guess.x[:, 0]
+        if not reverse:
+            initial_states = guess.x[:, 0]
+        else:
+            initial_states = guess.x[:, -1]
+
+    if not reverse:
+        prop_t_span = (guess.t[0], guess.t[-1])
+    else:
+        prop_t_span = (guess.t[-1], guess.t[0])
 
     if isinstance(comp_prob, CompBVP):
         dynamics = comp_prob.dynamics
@@ -83,10 +93,14 @@ def propagate_guess(
             return dynamics(t, x, guess.p, guess.k)
 
         sol: _IVP_SOL = solve_ivp(
-                wrapped_dynamics, (guess.t[0], guess.t[-1]), initial_states, rtol=rel_tol, atol=abs_tol)
+                wrapped_dynamics, prop_t_span, initial_states, rtol=rel_tol, atol=abs_tol)
 
-        guess.t = sol.t
-        guess.x = sol.y
+        if not reverse:
+            guess.t = sol.t
+            guess.x = sol.y
+        else:
+            guess.t = sol.t[::-1]
+            guess.x = sol.y[:, ::-1]
 
     elif isinstance(comp_prob, CompOCP):
         dynamics = comp_prob.dynamics
@@ -101,11 +115,14 @@ def propagate_guess(
             def wrapped_dynamics(t, x):
                 return dynamics(t, x, guess.u[:, 0], guess.p, guess.k)
 
-        sol: _IVP_SOL = solve_ivp(
-                wrapped_dynamics, (guess.t[0], guess.t[-1]), initial_states, rtol=rel_tol, atol=abs_tol)
+        sol: _IVP_SOL = solve_ivp(wrapped_dynamics, prop_t_span, initial_states, rtol=rel_tol, atol=abs_tol)
 
-        guess.t = sol.t
-        guess.x = sol.y
+        if not reverse:
+            guess.t = sol.t
+            guess.x = sol.y
+        else:
+            guess.t = sol.t[::-1]
+            guess.x = sol.y[:, ::-1]
 
     elif isinstance(comp_prob, CompDualOCP):
         if initial_costates is None:
@@ -142,12 +159,17 @@ def propagate_guess(
                 return np.concatenate((x_dot, lam_dot))
 
         sol: _IVP_SOL = solve_ivp(
-                wrapped_dynamics, (guess.t[0], guess.t[-1]), np.concatenate((initial_states, initial_costates)),
+                wrapped_dynamics, prop_t_span, np.concatenate((initial_states, initial_costates)),
                 rtol=rel_tol, atol=abs_tol)
 
-        guess.t = sol.t
-        guess.x = sol.y[:num_x]
-        guess.lam = sol.y[num_x:num_x + num_lam]
+        if not reverse:
+            guess.t = sol.t
+            guess.x = sol.y[:num_x]
+            guess.lam = sol.y[num_x:num_x + num_lam]
+        else:
+            guess.t = sol.t[::-1]
+            guess.x = sol.y[:num_x, ::-1]
+            guess.lam = sol.y[num_x:num_x + num_lam, ::-1]
 
     else:
         raise ValueError(f'Problem type {type(comp_prob)} not supported')
