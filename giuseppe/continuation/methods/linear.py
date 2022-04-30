@@ -96,4 +96,5 @@ class BisectionLinearSeries(LinearSeries):
                     yield self._steps[-1], self.solution_set[-1]
 
             else:
-                raise ContinuationError('Bisection limit exceeded!')
+                break
+                # raise ContinuationError('Bisection limit exceeded!')

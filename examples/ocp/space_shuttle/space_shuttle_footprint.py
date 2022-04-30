@@ -7,7 +7,7 @@ from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
-from giuseppe.problems.regularization import ControlConstraintHandler
+from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
 import giuseppe
@@ -51,9 +51,15 @@ ocp.add_constant('b_1', -0.61592e-2)
 ocp.add_constant('b_2', 0.621408e-3)
 ocp.add_constant('s_ref', 2690)
 
-ocp.add_constant('eps_alpha', 1e-8)
-ocp.add_constant('alpha_min', -40 / 180 * 3.1419)
-ocp.add_constant('alpha_max', 40 / 180 * 3.1419)
+ocp.add_constant('xi', 0)
+
+ocp.add_constant('eps_alpha', 1e-5)
+ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
+ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
+
+ocp.add_constant('eps_beta', 1e-10)
+ocp.add_constant('beta_min', -85 / 180 * 3.1419)
+ocp.add_constant('beta_max', 85 / 180 * 3.1419)
 
 ocp.add_constant('h_0', 260_000)
 ocp.add_constant('phi_0', 0)
@@ -62,11 +68,11 @@ ocp.add_constant('v_0', 25_600)
 ocp.add_constant('gamma_0', -1 / 180 * np.pi)
 ocp.add_constant('psi_0', np.pi / 2)
 
-ocp.add_constant('h_f', 260_000)
-ocp.add_constant('v_f', 25_600)
-ocp.add_constant('gamma_f', -1 / 180 * np.pi)
+ocp.add_constant('h_f', 80_000)
+ocp.add_constant('v_f', 2_500)
+ocp.add_constant('gamma_f', -5 / 180 * np.pi)
 
-ocp.set_cost('0', '0', '-phi')
+ocp.set_cost('0', '0', '-phi * cos(xi) - theta  * sin(xi)')
 
 ocp.add_constraint('initial', 't')
 ocp.add_constraint('initial', 'h - h_0')
@@ -80,17 +86,19 @@ ocp.add_constraint('terminal', 'h - h_f')
 ocp.add_constraint('terminal', 'v - v_f')
 ocp.add_constraint('terminal', 'gamma - gamma_f')
 
-ocp.add_inequality_constraint('control', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
-                              regularizer=ControlConstraintHandler('eps_alpha', method='sin'))
+ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
+                              regularizer=PenaltyConstraintHandler('eps_alpha'))
+# ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
+#                               regularizer=PenaltyConstraintHandler('eps_beta'))
 
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential_numeric')
+    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
     comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp)
+    num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=(5/180*3.14159, 0), t_span=10)
+guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
 with open('guess.data', 'wb') as file:
     pickle.dump(guess, file)
 
@@ -102,7 +110,10 @@ with open('seed.data', 'wb') as file:
 
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(1000, {'h_f': 80000, 'v_f': 2500}, bisection=True)
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
+# cont.add_linear_series(100, {'alpha_min': -5 / 180 * 3.14159, 'alpha_max': 20 / 180 * 3.14159}, bisection=True)
+cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:

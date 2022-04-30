@@ -86,8 +86,8 @@ class DifferentialControlHandler:
         self.f_u: SymMatrix = sym_ocp.dynamics.jacobian(sym_ocp.controls)
 
         self.control_dynamics = \
-            -self.h_uu.inv() * (self.h_ut + self.h_ux @ sym_ocp.dynamics
-                                + self.f_u.T @ sym_dual.costate_dynamics[:len(sym_ocp.states.flat()), :])
+            -self.h_uu.LUsolve(self.h_ut + self.h_ux @ sym_ocp.dynamics
+                               + self.f_u.T @ sym_dual.costate_dynamics[:len(sym_ocp.states.flat()), :])
 
 
 # TODO: Consider exposing OCP and Dual attributes

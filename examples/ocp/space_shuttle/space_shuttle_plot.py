@@ -3,7 +3,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-DATA = 2
+DATA = 0
 
 if DATA == 0:
     with open('sol_set.data', 'rb') as file:
@@ -44,35 +44,45 @@ fig.tight_layout()
 fig_states = plt.figure()
 fig_states.suptitle('States')
 
-ax21 = fig_states.add_subplot(2, 3, 1)
+ax21 = fig_states.add_subplot(2, 4, 1)
 ax21.plot(sol.t, sol.x[0, :])
 ax21.set_xlabel(r'$t$')
 ax21.set_ylabel(r'$h$')
 
-ax22 = fig_states.add_subplot(2, 3, 2)
-ax22.plot(sol.t, sol.x[1, :])
+ax22 = fig_states.add_subplot(2, 4, 2)
+ax22.plot(sol.t, sol.x[1, :] / np.pi * 180)
 ax22.set_xlabel(r'$t$')
 ax22.set_ylabel(r'$\phi$')
 
-ax23 = fig_states.add_subplot(2, 3, 3)
-ax23.plot(sol.t, sol.x[2, :])
+ax23 = fig_states.add_subplot(2, 4, 3)
+ax23.plot(sol.t, sol.x[2, :] / np.pi * 180)
 ax23.set_xlabel(r'$t$')
 ax23.set_ylabel(r'$\theta$')
 
-ax24 = fig_states.add_subplot(2, 3, 4)
+ax24 = fig_states.add_subplot(2, 4, 4)
 ax24.plot(sol.t, sol.x[3, :])
 ax24.set_xlabel(r'$t$')
 ax24.set_ylabel(r'$v$')
 
-ax24 = fig_states.add_subplot(2, 3, 5)
-ax24.plot(sol.t, sol.x[4, :])
+ax24 = fig_states.add_subplot(2, 4, 5)
+ax24.plot(sol.t, sol.x[4, :] / np.pi * 180)
 ax24.set_xlabel(r'$t$')
 ax24.set_ylabel(r'$\gamma$')
 
-ax24 = fig_states.add_subplot(2, 3, 6)
-ax24.plot(sol.t, sol.x[5, :])
+ax24 = fig_states.add_subplot(2, 4, 6)
+ax24.plot(sol.t, sol.x[5, :] / np.pi * 180)
 ax24.set_xlabel(r'$t$')
 ax24.set_ylabel(r'$\psi$')
+
+ax25 = fig_states.add_subplot(2, 4, 7)
+ax25.plot(sol.t, sol.u[0, :] / np.pi * 180)
+ax25.set_xlabel(r'$t$')
+ax25.set_ylabel(r'$\alpha$')
+
+ax26 = fig_states.add_subplot(2, 4, 8)
+ax26.plot(sol.t, sol.u[1, :] / np.pi * 180)
+ax26.set_xlabel(r'$t$')
+ax26.set_ylabel(r'$\beta$')
 
 fig_states.tight_layout()
 
