@@ -35,7 +35,9 @@ class ControlConstraintHandler(Regularizer):
 
     # TODO: Add technique to compute real control automatically
     # TODO: Explore one-sided control functions
-    def apply(self, prob: SymOCP, control_constraint: InputInequalityConstraint) -> SymOCP:
+    def apply(self, prob: SymOCP, control_constraint: InputInequalityConstraint, position: str) -> SymOCP:
+        if position not in ['control', 'path']:
+            raise ValueError(f'Location of control constraint regularizer should be \'control\' or \'path\'')
 
         bounded_control = prob.sympify(control_constraint.expr)
         if bounded_control not in prob.controls:

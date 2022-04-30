@@ -68,7 +68,7 @@ class SymBVP(Symbolic):
                 if constraint.regularizer is None:
                     raise NotImplementedError('Inequality constraint without regularizer not yet implemented')
                 else:
-                    constraint.regularizer.apply(self, constraint)
+                    constraint.regularizer.apply(self, constraint, position)
 
     def substitute(self, sym_expr: Union[SymExpr, SymMatrix]):
         sub_pairs = [(named_expr.sym, named_expr.expr) for named_expr in self.expressions]

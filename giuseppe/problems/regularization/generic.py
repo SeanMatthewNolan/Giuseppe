@@ -9,5 +9,5 @@ else:
 
 class Regularizer(ABC):
     @abstractmethod
-    def apply(self, prob: AnyProblem, item: Any) -> AnyProblem:
+    def apply(self, prob: AnyProblem, item: Any, position: str) -> AnyProblem:
         pass
