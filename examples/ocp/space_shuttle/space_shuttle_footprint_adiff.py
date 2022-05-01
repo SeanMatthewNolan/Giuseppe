@@ -4,9 +4,9 @@ import numpy as np
 from giuseppe.continuation import ContinuationHandler, SolutionSet
 from giuseppe.guess_generators import auto_propagate_guess
 from giuseppe.io import InputOCP
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
-from giuseppe.problems.ocp import SymOCP
+from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
+from giuseppe.problems.dual import AdiffDual, AdiffDualOCP, CompDualOCP
+from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
@@ -93,12 +93,12 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
-    sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
+    adiff_ocp = AdiffOCP(sym_ocp)
+    adiff_dual = AdiffDual(adiff_ocp)
+    adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
+    num_solver = AdiffScipySolveBVP(adiff_dualocp, bc_tol=1e-8)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
+guess = auto_propagate_guess(adiff_dualocp, control=(20/180*3.14159, 0), t_span=100)
 with open('guess.data', 'wb') as file:
     pickle.dump(guess, file)
 
@@ -108,7 +108,7 @@ print(seed_sol.converged)
 with open('seed.data', 'wb') as file:
     pickle.dump(seed_sol, file)
 
-sol_set = SolutionSet(sym_bvp, seed_sol)
+sol_set = SolutionSet(adiff_dualocp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
