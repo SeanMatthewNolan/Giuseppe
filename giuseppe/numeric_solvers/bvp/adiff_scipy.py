@@ -112,7 +112,7 @@ class AdiffScipySolveBVP(Picky):
         def boundary_conditions(x0: NPArray, xf: NPArray, p: NPArray, k: NPArray):
             t0, tf = p[-2], p[-1]
             p = p[:n_p]
-            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)), np.asarray(bvp_bcf(tf, xf, p, k)))).flatten()
+            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)).flatten(), np.asarray(bvp_bcf(tf, xf, p, k)).flatten()))
 
         return boundary_conditions
 
@@ -209,12 +209,12 @@ class AdiffScipySolveBVP(Picky):
             nuf = _p[ind_nuf0:-2]
 
             residual = np.concatenate((
-                np.asarray(ocp_bc0(t0, x0, u0, p, k)),
-                np.asarray(ocp_bcf(tf, xf, uf, p, k)),
-                np.asarray(dual_bc0(t0, x0, lam0, u0, p, nu0, k)),
-                np.asarray(dual_bcf(tf, xf, lamf, uf, p, nuf, k)),
-                np.asarray(control_bc(t0, x0, lam0, u0, p, k))
-            )).flatten()
+                np.asarray(ocp_bc0(t0, x0, u0, p, k)).flatten(),
+                np.asarray(ocp_bcf(tf, xf, uf, p, k)).flatten(),
+                np.asarray(dual_bc0(t0, x0, lam0, u0, p, nu0, k)).flatten(),
+                np.asarray(dual_bcf(tf, xf, lamf, uf, p, nuf, k)).flatten(),
+                np.asarray(control_bc(t0, x0, lam0, u0, p, k)).flatten()
+            ))
 
             return residual
 
