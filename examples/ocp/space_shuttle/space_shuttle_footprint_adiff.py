@@ -5,7 +5,7 @@ from giuseppe.continuation import ContinuationHandler, SolutionSet
 from giuseppe.guess_generators import auto_propagate_guess
 from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
-from giuseppe.problems.dual import AdiffDual, AdiffDualOCP, CompDualOCP
+from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
 from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
