@@ -25,10 +25,6 @@ class PenaltyConstraintHandler(Regularizer):
 
     def apply(self, prob: SymOCP, constraint: InputInequalityConstraint, position: str) -> SymOCP:
 
-        bounded_control = prob.sympify(constraint.expr)
-        if bounded_control not in prob.controls:
-            raise ValueError(f'Control {bounded_control} not found to add constraint')
-
         expr = prob.sympify(constraint.expr)
         lower_limit = prob.sympify(constraint.lower_limit)
         upper_limit = prob.sympify(constraint.upper_limit)

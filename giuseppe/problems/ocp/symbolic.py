@@ -19,14 +19,13 @@ class SymOCP(SymBVP):
 
     def process_expr_from_input(self, input_data: InputOCP):
         super().process_expr_from_input(input_data)
-
         self.cost = SymCost(
                 self.sympify(input_data.cost.initial),
                 self.sympify(input_data.cost.path),
                 self.sympify(input_data.cost.terminal)
         )
 
-    def sub_named_expr(self):
+    def perform_substitutions(self):
         super().perform_substitutions()
         self.cost.initial = self.substitute(self.cost.initial)
         self.cost.path = self.substitute(self.cost.path)
