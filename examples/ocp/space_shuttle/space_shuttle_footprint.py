@@ -99,20 +99,12 @@ with Timer(prefix='Complilation Time:'):
     num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
 
 guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
-with open('guess.data', 'wb') as file:
-    pickle.dump(guess, file)
-
 seed_sol = num_solver.solve(guess.k, guess)
-print(seed_sol.converged)
-
-with open('seed.data', 'wb') as file:
-    pickle.dump(seed_sol, file)
-
 sol_set = SolutionSet(sym_bvp, seed_sol)
+
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
-# cont.add_linear_series(100, {'alpha_min': -5 / 180 * 3.14159, 'alpha_max': 20 / 180 * 3.14159}, bisection=True)
 cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 

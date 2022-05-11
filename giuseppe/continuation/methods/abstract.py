@@ -13,3 +13,6 @@ class ContinuationSeries(Iterable, ABC):
     @abstractmethod
     def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
         pass
+
+    def __repr__(self):
+        return 'Continuation Series'

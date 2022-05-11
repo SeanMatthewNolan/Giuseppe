@@ -2,6 +2,7 @@ from collections.abc import Hashable, Mapping, Iterator
 from copy import copy
 
 import numpy as np
+from tqdm import tqdm
 
 from .abstract import ContinuationSeries
 from ..solution_set import SolutionSet
@@ -23,6 +24,22 @@ class LinearSeries(ContinuationSeries):
     def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
         self._initialize_iter()
         return self._perform_iter()
+
+    def __repr__(self):
+        return f'LinearSeries({self.form_mapping_str()})'
+
+    # def form_mapping_str(self):
+    #     mapping_strs = []
+    #     for sym, tar_val in self.target_mapping.items():
+    #         mapping_strs.append(f'{sym} -> {float(tar_val):.2}')
+
+    #     return '; '.join(mapping_strs)
+
+    def form_mapping_str(self):
+        name_str = ', '.join(self.target_mapping.keys())
+        val_str = ', '.join(f'{float(tar_val):.2}' for tar_val in self.target_mapping.values())
+
+        return f'{name_str} -> {val_str}'
 
     def _get_constant_indices(self) -> list[int]:
         indices = []
@@ -59,6 +76,9 @@ class BisectionLinearSeries(LinearSeries):
 
         self.max_bisections: int = max_bisections
         self.bisection_counter: int = 0
+
+    def __repr__(self):
+        return f'BisectionLinearSeries({self.form_mapping_str()})'
 
     @staticmethod
     def _bisect_step(last_constants: NPArray, next_constants: NPArray) -> NPArray:

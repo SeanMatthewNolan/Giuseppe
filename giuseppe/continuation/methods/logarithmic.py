@@ -7,6 +7,9 @@ from ...utils.typing import NPArray
 
 
 class LogarithmicSeries(LinearSeries):
+    def __repr__(self):
+        return f'LogarithmicSeries({self.form_mapping_str()})'
+
     def _initialize_iter(self):
         current_constants = self.solution_set[-1].k
 
@@ -22,6 +25,9 @@ class BisectionLogarithmicSeries(LogarithmicSeries, BisectionLinearSeries):
     __init__ = BisectionLinearSeries.__init__
     _initialize_iter = LogarithmicSeries._initialize_iter
     _perform_iter = BisectionLinearSeries._perform_iter
+
+    def __repr__(self):
+        return f'BisectionLogarithmicSeries({self.form_mapping_str()})'
 
     def _bisect_step(self, last_constants: NPArray, next_constants: NPArray) -> NPArray:
         for idx, _ in self._idx_target_pairs:

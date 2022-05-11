@@ -1,6 +1,7 @@
 from collections.abc import Hashable, Mapping
-from typing import Union
+from typing import Union, Optional
 
+from .monitors import ContinuationMonitor, ProgressBarMonitor
 from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
@@ -36,6 +37,7 @@ class ContinuationHandler:
         self.continuation_series: list[ContinuationSeries] = []
         self.solution_set: SolutionSet = solution_set
         self.constant_names: tuple[Hashable, ...] = solution_set.constant_names
+        self.monitor: Optional[ContinuationMonitor] = None
 
     def add_linear_series(self, num_steps: int, target_values: Mapping[Hashable: float],
                           bisection: Union[bool, int] = False):
@@ -115,7 +117,7 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
-    def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP]) -> SolutionSet:
+    def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP], monitor=None) -> SolutionSet:
         """
         Run continuation set
 
@@ -123,6 +125,7 @@ class ContinuationHandler:
         ----------
         numeric_solver
            Numeric solver which will be used to solve the problems
+        monitor : optional
 
         Returns
         -------
@@ -130,10 +133,15 @@ class ContinuationHandler:
 
         """
 
-        with Timer(prefix='Continuation Time:'):
+        if monitor is None:
+            monitor = ProgressBarMonitor()
+
+        with Timer(prefix='Continuation Time:', log_func=monitor.log_msg):
             for series in self.continuation_series:
-                for idx, (k, last_sol) in enumerate(series):
-                    print(idx)
+                monitor.start_cont_series(series)
+                for k, last_sol in series:
                     self.solution_set.append(numeric_solver.solve(k, last_sol))
+                    monitor.log_step()
+                monitor.end_cont_series()
 
         return self.solution_set

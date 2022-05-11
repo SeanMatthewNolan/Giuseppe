@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from time import perf_counter_ns
 from typing import Union, Optional
 
@@ -39,7 +40,7 @@ def format_time(elasped_time: _TIMER_OUTPUT_TYPE):
         return '{0:0.3f} s'.format(seconds)
 
 
-class Timer:
+class Timer(AbstractContextManager):
     def __init__(self, prefix: str = '', timer_function: TIMER_TYPE = perf_counter_ns,
                  log_func: Optional[LOG_FUNC_TYPE] = print):
         self.timer: TIMER_TYPE = timer_function
