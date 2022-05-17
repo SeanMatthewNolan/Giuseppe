@@ -1,7 +1,7 @@
 from collections.abc import Hashable, Mapping
 from typing import Union, Optional
 
-from .monitors import ContinuationMonitor, ProgressBarMonitor
+from .monitors import ContinuationMonitor, ProgressBarMonitor, ContinuationTimer
 from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
@@ -134,15 +134,15 @@ class ContinuationHandler:
         """
 
         if monitor is None:
-            monitor = ProgressBarMonitor()
+            # monitor = ProgressBarMonitor()
+            monitor = ContinuationTimer(prefix='Continuation Time:')
 
-        with Timer(prefix='Continuation Time:', log_func=monitor.log_msg):
-            with monitor:
-                for series in self.continuation_series:
-                    monitor.start_cont_series(series)
-                    for k, last_sol in series:
-                        self.solution_set.append(numeric_solver.solve(k, last_sol))
-                        monitor.log_step()
-                    monitor.end_cont_series()
+        with monitor:
+            for series in self.continuation_series:
+                monitor.start_cont_series(series)
+                for k, last_sol in series:
+                    self.solution_set.append(numeric_solver.solve(k, last_sol))
+                    monitor.log_step()
+                monitor.end_cont_series()
 
         return self.solution_set
