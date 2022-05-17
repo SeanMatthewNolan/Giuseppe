@@ -137,11 +137,12 @@ class ContinuationHandler:
             monitor = ProgressBarMonitor()
 
         with Timer(prefix='Continuation Time:', log_func=monitor.log_msg):
-            for series in self.continuation_series:
-                monitor.start_cont_series(series)
-                for k, last_sol in series:
-                    self.solution_set.append(numeric_solver.solve(k, last_sol))
-                    monitor.log_step()
-                monitor.end_cont_series()
+            with monitor:
+                for series in self.continuation_series:
+                    monitor.start_cont_series(series)
+                    for k, last_sol in series:
+                        self.solution_set.append(numeric_solver.solve(k, last_sol))
+                        monitor.log_step()
+                    monitor.end_cont_series()
 
         return self.solution_set
