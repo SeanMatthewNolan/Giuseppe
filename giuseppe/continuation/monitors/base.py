@@ -3,9 +3,7 @@ from contextlib import AbstractContextManager
 
 class ContinuationMonitor(AbstractContextManager):
     def __init__(self):
-        self.current_series = None
-        self.step_idx = 0
-        self.messages = []
+        pass
 
     def __enter__(self):
         pass
@@ -14,15 +12,13 @@ class ContinuationMonitor(AbstractContextManager):
         pass
 
     def start_cont_series(self, series):
-        self.current_series = series
-        self.step_idx = 0
+        pass
 
     def log_step(self):
-        self.step_idx += 1
+        pass
 
     def log_msg(self, msg: str):
-        self.messages.append(msg)
-        print(msg)
+        pass
 
     def end_cont_series(self):
         pass

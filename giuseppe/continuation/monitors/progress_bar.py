@@ -15,6 +15,11 @@ DESC_LEN = 40
 class ProgressBarMonitor(ContinuationMonitor):
     def __init__(self):
         super().__init__()
+
+        self.current_series = None
+        self.step_idx = 0
+        self.messages = []
+
         self.progress_bar: Optional[tqdm.tqdm] = None
 
         self.bar_format: str = '{l_bar}{bar:' + str(BAR_LEN) + '}{r_bar}'
@@ -62,7 +67,8 @@ class ProgressBarMonitor(ContinuationMonitor):
             self.progress_bar = None
 
     def start_cont_series(self, series: ContinuationSeries):
-        super().start_cont_series(series)
+        self.current_series = series
+        self.step_idx = 0
 
         if hasattr(series, 'num_steps'):
             total = series.num_steps
@@ -77,15 +83,15 @@ class ProgressBarMonitor(ContinuationMonitor):
         self.initialize_progress_bar(desc=desc, total=total)
 
     def log_step(self):
-        super().log_step()
+        self.step_idx += 1
         self.progress_bar.update()
 
     def end_cont_series(self):
         self.close_progress_bar()
 
     def log_msg(self, msg: str):
+        self.messages.append(msg)
         if self.progress_bar is None:
-            super().log_msg(msg)
+            print(msg)
         else:
-            self.messages.append(msg)
             self.progress_bar.write(msg)
