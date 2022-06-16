@@ -1,7 +1,7 @@
 from contextlib import AbstractContextManager
 
 
-class ContinuationMonitor(AbstractContextManager):
+class ContinuationDisplayManager(AbstractContextManager):
     def __init__(self):
         pass
 
@@ -23,3 +23,6 @@ class ContinuationMonitor(AbstractContextManager):
     def end_cont_series(self):
         pass
 
+
+class NoDisplay(ContinuationDisplayManager):
+    pass

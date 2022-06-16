@@ -1,10 +1,10 @@
-from .base import ContinuationMonitor
+from .base import ContinuationDisplayManager
 
 
-class MultiMonitor(ContinuationMonitor):
-    def __init__(self, monitors: list[ContinuationMonitor]):
-        ContinuationMonitor.__init__(self)
-        self.monitors: list[ContinuationMonitor] = monitors
+class MultiDisplayManager(ContinuationDisplayManager):
+    def __init__(self, monitors: list[ContinuationDisplayManager]):
+        ContinuationDisplayManager.__init__(self)
+        self.monitors: list[ContinuationDisplayManager] = monitors
 
     def __enter__(self):
         for monitor in self.monitors:

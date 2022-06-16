@@ -4,15 +4,16 @@ from typing import Optional
 import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from .base import ContinuationMonitor
+from .base import ContinuationDisplayManager
 from ..methods import ContinuationSeries
+from ...utils import Timer
 from ...utils.strings import justify_str
 
 BAR_LEN = 40
 DESC_LEN = 40
 
 
-class ProgressBarMonitor(ContinuationMonitor):
+class ProgressBarDisplay(ContinuationDisplayManager):
     def __init__(self):
         super().__init__()
 
@@ -25,6 +26,8 @@ class ProgressBarMonitor(ContinuationMonitor):
         self.bar_format: str = '{l_bar}{bar:' + str(BAR_LEN) + '}{r_bar}'
         self.smoothing: float = 0.9
         # tqdm default is 0.3 but nature of cont. makes more recent iter. more representative
+
+        self.timer = Timer(prefix='Total Continuation Time:')
 
         self._log_redirect = None
         self._orig_out_err = None
@@ -39,7 +42,11 @@ class ProgressBarMonitor(ContinuationMonitor):
         self._orig_out_err = sys.stdout, sys.stderr
         sys.stdout, sys.stderr = map(tqdm.contrib.DummyTqdmFile, self._orig_out_err)
 
+        self.timer.__enter__()
+
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.timer.__exit__(exc_type, exc_val, exc_tb)
+
         if self.progress_bar is not None:
             self.progress_bar.close()
 

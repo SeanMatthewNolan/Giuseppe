@@ -1,7 +1,7 @@
 from collections.abc import Hashable, Mapping
 from typing import Union, Optional
 
-from .monitors import ContinuationMonitor, ProgressBarMonitor, ContinuationTimer, MultiMonitor
+from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
@@ -36,7 +36,7 @@ class ContinuationHandler:
         self.continuation_series: list[ContinuationSeries] = []
         self.solution_set: SolutionSet = solution_set
         self.constant_names: tuple[Hashable, ...] = solution_set.constant_names
-        self.monitor: Optional[ContinuationMonitor] = None
+        self.monitor: Optional[ContinuationDisplayManager] = None
 
     def add_linear_series(self, num_steps: int, target_values: Mapping[Hashable: float],
                           bisection: Union[bool, int] = False):
@@ -116,7 +116,8 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
-    def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP], monitor=None) -> SolutionSet:
+    def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP], display=ProgressBarDisplay()) \
+            -> SolutionSet:
         """
         Run continuation set
 
@@ -124,7 +125,7 @@ class ContinuationHandler:
         ----------
         numeric_solver
            Numeric solver which will be used to solve the problems
-        monitor : optional
+        display : optional
 
         Returns
         -------
@@ -132,17 +133,15 @@ class ContinuationHandler:
 
         """
 
-        if monitor is None:
-            # monitor = ProgressBarMonitor()
-            # monitor = ContinuationTimer(prefix='Continuation Time:')
-            monitor = MultiMonitor([ProgressBarMonitor(), ContinuationTimer(prefix='Continuation Time:')])
+        if display is None:
+            display = NoDisplay()
 
-        with monitor:
+        with display:
             for series in self.continuation_series:
-                monitor.start_cont_series(series)
+                display.start_cont_series(series)
                 for k, last_sol in series:
                     self.solution_set.append(numeric_solver.solve(k, last_sol))
-                    monitor.log_step()
-                monitor.end_cont_series()
+                    display.log_step()
+                display.end_cont_series()
 
         return self.solution_set
