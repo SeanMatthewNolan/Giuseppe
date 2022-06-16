@@ -15,7 +15,8 @@ class LinearSeries(ContinuationSeries):
     def __init__(self, num_steps: int, target_mapping: Mapping[Hashable: float], solution_set: SolutionSet):
 
         super().__init__(solution_set)
-        self.num_steps: int = num_steps
+        self.est_num_steps: int = num_steps
+
         self.target_mapping: Mapping[Hashable: float] = target_mapping
         self._idx_target_pairs: list[tuple[int, float]] = \
             [(idx, tar) for idx, tar in zip(self._get_constant_indices(), target_mapping.values())]
@@ -27,13 +28,6 @@ class LinearSeries(ContinuationSeries):
 
     def __repr__(self):
         return f'LinearSeries({self.form_mapping_str()})'
-
-    # def form_mapping_str(self):
-    #     mapping_strs = []
-    #     for sym, tar_val in self.target_mapping.items():
-    #         mapping_strs.append(f'{sym} -> {float(tar_val):.2}')
-
-    #     return '; '.join(mapping_strs)
 
     def form_mapping_str(self):
         name_str = ', '.join(self.target_mapping.keys())
@@ -58,13 +52,15 @@ class LinearSeries(ContinuationSeries):
         for idx, constant_target in self._idx_target_pairs:
             target_constants[idx] = constant_target
 
-        self._steps = list(np.linspace(current_constants, target_constants, self.num_steps + 1))
+        self._steps = list(np.linspace(current_constants, target_constants, self.est_num_steps + 1))
 
     def _perform_iter(self):
         for current_constants in self._steps[1:]:
             next_guess = self.solution_set[-1]  # Repeated pulling but judged better than passing arguments
+
             if not next_guess.converged:
                 raise ContinuationError('Last solution did not converge. Continuation cannot continue.')
+
             yield current_constants, next_guess
 
 

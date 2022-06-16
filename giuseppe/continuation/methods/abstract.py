@@ -12,6 +12,9 @@ class ContinuationSeries(Iterable, ABC):
     def __init__(self, solution_set: SolutionSet):
         self.solution_set: SolutionSet = solution_set
 
+        self.num_completed_steps: int = 0
+        self.est_num_steps: int = 0
+
     @abstractmethod
     def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
         pass

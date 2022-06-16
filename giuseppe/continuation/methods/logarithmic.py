@@ -13,10 +13,10 @@ class LogarithmicSeries(LinearSeries):
     def _initialize_iter(self):
         current_constants = self.solution_set[-1].k
 
-        self._steps = np.array([current_constants] * (self.num_steps + 1))
+        self._steps = np.array([current_constants] * (self.est_num_steps + 1))
 
         for idx, constant_target in self._idx_target_pairs:
-            self._steps[:, idx] = np.geomspace(current_constants[idx], constant_target, self.num_steps + 1)
+            self._steps[:, idx] = np.geomspace(current_constants[idx], constant_target, self.est_num_steps + 1)
 
         self._steps = list(self._steps)
 
