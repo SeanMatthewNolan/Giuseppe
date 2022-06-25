@@ -15,7 +15,7 @@ class LinearSeries(ContinuationSeries):
     def __init__(self, num_steps: int, target_mapping: Mapping[Hashable: float], solution_set: SolutionSet):
 
         super().__init__(solution_set)
-        self.est_num_steps: int = num_steps
+        self.num_steps: int = num_steps
 
         self.target_mapping: Mapping[Hashable: float] = target_mapping
         self._idx_target_pairs: list[tuple[int, float]] = \
@@ -23,8 +23,29 @@ class LinearSeries(ContinuationSeries):
         self._steps: list[NPArray]
 
     def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
-        self._initialize_iter()
-        return self._perform_iter()
+        current_constants = self.solution_set[-1].k
+
+        target_constants = copy(current_constants)
+        for idx, constant_target in self._idx_target_pairs:
+            target_constants[idx] = constant_target
+
+        self._steps = list(np.linspace(current_constants, target_constants, self.num_steps + 1))
+
+        return self
+
+    def __next__(self):
+        previous_solution = self.solution_set[-1]  # Repeated pulling but judged better than passing arguments
+
+        if not previous_solution.converged:
+            raise ContinuationError('Previous solution did not converge. Continuation cannot continue.')
+
+        if self.current_step == self.num_steps:
+            raise StopIteration
+
+        self.current_step += 1
+        current_constants = self._steps[self.current_step]
+
+        return current_constants, previous_solution
 
     def __repr__(self):
         return f'LinearSeries({self.form_mapping_str()})'
@@ -52,16 +73,7 @@ class LinearSeries(ContinuationSeries):
         for idx, constant_target in self._idx_target_pairs:
             target_constants[idx] = constant_target
 
-        self._steps = list(np.linspace(current_constants, target_constants, self.est_num_steps + 1))
-
-    def _perform_iter(self):
-        for current_constants in self._steps[1:]:
-            next_guess = self.solution_set[-1]  # Repeated pulling but judged better than passing arguments
-
-            if not next_guess.converged:
-                raise ContinuationError('Last solution did not converge. Continuation cannot continue.')
-
-            yield current_constants, next_guess
+        self._steps = list(np.linspace(current_constants, target_constants, self.num_steps + 1))
 
 
 class BisectionLinearSeries(LinearSeries):
