@@ -108,13 +108,12 @@ class BisectionLinearSeries(LinearSeries):
         else:
             self.solution_set.damn_sol()
             if self.bisection_counter < self.max_bisections:
-                print(f'Last continuation {self.generate_mapping_str(self.solution_set[-1].k[self.constant_indices])}'
-                      f' did not converge. Bisecting next step')
-
                 self.bisection_counter += 1
                 self.num_steps += 1
-
                 next_constants = self._generate_next_constants()
+
+                print(f'Last continuation {self.generate_mapping_str(self.solution_set[-1].k[self.constant_indices])}'
+                      f' did not converge. Bisecting next step (depth = {self.bisection_counter})')
 
             else:
                 raise ContinuationError('Bisection limit exceeded!')
