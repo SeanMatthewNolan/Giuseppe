@@ -103,8 +103,8 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
-cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 

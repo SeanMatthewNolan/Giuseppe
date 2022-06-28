@@ -90,8 +90,17 @@ class ProgressBarDisplay(ContinuationDisplayManager):
         self.initialize_progress_bar(desc=desc, total=total)
 
     def log_step(self):
-        self.step_idx += 1
-        self.progress_bar.update()
+        # TODO make this more elegant
+        if hasattr(self.current_series, 'num_steps'):
+            self.progress_bar.total = self.current_series.num_steps
+
+        if hasattr(self.current_series, 'current_step'):
+            self.step_idx = self.current_series.current_step
+            self.progress_bar.n = self.step_idx
+            self.progress_bar.refresh()
+        else:
+            self.step_idx += 1
+            self.progress_bar.update()
 
     def end_cont_series(self):
         self.close_progress_bar()
