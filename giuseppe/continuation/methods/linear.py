@@ -2,7 +2,6 @@ from collections.abc import Hashable, Mapping, Iterator
 from copy import copy
 
 import numpy as np
-from tqdm import tqdm
 
 from .abstract import ContinuationSeries
 from ..solution_set import SolutionSet
@@ -16,45 +15,43 @@ class LinearSeries(ContinuationSeries):
 
         super().__init__(solution_set)
         self.num_steps: int = num_steps
-
         self.target_mapping: Mapping[Hashable: float] = target_mapping
-        self._idx_target_pairs: list[tuple[int, float]] = \
+
+        self.constant_indices = self._get_constant_indices()
+        self.constant_targets = np.fromiter(self.target_mapping.values(), dtype=float)
+        self.idx_tar_pairs: list[tuple[int, float]] = \
             [(idx, tar) for idx, tar in zip(self._get_constant_indices(), target_mapping.values())]
-        self._steps: list[NPArray]
+
+        self._delta: NPArray
+        self._step_size: NPArray
 
     def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
-        current_constants = self.solution_set[-1].k
+        if len(self.solution_set) == 0:
+            raise ContinuationError('No converged solution in solution set! Cannot perform continuation')
 
-        target_constants = copy(current_constants)
-        for idx, constant_target in self._idx_target_pairs:
-            target_constants[idx] = constant_target
-
-        self._steps = list(np.linspace(current_constants, target_constants, self.num_steps + 1))
+        self.current_step = 0
+        self._compute_step_size()
 
         return self
 
+    def _compute_step_size(self):
+        self._delta = self.constant_targets - self.solution_set[-1].k[self.constant_indices]
+        self._step_size = self._delta / self.num_steps
+
     def __next__(self):
-        previous_solution = self.solution_set[-1]  # Repeated pulling but judged better than passing arguments
+        previous_solution = self.solution_set[-1]
 
         if not previous_solution.converged:
+            self.solution_set.damn_sol()
             raise ContinuationError('Previous solution did not converge. Continuation cannot continue.')
 
         if self.current_step == self.num_steps:
             raise StopIteration
 
         self.current_step += 1
-        current_constants = self._steps[self.current_step]
+        next_constants = self._generate_next_constants()
 
-        return current_constants, previous_solution
-
-    def __repr__(self):
-        return f'LinearSeries({self.form_mapping_str()})'
-
-    def form_mapping_str(self):
-        name_str = ', '.join(self.target_mapping.keys())
-        val_str = ', '.join(f'{float(tar_val):.2}' for tar_val in self.target_mapping.values())
-
-        return f'{name_str} -> {val_str}'
+        return next_constants, self.solution_set[-1]
 
     def _get_constant_indices(self) -> list[int]:
         indices = []
@@ -66,14 +63,21 @@ class LinearSeries(ContinuationSeries):
 
         return indices
 
-    def _initialize_iter(self):
-        current_constants = self.solution_set[-1].k
+    def _generate_next_constants(self):
+        next_constants = copy(self.solution_set[-1].k)
+        next_constants[self.constant_indices] += self._step_size
+        return next_constants
 
-        target_constants = copy(current_constants)
-        for idx, constant_target in self._idx_target_pairs:
-            target_constants[idx] = constant_target
+    def __repr__(self):
+        return f'LinearSeries({self.generate_target_mapping_str()})'
 
-        self._steps = list(np.linspace(current_constants, target_constants, self.num_steps + 1))
+    def generate_target_mapping_str(self):
+        return self.generate_mapping_str(self.target_mapping.values())
+
+    def generate_mapping_str(self, values):
+        name_str = ', '.join(self.target_mapping.keys())
+        val_str = ', '.join(f'{float(val):.2}' for val in values)
+        return f'{name_str} -> {val_str}'
 
 
 class BisectionLinearSeries(LinearSeries):
@@ -85,44 +89,42 @@ class BisectionLinearSeries(LinearSeries):
         self.max_bisections: int = max_bisections
         self.bisection_counter: int = 0
 
-    def __repr__(self):
-        return f'BisectionLinearSeries({self.form_mapping_str()})'
+    def __iter__(self):
+        super().__iter__()
+        self.bisection_counter = 0
+        return self
 
-    @staticmethod
-    def _bisect_step(last_constants: NPArray, next_constants: NPArray) -> NPArray:
-        return (next_constants + last_constants) / 2
+    def __next__(self):
+        if self.solution_set[-1].converged:
+            if self.current_step == self.num_steps:
+                raise StopIteration
 
-    def _perform_iter(self):
-        self._steps.reverse()
-        last_constants = self._steps.pop()
+            self.current_step += 1
+            next_constants = self._generate_next_constants()
 
-        while self._steps:
-            next_constants = self._steps[-1]
+            if self.bisection_counter > 0:
+                self.bisection_counter -= 1
 
-            if len(self.solution_set) == 0:
-                raise ContinuationError('No solution in solution set!')
-            else:
-                last_sol = self.solution_set[-1]
+        else:
+            self.solution_set.damn_sol()
+            if self.bisection_counter < self.max_bisections:
+                print(f'Last continuation {self.generate_mapping_str(self.solution_set[-1].k[self.constant_indices])}'
+                      f' did not converge. Bisecting next step')
 
-            if last_sol.converged:
-                if self.bisection_counter > 0:
-                    self.bisection_counter -= 1
-                last_constants = self._steps.pop()
-
-                yield next_constants, last_sol
-
-            elif self.bisection_counter < self.max_bisections:
-                # TODO Investigate logging options
-                print(f'Last continuation {next_constants} did not converge. Bisecting next step')
                 self.bisection_counter += 1
-                self._steps.append(self._bisect_step(last_constants, next_constants))
-                self.solution_set.damned_sols.append(self.solution_set.pop())
+                self.num_steps += 1
 
-                if len(self.solution_set) == 0:
-                    raise ContinuationError('No converged solution in solution set!')
-                else:
-                    yield self._steps[-1], self.solution_set[-1]
+                next_constants = self._generate_next_constants()
 
             else:
-                break
-                # raise ContinuationError('Bisection limit exceeded!')
+                raise ContinuationError('Bisection limit exceeded!')
+
+        return next_constants, self.solution_set[-1]
+
+    def _generate_next_constants(self):
+        next_constants = copy(self.solution_set[-1].k)
+        next_constants[self.constant_indices] += self._step_size * 2 ** -self.bisection_counter
+        return next_constants
+
+    def __repr__(self):
+        return f'BisectionLinearSeries({self.generate_target_mapping_str()})'

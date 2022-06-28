@@ -88,3 +88,6 @@ class SolutionSet(MutableSequence, Picky):
 
     def __len__(self) -> int:
         return self.solutions.__len__()
+
+    def damn_sol(self, idx: int = -1):
+        self.damned_sols.append(self.solutions.pop(idx))

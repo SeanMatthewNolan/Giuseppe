@@ -1,36 +1,36 @@
-from math import sqrt
-
-import numpy as np
+from copy import copy
 
 from .linear import LinearSeries, BisectionLinearSeries
-from ...utils.typing import NPArray
+from ...utils.exceptions import ContinuationError
 
 
 class LogarithmicSeries(LinearSeries):
     def __repr__(self):
-        return f'LogarithmicSeries({self.form_mapping_str()})'
+        return f'LogarithmicSeries({self.generate_target_mapping_str()})'
 
-    def _initialize_iter(self):
-        current_constants = self.solution_set[-1].k
+    def _compute_step_size(self):
+        current_constants = self.solution_set[-1].k[self.constant_indices]
+        if any(current_constants <= 0):
+            raise ContinuationError('Starting constants to change must be positive for logaritmic continuation')
+        self._delta = self.constant_targets / self.solution_set[-1].k[self.constant_indices]
+        self._step_size = self._delta ** (1 / self.num_steps)
 
-        self._steps = np.array([current_constants] * (self.num_steps + 1))
-
-        for idx, constant_target in self._idx_target_pairs:
-            self._steps[:, idx] = np.geomspace(current_constants[idx], constant_target, self.num_steps + 1)
-
-        self._steps = list(self._steps)
+    def _generate_next_constants(self):
+        next_constants = copy(self.solution_set[-1].k)
+        next_constants[self.constant_indices] *= self._step_size
+        return next_constants
 
 
 class BisectionLogarithmicSeries(LogarithmicSeries, BisectionLinearSeries):
     __init__ = BisectionLinearSeries.__init__
-    _initialize_iter = LogarithmicSeries._initialize_iter
-    _perform_iter = BisectionLinearSeries._perform_iter
+    __iter__ = BisectionLinearSeries.__iter__
+    __next__ = BisectionLinearSeries.__next__
+    _compute_step_size = LogarithmicSeries._compute_step_size
+
+    def _generate_next_constants(self):
+        next_constants = copy(self.solution_set[-1].k)
+        next_constants[self.constant_indices] *= self._step_size ** (2 ** -self.bisection_counter)
+        return next_constants
 
     def __repr__(self):
-        return f'BisectionLogarithmicSeries({self.form_mapping_str()})'
-
-    def _bisect_step(self, last_constants: NPArray, next_constants: NPArray) -> NPArray:
-        for idx, _ in self._idx_target_pairs:
-            next_constants[idx] = sqrt(next_constants[idx] * last_constants[idx])
-
-        return next_constants
+        return f'BisectionLogarithmicSeries({self.generate_target_mapping_str()})'

@@ -82,8 +82,8 @@ class ProgressBarDisplay(ContinuationDisplayManager):
         else:
             total = None
 
-        if hasattr(series, 'form_mapping_str'):
-            desc = series.form_mapping_str()
+        if hasattr(series, 'generate_target_mapping_str'):
+            desc = series.generate_target_mapping_str()
         else:
             desc = repr(series)
 

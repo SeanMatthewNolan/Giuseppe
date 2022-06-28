@@ -52,7 +52,7 @@ sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'m_f': 1})
-cont.add_logarithmic_series(20, {'eps_thrust': 0.2e-4}, bisection=True)
+cont.add_logarithmic_series(10, {'eps_thrust': 0.2e-4})
 sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
