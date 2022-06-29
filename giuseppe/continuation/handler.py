@@ -6,7 +6,7 @@ from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
 from .solution_set import SolutionSet
-
+from ..utils.exceptions import ContinuationError
 
 class ContinuationHandler:
     """
@@ -136,12 +136,15 @@ class ContinuationHandler:
         if display is None:
             display = NoDisplay()
 
-        with display:
-            for series in self.continuation_series:
-                display.start_cont_series(series)
-                for k, last_sol in series:
-                    self.solution_set.append(numeric_solver.solve(k, last_sol))
-                    display.log_step()
-                display.end_cont_series()
-
-        return self.solution_set
+        try:
+            with display:
+                for series in self.continuation_series:
+                    display.start_cont_series(series)
+                    for k, last_sol in series:
+                        self.solution_set.append(numeric_solver.solve(k, last_sol))
+                        display.log_step()
+                    display.end_cont_series()
+        except ContinuationError as e:
+            print(f'Contiuation failed to complete because exception: {e}')
+        finally:
+            return self.solution_set
