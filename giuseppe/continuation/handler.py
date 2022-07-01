@@ -144,7 +144,7 @@ class ContinuationHandler:
                         self.solution_set.append(numeric_solver.solve(k, last_sol))
                         display.log_step()
                     display.end_cont_series()
+            return self.solution_set
         except ContinuationError as e:
             print(f'Contiuation failed to complete because exception: {e}')
-        finally:
             return self.solution_set
