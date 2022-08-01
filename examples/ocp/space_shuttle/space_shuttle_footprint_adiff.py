@@ -87,9 +87,9 @@ ocp.add_constraint('terminal', 'v - v_f')
 ocp.add_constraint('terminal', 'gamma - gamma_f')
 
 ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
-                              regularizer=PenaltyConstraintHandler('eps_alpha'))
+                              regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
-#                               regularizer=PenaltyConstraintHandler('eps_beta'))
+#                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec))
 
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)

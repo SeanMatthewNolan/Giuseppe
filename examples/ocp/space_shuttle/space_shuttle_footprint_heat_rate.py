@@ -13,6 +13,7 @@ from giuseppe.utils import Timer
 import giuseppe
 giuseppe.utils.complilation.JIT_COMPILE = True
 
+# TODO: WIP Does not fully converge
 
 ocp = InputOCP()
 
@@ -67,7 +68,7 @@ ocp.add_constant('eps_alpha', 1e-5)
 ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
 ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
 
-ocp.add_constant('eps_q', 1e-5)
+ocp.add_constant('eps_q', 0.01)
 ocp.add_constant('q_max', 200)
 
 ocp.add_constant('h_0', 260_000)
@@ -96,9 +97,9 @@ ocp.add_constraint('terminal', 'v - v_f')
 ocp.add_constraint('terminal', 'gamma - gamma_f')
 
 ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
-                              regularizer=PenaltyConstraintHandler('eps_alpha'))
-ocp.add_inequality_constraint('path', 'q', lower_limit='-q_max', upper_limit='q_max',
-                              regularizer=PenaltyConstraintHandler('eps_q'))
+                              regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
+ocp.add_inequality_constraint('path', 'q', upper_limit='q_max',
+                              regularizer=PenaltyConstraintHandler('eps_q', method='rat'))
 
 with Timer(prefix='Complilation Time:'):
     sym_ocp = SymOCP(ocp)
@@ -123,8 +124,9 @@ cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
 # cont.add_linear_series(100, {'alpha_min': -5 / 180 * 3.14159, 'alpha_max': 20 / 180 * 3.14159}, bisection=True)
 cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
+cont.add_linear_series(200, {'q_max': 100}, bisection=True)
 cont.add_linear_series(200, {'q_max': 70}, bisection=True)
-cont.add_logarithmic_series(200, {'eps_q': 1e-7}, bisection=True)
+# cont.add_logarithmic_series(200, {'eps_q': 1e-7}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:
