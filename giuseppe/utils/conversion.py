@@ -15,3 +15,12 @@ def matrix_as_scalar(single_element_matrix: SymMatrix) -> SymExpr:
         return single_element_matrix[0, 0]
     else:
         raise TypeError(f'{single_element_matrix} not a single element symbolic matrix')
+
+
+def convert_arrays_to_list_in_dict(dict_obj: dict):
+    for key, val in dict_obj.items():
+        if isinstance(val, np.ndarray):
+            dict_obj[key] = val.tolist()
+        elif isinstance(val, dict):
+            dict_obj[key] = convert_arrays_to_list_in_dict(val)
+    return dict_obj

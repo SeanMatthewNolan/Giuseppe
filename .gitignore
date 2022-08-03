@@ -3,6 +3,8 @@ sandbox
 *.data
 *.eps
 *.html
+*.json
+*.bson
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
