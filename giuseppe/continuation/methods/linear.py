@@ -3,9 +3,8 @@ from copy import copy
 
 import numpy as np
 
+from giuseppe.io import Solution, SolutionSet
 from .abstract import ContinuationSeries
-from ..solution_set import SolutionSet
-from ...problems.bvp import BVPSol
 from ...utils.exceptions import ContinuationError
 from ...utils.typing import NPArray
 
@@ -25,7 +24,7 @@ class LinearSeries(ContinuationSeries):
         self._delta: NPArray
         self._step_size: NPArray
 
-    def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
+    def __iter__(self) -> Iterator[tuple[NPArray, Solution]]:
         if len(self.solution_set) == 0:
             raise ContinuationError('No converged solution in solution set! Cannot perform continuation')
 

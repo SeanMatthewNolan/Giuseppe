@@ -2,10 +2,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Optional
 
-from giuseppe.problems.bvp import BVPSol
-from ..solution_set import SolutionSet
-from ...utils.typing import NPArray
+from giuseppe.io import Solution, SolutionSet
 from ...utils.strings import justify_str
+from ...utils.typing import NPArray
 
 
 class ContinuationSeries(Iterable, ABC):
@@ -17,7 +16,7 @@ class ContinuationSeries(Iterable, ABC):
         self.estimated_num_steps: int = 0
 
     @abstractmethod
-    def __iter__(self) -> Iterator[tuple[NPArray, BVPSol]]:
+    def __iter__(self) -> Iterator[tuple[NPArray, Solution]]:
         pass
 
     def __repr__(self):

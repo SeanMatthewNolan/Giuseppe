@@ -4,24 +4,24 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.integrate import solve_ivp
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP, BVPSol, OCPSol, DualOCPSol
-from ..constant import update_constant_value, generate_constant_guess, initialize_guess_for_auto
+from giuseppe.io import Solution
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
+from ..constant import update_constant_value, initialize_guess_for_auto
 from ..projection import match_constants_to_bcs, project_dual
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
-SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
 # TODO Allow for reverse integration
 def propagate_guess(
-        comp_prob: SUPPORTED_PROBLEMS, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
+        comp_prob: SUPPORTED_PROBLEMS, default: Union[float, Solution] = 0.1,
         t_span: Union[float, ArrayLike] = 0.1, initial_states: Optional[ArrayLike] = None,
         initial_costates: Optional[ArrayLike] = None, control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
         p: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None,
         use_project_dual: bool = True, use_match_constants: bool = True, reverse: bool = False,
-        abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
+        abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
     """
     Propagate a guess with a constant control value or control function.
 

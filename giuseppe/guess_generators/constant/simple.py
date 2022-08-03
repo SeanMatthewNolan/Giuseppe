@@ -4,14 +4,14 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.problems.dual.solution import Solution
+from giuseppe.io.solution import Solution
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from giuseppe.problems.ocp import CompOCP, AdiffOCP
-from giuseppe.problems.typing import AnyProblem, AnySolution
+from giuseppe.problems.typing import AnyProblem
 
 
 def initialize_guess_w_default_value(
-        comp_prob: AnyProblem, default_value: float = 1., t_span: Union[float, ArrayLike] = 0.1) -> AnySolution:
+        comp_prob: AnyProblem, default_value: float = 1., t_span: Union[float, ArrayLike] = 0.1) -> Solution:
     """
     Generate guess where all variables (excluding the indenpendent) are set to a default single constant
 
@@ -31,7 +31,7 @@ def initialize_guess_w_default_value(
 
     Returns
     -------
-    guess : BVPSol, OCPSol, DualSol, or DualOCPSol
+    guess : Solution
 
     """
 
@@ -62,7 +62,7 @@ def initialize_guess_w_default_value(
     return Solution(**data)
 
 
-def update_constant_value(guess: AnySolution, name: str, values: Optional[Union[float, ArrayLike]]) -> AnySolution:
+def update_constant_value(guess: Solution, name: str, values: Optional[Union[float, ArrayLike]]) -> Solution:
     """
     Update values in guess to given constant values
 
@@ -77,7 +77,7 @@ def update_constant_value(guess: AnySolution, name: str, values: Optional[Union[
 
     Returns
     -------
-    BVPSol, OCPSol, DualSol, or DualOCPSol
+    Solution
 
     """
     if values is None or not hasattr(guess, name):
@@ -104,7 +104,7 @@ def generate_constant_guess(
         x: Optional[Union[float, ArrayLike]] = None, lam: Optional[Union[float, ArrayLike]] = None,
         u: Optional[Union[float, ArrayLike]] = None, p: Optional[Union[float, ArrayLike]] = None,
         nu_0: Optional[Union[float, ArrayLike]] = None, nu_f: Optional[Union[float, ArrayLike]] = None,
-        k: Optional[Union[float, ArrayLike]] = None) -> AnySolution:
+        k: Optional[Union[float, ArrayLike]] = None) -> Solution:
     """
     Generate guess where variables (excluding the indenpendent) are set to constant values
 
@@ -136,7 +136,7 @@ def generate_constant_guess(
 
     Returns
     -------
-    guess : BVPSol, OCPSol, DualSol, or DualOCPSol
+    guess : Solution
 
     """
 

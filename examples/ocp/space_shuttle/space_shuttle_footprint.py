@@ -1,18 +1,18 @@
 import pickle
+
 import numpy as np
 
-from giuseppe.continuation import ContinuationHandler, SolutionSet
+import giuseppe
+from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
-from giuseppe.io import InputOCP
+from giuseppe.io import InputOCP, SolutionSet
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
-import giuseppe
 giuseppe.utils.complilation.JIT_COMPILE = True
-
 
 ocp = InputOCP()
 

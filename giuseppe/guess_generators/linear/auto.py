@@ -3,19 +3,19 @@ from typing import Union, Optional
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.io.solution import Solution
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import update_linear_value
 from ..constant import initialize_guess_for_auto, update_constant_value
 from ..projection import project_to_nullspace
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
-SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
 def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
-                      constants: Optional[ArrayLike] = None, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
-                      use_dynamics: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
+                      constants: Optional[ArrayLike] = None, default: Union[float, Solution] = 0.1,
+                      use_dynamics: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
     """
     Automatically generate guess where variables (excluding the indenpendent) with initial and terminal values fitted
     to the boundary conditions and dynamics
@@ -41,7 +41,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
     Returns
     -------
-    guess : BVPSol, OCPSol, or DualOCPSol
+    guess : Solution
 
     """
     prob, dual = sift_ocp_and_dual(comp_prob)
@@ -186,7 +186,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
             update_constant_value(guess, 'nu0', out_nu0)
             update_constant_value(guess, 'nuf', out_nuf)
 
-    if isinstance(prob, AdiffBVP):
+    elif isinstance(prob, AdiffBVP):
         def map_values(values: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
             _x0 = values[:num_x]
             _xf = values[num_x:2 * num_x]

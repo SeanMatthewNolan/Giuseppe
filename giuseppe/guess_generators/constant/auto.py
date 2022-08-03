@@ -5,20 +5,20 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.io.solution import Solution
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import initialize_guess_w_default_value, update_constant_value
 from ..projection import project_to_nullspace
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
-SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
 def initialize_guess_for_auto(
         comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1, constants: Optional[ArrayLike] = None,
-        default: Union[float, SUPPORTED_SOLUTIONS] = 0.1) -> SUPPORTED_SOLUTIONS:
+        default: Union[float, Solution] = 0.1) -> Solution:
 
-    if isinstance(default, BVPSol):
+    if isinstance(default, Solution):
         guess = deepcopy(default)
     else:
         guess = initialize_guess_w_default_value(comp_prob, default_value=default, t_span=t_span)
@@ -32,8 +32,8 @@ def initialize_guess_for_auto(
 
 
 def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
-                        constants: Optional[ArrayLike] = None, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
-                        abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
+                        constants: Optional[ArrayLike] = None, default: Union[float, Solution] = 0.1,
+                        abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
 
     """
     Automatically generate guess where variables (excluding the indenpendent) are set to constant values
@@ -53,7 +53,7 @@ def auto_constant_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, Arra
 
     Returns
     -------
-    guess : BVPSol, OCPSol, or DualOCPSol
+    guess : Solution
 
     """
     prob, dual = sift_ocp_and_dual(comp_prob)

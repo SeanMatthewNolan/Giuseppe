@@ -2,13 +2,14 @@ from typing import Tuple, Union
 
 import numpy as np
 
-from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP, DualOCPSol
+from giuseppe.io.solution import Solution
+from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP
 from . import project_to_nullspace
 
 SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 
 
-def project_dual(comp_prob: SUPPORTED_INPUTS, guess: DualOCPSol, rel_tol: float = 1e-3, abs_tol: float = 1e-3):
+def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, rel_tol: float = 1e-3, abs_tol: float = 1e-3):
 
     t = guess.t
     x = guess.x
@@ -60,7 +61,8 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: DualOCPSol, rel_tol: float 
             lam_bar = (lam_right + lam_left) / 2
             u_bar = (u_right + u_left) / 2
 
-            dyn_res.append(lam_right - lam_left - dt * np.asarray(costate_dynamics(t_bar, x_bar, lam_bar, u_bar, p, k)).flatten())
+            dyn_res.append(
+                lam_right - lam_left - dt * np.asarray(costate_dynamics(t_bar, x_bar, lam_bar, u_bar, p, k)).flatten())
 
         return np.concatenate((bc_0, np.array(dyn_res).flatten(), bc_f))
 

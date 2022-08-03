@@ -1,8 +1,8 @@
 import pickle
 
-from giuseppe.continuation import ContinuationHandler, SolutionSet
+from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
-from giuseppe.io import InputOCP
+from giuseppe.io import InputOCP, SolutionSet
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP

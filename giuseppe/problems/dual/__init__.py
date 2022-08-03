@@ -1,4 +1,3 @@
-from .compiled import CompDual, CompDualOCP
 from .adiff import AdiffDual, AdiffDualOCP
-from .solution import DualSol, DualOCPSol
+from .compiled import CompDual, CompDualOCP
 from .symbolic import SymDual, SymDualOCP

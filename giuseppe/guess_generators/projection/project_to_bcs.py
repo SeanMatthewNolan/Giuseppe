@@ -3,18 +3,17 @@ from typing import Union, Tuple, Optional
 
 import numpy as np
 
+from giuseppe.io.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, \
-    AdiffBVP, AdiffOCP, AdiffDual, AdiffDualOCP, \
-    BVPSol, OCPSol, DualOCPSol
+    AdiffBVP, AdiffOCP, AdiffDual, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .project_to_nullspace import project_to_nullspace
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
-SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
-def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS,
-                           rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
+def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
+                           rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> Solution:
     """
     Projects the constant array of a guess to the problem's boundary conditions to get the closest match
 
@@ -99,7 +98,7 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS,
     return guess
 
 
-def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS, location: str = 'initial',
+def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location: str = 'initial',
                        project_costates: bool = False, rel_tol: float = 1e-3, abs_tol: float = 1e-3
                        ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
@@ -189,7 +188,7 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: SUPPORTED_SOLUTIONS
         return x
 
 
-def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: DualOCPSol, location: str = 'initial',
+def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solution, location: str = 'initial',
                          states: Optional[np.ndarray] = None,
                          rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> np.ndarray:
     """
@@ -197,7 +196,7 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: DualOCP
 
     Parameters
     ----------
-    comp_prob : CompDualOCP
+    comp_prob : Solution
         problem whose BCs are to be matched
     guess : DualOCPSol
         guess from which to match the states (and costates)

@@ -2,9 +2,9 @@ import pickle
 
 import numpy as np
 
-from giuseppe.continuation import ContinuationHandler, SolutionSet
+from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import generate_constant_guess
-from giuseppe.io import InputOCP
+from giuseppe.io import InputOCP, SolutionSet
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP

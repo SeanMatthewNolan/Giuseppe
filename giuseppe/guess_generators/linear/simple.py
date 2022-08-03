@@ -1,15 +1,16 @@
-from warnings import warn
 from typing import Union, Optional
+from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.problems.typing import AnyProblem, AnySolution
+from giuseppe.io.solution import Solution
+from giuseppe.problems.typing import AnyProblem
 from ..constant import update_constant_value, initialize_guess_w_default_value
 
 
-def update_linear_value(guess: AnySolution, name: str, initial_values: Optional[Union[float, ArrayLike]],
-                        terminal_values: Optional[Union[float, ArrayLike]]) -> AnySolution:
+def update_linear_value(guess: Solution, name: str, initial_values: Optional[Union[float, ArrayLike]],
+                        terminal_values: Optional[Union[float, ArrayLike]]) -> Solution:
     """
     Update dyanic values in guess to linearly change from initial values to terminal values over the trajectory
 
@@ -68,7 +69,7 @@ def generate_linear_guess(
         lam0: Optional[Union[float, ArrayLike]] = None, lamf: Optional[Union[float, ArrayLike]] = None,
         u0: Optional[Union[float, ArrayLike]] = None, uf: Optional[Union[float, ArrayLike]] = None,
         p: Optional[Union[float, ArrayLike]] = None, nu_0: Optional[Union[float, ArrayLike]] = None,
-        nu_f: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None) -> AnySolution:
+        nu_f: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None) -> Solution:
     """
     Generate guess where variables (excluding the indenpendent) are set to constant values
 

@@ -5,8 +5,9 @@ import numpy as np
 from numpy import ndarray
 from scipy.integrate import solve_bvp
 
-from ...problems.bvp import AdiffBVP, BVPSol
-from ...problems.dual import AdiffDualOCP, DualOCPSol
+from giuseppe.io import Solution
+from ...problems.bvp import AdiffBVP
+from ...problems.dual import AdiffDualOCP
 from ...problems.dual.adiff import AdiffDiffControlHandler
 from ...utils.mixins import Picky
 from ...utils.typing import NPArray
@@ -14,8 +15,8 @@ from ...utils.typing import NPArray
 _scipy_bvp_sol = TypeVar('_scipy_bvp_sol')
 _dyn_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
 _bc_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
-_preprocess_type = Callable[[BVPSol], tuple[NPArray, NPArray, NPArray]]
-_postprocess_type = Callable[[_scipy_bvp_sol, NPArray], BVPSol]
+_preprocess_type = Callable[[Solution], tuple[NPArray, NPArray, NPArray]]
+_postprocess_type = Callable[[_scipy_bvp_sol, NPArray], Solution]
 
 
 class AdiffScipySolveBVP(Picky):
@@ -117,14 +118,14 @@ class AdiffScipySolveBVP(Picky):
         return boundary_conditions
 
     @staticmethod
-    def _preprocess_bvp_sol(sol: BVPSol) -> tuple[NPArray, NPArray, NPArray]:
+    def _preprocess_bvp_sol(sol: Solution) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         p_guess = np.concatenate((sol.p, np.array([t0, tf])))
         tau_guess = (sol.t - t0) / (tf - t0)
         return tau_guess, sol.x, p_guess
 
     @staticmethod
-    def _postprocess_bvp_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> BVPSol:
+    def _postprocess_bvp_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> Solution:
         tau: NPArray = scipy_sol.x
         x: NPArray = scipy_sol.y
         p: NPArray = scipy_sol.p
@@ -133,7 +134,7 @@ class AdiffScipySolveBVP(Picky):
         t = (tf - t0) * tau + t0
         p = p[:-2]
 
-        return BVPSol(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
+        return Solution(t=t, x=x, p=p, k=k, converged=scipy_sol.success)
 
     @staticmethod
     def _generate_ocp_diff_dynamics(dual_ocp: AdiffDualOCP) -> _dyn_type:
@@ -221,7 +222,7 @@ class AdiffScipySolveBVP(Picky):
         return boundary_conditions
 
     @staticmethod
-    def _preprocess_ocp_diff_sol(sol: DualOCPSol) -> tuple[NPArray, NPArray, NPArray]:
+    def _preprocess_ocp_diff_sol(sol: Solution) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         tau_guess = (sol.t - t0) / (tf - t0)
         p_guess = np.concatenate((sol.p, sol.nu0, sol.nuf, np.array([t0, tf])))
@@ -230,7 +231,7 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_postprocess_ocp_diff_sol(dual_ocp: AdiffDualOCP) \
-            -> Callable[[_scipy_bvp_sol, ndarray], DualOCPSol]:
+            -> Callable[[_scipy_bvp_sol, ndarray], Solution]:
 
         n_x = dual_ocp.ocp.num_states
         n_p = dual_ocp.ocp.num_parameters
@@ -240,7 +241,7 @@ class AdiffScipySolveBVP(Picky):
         n_nu_0 = dual_ocp.dual.num_initial_adjoints
         n_nu_f = dual_ocp.dual.num_terminal_adjoints
 
-        def _postprocess_ocp_diff_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> DualOCPSol:
+        def _postprocess_ocp_diff_sol(scipy_sol: _scipy_bvp_sol, k: NPArray) -> Solution:
             tau: NPArray = scipy_sol.x
             t0, tf = scipy_sol.p[-2], scipy_sol.p[-1]
             t: NPArray = (tf - t0) * tau + t0
@@ -253,11 +254,11 @@ class AdiffScipySolveBVP(Picky):
             nu_0: NPArray = scipy_sol.p[n_p:n_p + n_nu_0]
             nu_f: NPArray = scipy_sol.p[n_p + n_nu_0:n_p + n_nu_0 + n_nu_f]
 
-            return DualOCPSol(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu_0, nuf=nu_f, k=k, converged=scipy_sol.success)
 
         return _postprocess_ocp_diff_sol
 
-    def solve(self, constants: NPArray, guess: Union[BVPSol, DualOCPSol]) -> Union[BVPSol, DualOCPSol]:
+    def solve(self, constants: NPArray, guess: Solution) -> Solution:
         """
         Solve BVP (or dualized OCP) with instance of ScipySolveBVP
 

@@ -3,11 +3,10 @@ from typing import Union, Optional
 
 import numpy as np
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP
 from giuseppe.utils.numerical_derivatives.finite_difference import central_difference_jacobian as jac, ArrayFunction
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
-SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
 # TODO Use Armijo step etc. to make more stable

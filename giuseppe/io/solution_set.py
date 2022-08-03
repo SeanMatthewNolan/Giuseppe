@@ -4,18 +4,18 @@ from collections.abc import Iterable, MutableSequence, Hashable
 from copy import deepcopy
 from typing import Union, overload
 
-from ..problems.bvp import SymBVP, AdiffBVP, BVPSol
-from ..problems.dual import SymDualOCP, AdiffDual, AdiffDualOCP
-from ..problems.ocp import SymOCP, AdiffOCP
-from ..problems.typing import AnySolution
-from ..utils.mixins import Picky
+from giuseppe.problems.bvp import SymBVP, AdiffBVP
+from giuseppe.problems.dual import SymDualOCP, AdiffDual, AdiffDualOCP
+from giuseppe.problems.ocp import SymOCP, AdiffOCP
+from giuseppe.utils.mixins import Picky
+from .solution import Solution
 
 
 # TODO: add annotations to solution set
 class SolutionSet(MutableSequence, Picky):
     SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 
-    def __init__(self, problem: SUPPORTED_INPUTS, seed_solution: AnySolution):
+    def __init__(self, problem: SUPPORTED_INPUTS, seed_solution: Solution):
         Picky.__init__(self, problem)
 
         problem = deepcopy(problem)
@@ -35,42 +35,42 @@ class SolutionSet(MutableSequence, Picky):
                 'Seed solution is not converged! It is suggested to solve seed prior to initialization of solution set.'
             )
 
-        self.seed_solution: BVPSol = seed_solution
+        self.seed_solution: Solution = seed_solution
 
-        self.solutions: list[BVPSol] = [seed_solution]
+        self.solutions: list[Solution] = [seed_solution]
         self.continuation_slices: list[slice] = []
-        self.damned_sols: list[BVPSol] = []
+        self.damned_sols: list[Solution] = []
 
         # Annotations
         self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
 
-    def insert(self, index: int, solution: AnySolution) -> None:
+    def insert(self, index: int, solution: Solution) -> None:
         self.solutions.insert(index, solution)
 
     @overload
     @abstractmethod
-    def __getitem__(self, i: int) -> AnySolution:
+    def __getitem__(self, i: int) -> Solution:
         ...
 
     @overload
     @abstractmethod
-    def __getitem__(self, s: slice) -> MutableSequence[AnySolution]:
+    def __getitem__(self, s: slice) -> MutableSequence[Solution]:
         ...
 
-    def __getitem__(self, i: int) -> AnySolution:
+    def __getitem__(self, i: int) -> Solution:
         return self.solutions.__getitem__(i)
 
     @overload
     @abstractmethod
-    def __setitem__(self, i: int, o: AnySolution) -> None:
+    def __setitem__(self, i: int, o: Solution) -> None:
         ...
 
     @overload
     @abstractmethod
-    def __setitem__(self, s: slice, o: Iterable[AnySolution]) -> None:
+    def __setitem__(self, s: slice, o: Iterable[Solution]) -> None:
         ...
 
-    def __setitem__(self, i: int, o: AnySolution) -> None:
+    def __setitem__(self, i: int, o: Solution) -> None:
         self.__setitem__(i, o)
 
     @overload

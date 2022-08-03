@@ -48,7 +48,7 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
 
 guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=80/180*3.14159)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.continuation.SolutionSet(adiff_dualocp, seed_sol)
+sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'m_f': 1})

@@ -2,9 +2,9 @@ import pickle
 
 import numpy as np
 
-from giuseppe.continuation import SolutionSet, ContinuationHandler
+from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
-from giuseppe.io import InputBVP
+from giuseppe.io import InputBVP, SolutionSet
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP
 from giuseppe.utils import Timer

@@ -1,12 +1,13 @@
 from collections.abc import Hashable, Mapping
 from typing import Union, Optional
 
+from giuseppe.io.solution_set import SolutionSet
 from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
-from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
-from .solution_set import SolutionSet
+from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
 from ..utils.exceptions import ContinuationError
+
 
 class ContinuationHandler:
     """

@@ -48,11 +48,11 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
 
 guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=150)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.continuation.SolutionSet(sym_bvp, seed_sol)
+sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'m_f': 1})
-cont.add_logarithmic_series(40, {'eps_thrust': 1e-6}, bisection=True)
+cont.add_logarithmic_series(40, {'eps_thrust': 3e-6}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 with open('sol_set.data', 'wb') as file:

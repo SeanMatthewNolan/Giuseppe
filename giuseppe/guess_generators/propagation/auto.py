@@ -1,29 +1,27 @@
 from typing import Union, Optional, Callable, TypeVar
 
-import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP, BVPSol, OCPSol, DualOCPSol
+from giuseppe.io import Solution
+from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
-from ..constant import initialize_guess_for_auto, update_constant_value
-from ..linear import update_linear_value, auto_linear_guess
-from ..projection import project_to_nullspace, match_states_to_bc, match_costates_to_bc
 from .simple import propagate_guess
+from ..constant import initialize_guess_for_auto
+from ..projection import match_states_to_bc, match_costates_to_bc
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
-SUPPORTED_SOLUTIONS = Union[BVPSol, OCPSol, DualOCPSol]
 
 
 # TODO Allow for reverse integration
 def auto_propagate_guess(
-        comp_prob: SUPPORTED_PROBLEMS, default: Union[float, SUPPORTED_SOLUTIONS] = 0.1,
+        comp_prob: SUPPORTED_PROBLEMS, default: Union[float, Solution] = 0.1,
         t_span: Union[float, ArrayLike] = 0.1,
         initial_states: Optional[ArrayLike] = None, initial_costates: Optional[ArrayLike] = None,
         control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None, p: Optional[Union[float, ArrayLike]] = None,
         k: Optional[Union[float, ArrayLike]] = None, use_project_dual: bool = True, use_match_constants: bool = True,
-        reverse: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> SUPPORTED_SOLUTIONS:
+        reverse: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
 
     """
     Propagate a guess with a constant control value or control function.
@@ -74,7 +72,7 @@ def auto_propagate_guess(
 
     if hasattr(default, '__float__'):
         guess = initialize_guess_for_auto(comp_prob, t_span=t_span, constants=k, default=default)
-    elif isinstance(default, BVPSol):
+    elif isinstance(default, Solution):
         guess = default
     else:
         raise TypeError(f'default should be float or a solution type, not {type(default)}')

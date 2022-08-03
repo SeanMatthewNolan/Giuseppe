@@ -3,9 +3,9 @@ import pickle
 import numpy as np
 
 import giuseppe
-from giuseppe.continuation import ContinuationHandler, SolutionSet
+from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import generate_constant_guess
-from giuseppe.io import InputOCP
+from giuseppe.io import InputOCP, SolutionSet
 from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
 from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
 from giuseppe.problems.ocp import SymOCP, AdiffOCP
