@@ -1,9 +1,8 @@
-import pickle
-
 import matplotlib.pyplot as plt
 
-with open('sol.data', 'rb') as file:
-    sol = pickle.load(file)
+from giuseppe.io import load_sol
+
+sol = load_sol('zermelo.bson')
 
 fig = plt.figure()
 fig.suptitle('Zermelo')

@@ -1,5 +1,3 @@
-import pickle
-
 import giuseppe
 
 zermelo = giuseppe.io.InputOCP()
@@ -40,6 +38,4 @@ with giuseppe.utils.Timer(prefix='Complilation Time:'):
 
 guess = giuseppe.guess_generators.generate_constant_guess(comp_dual_ocp)
 sol = num_solver.solve(guess.k, guess)
-
-with open('sol.data', 'wb') as file:
-    pickle.dump(sol, file)
+sol.save('zermelo.bson')

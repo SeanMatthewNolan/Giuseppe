@@ -6,7 +6,7 @@ import pickle
 
 import bson
 
-from giuseppe.utils.conversion import convert_arrays_to_list_in_dict
+from giuseppe.utils.conversion import arrays_to_lists_in_dict, lists_to_arrays_in_dict
 from giuseppe.utils.typing import NPArray
 
 
@@ -34,7 +34,7 @@ class Solution:
         }
 
         if arr_to_list:
-            sol_dict = convert_arrays_to_list_in_dict(sol_dict)
+            sol_dict = arrays_to_lists_in_dict(sol_dict)
 
         return sol_dict
 
@@ -90,3 +90,50 @@ class Solution:
             pickle.dump(self.as_dict(arr_to_list=True), file)
 
     # TODO: Look into using Protocol Buffers
+
+
+def _load_json(filename: str):
+    with open(filename, 'r') as file:
+        return Solution(**lists_to_arrays_in_dict(json.load(file)))
+
+
+def _load_bson(filename: str):
+    with open(filename, 'rb') as file:
+        return Solution(**lists_to_arrays_in_dict(bson.loads(file.read())))
+
+
+def _load_pickle(filename: str):
+    with open(filename, 'rb') as file:
+        return pickle.load(file)
+
+
+def _load_pickle_dict(filename: str):
+    with open(filename, 'rb') as file:
+        return Solution(**lists_to_arrays_in_dict(pickle.load(file)))
+
+
+def load(filename: str = 'sol.json', file_format: Optional[str] = None) -> Solution:
+    if file_format is None:
+        file_ext = splitext(filename)[1].lower()
+        if file_ext == '.json':
+            file_format = 'json'
+        elif file_ext in ['.bin', '.data', '.pickle']:
+            file_format = 'pickle'
+        elif file_ext in ['.dict']:
+            file_format = 'pickle_dict'
+        elif file_ext == '.bson':
+            file_format = 'bson'
+        else:
+            raise RuntimeError(f'Cannot determine file format automatically: Please specify \'file_format\' manually')
+
+    file_format = file_format.lower()
+    if file_format == 'json':
+        return _load_json(filename)
+    elif file_format == 'bson':
+        return _load_bson(filename)
+    elif file_format == 'pickle':
+        return _load_pickle(filename)
+    elif file_format in ['pickle_dict', 'pickle_no_deps']:
+        return _load_pickle_dict(filename)
+    else:
+        raise RuntimeError(f'File format \'{file_format}\' is not an option')

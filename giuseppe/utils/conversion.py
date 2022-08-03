@@ -17,10 +17,19 @@ def matrix_as_scalar(single_element_matrix: SymMatrix) -> SymExpr:
         raise TypeError(f'{single_element_matrix} not a single element symbolic matrix')
 
 
-def convert_arrays_to_list_in_dict(dict_obj: dict):
+def arrays_to_lists_in_dict(dict_obj: dict):
     for key, val in dict_obj.items():
         if isinstance(val, np.ndarray):
             dict_obj[key] = val.tolist()
         elif isinstance(val, dict):
-            dict_obj[key] = convert_arrays_to_list_in_dict(val)
+            dict_obj[key] = arrays_to_lists_in_dict(val)
+    return dict_obj
+
+
+def lists_to_arrays_in_dict(dict_obj: dict):
+    for key, val in dict_obj.items():
+        if isinstance(val, list):
+            dict_obj[key] = np.asarray(val)
+        elif isinstance(val, dict):
+            dict_obj[key] = lists_to_arrays_in_dict(val)
     return dict_obj

@@ -5,6 +5,8 @@ sandbox
 *.html
 *.json
 *.bson
+*.bin
+*.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
