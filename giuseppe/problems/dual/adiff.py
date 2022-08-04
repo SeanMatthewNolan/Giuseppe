@@ -6,9 +6,9 @@ import casadi as ca
 
 from giuseppe.utils.mixins import Picky
 from .symbolic import SymOCP
-from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
-from ..ocp.compiled import CompOCP
+from ..components.adiff import AdiffBoundaryConditions, AdiffCost
 from ..ocp.adiff import AdiffOCP
+from ..ocp.compiled import CompOCP
 
 
 class AdiffDual(Picky):

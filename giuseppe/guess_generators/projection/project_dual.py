@@ -4,7 +4,7 @@ import numpy as np
 
 from giuseppe.io.solution import Solution
 from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP
-from . import project_to_nullspace
+from .project_to_nullspace import project_to_nullspace
 
 SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 

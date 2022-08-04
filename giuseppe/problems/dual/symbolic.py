@@ -1,7 +1,5 @@
 from copy import deepcopy
 
-from sympy import linsolve
-
 from giuseppe.problems.components.symbolic import SymCost, SymBoundaryConditions
 from giuseppe.problems.ocp.symbolic import SymOCP
 from giuseppe.utils.conversion import matrix_as_scalar

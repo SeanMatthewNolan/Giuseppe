@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-import casadi as ca
 from typing import Callable, Iterable, Optional
+
+import casadi as ca
 
 
 @dataclass

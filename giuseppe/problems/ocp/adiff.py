@@ -6,8 +6,8 @@ import casadi as ca
 
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import SymMatrix
-from .symbolic import SymOCP
 from .compiled import CompOCP
+from .symbolic import SymOCP
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
 
 

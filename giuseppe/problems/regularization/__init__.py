@@ -1,3 +1,3 @@
 from .control_constraints import ControlConstraintHandler
-from .penalty_constraints import PenaltyConstraintHandler
 from .generic import Regularizer
+from .penalty_constraints import PenaltyConstraintHandler

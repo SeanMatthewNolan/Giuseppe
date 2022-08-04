@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike
 from giuseppe.utils.complilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
-from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler,\
+from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler, \
     DifferentialControlHandlerNumeric
 from ..components.compiled import CompBoundaryConditions, CompCost
 from ..ocp.compiled import CompOCP

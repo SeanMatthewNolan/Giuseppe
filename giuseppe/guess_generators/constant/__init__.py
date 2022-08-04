@@ -1,2 +1,2 @@
-from .simple import initialize_guess_w_default_value, generate_constant_guess, update_constant_value
 from .auto import initialize_guess_for_auto, auto_constant_guess
+from .simple import initialize_guess_w_default_value, generate_constant_guess, update_constant_value

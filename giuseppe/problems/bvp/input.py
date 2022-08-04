@@ -1,6 +1,6 @@
 from typing import Optional
 
-from giuseppe.problems.components.input import InputState, InputConstant, InputNamedExpr, InputConstraints,\
+from giuseppe.problems.components.input import InputState, InputConstant, InputNamedExpr, InputConstraints, \
     InputInequalityConstraint, InputInequalityConstraints
 from giuseppe.problems.regularization import Regularizer
 
