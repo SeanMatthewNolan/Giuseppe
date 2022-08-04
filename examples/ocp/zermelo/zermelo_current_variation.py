@@ -1,5 +1,3 @@
-import pickle
-
 import giuseppe
 
 zermelo = giuseppe.io.InputOCP()
@@ -46,5 +44,4 @@ cont.add_linear_series(6, {'c': 1})
 
 cont.run_continuation(num_solver)
 
-with open('current_variation_sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('current_variation_sol_set.data')

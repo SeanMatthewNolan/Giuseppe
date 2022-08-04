@@ -130,5 +130,4 @@ cont.add_linear_series(200, {'q_max': 70}, bisection=True)
 # cont.add_logarithmic_series(200, {'eps_q': 1e-7}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
-with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('sol_set.data')

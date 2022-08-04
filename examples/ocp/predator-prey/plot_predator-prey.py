@@ -1,8 +1,7 @@
 import pickle
 
-from numpy import arctan
-
 import matplotlib.pyplot as plt
+from numpy import arctan
 
 # with open('guess.data', 'rb') as file:
 #     sol = pickle.load(file)

@@ -1,5 +1,3 @@
-import pickle
-
 import giuseppe
 
 goddard = giuseppe.io.InputOCP()
@@ -55,5 +53,5 @@ cont.add_linear_series(10, {'m_f': 1})
 cont.add_logarithmic_series(40, {'eps_thrust': 3e-6}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
-with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('sol_set.data')
+

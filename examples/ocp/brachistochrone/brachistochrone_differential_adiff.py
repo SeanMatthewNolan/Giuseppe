@@ -1,5 +1,3 @@
-import pickle
-
 import numpy as np
 
 import giuseppe
@@ -64,5 +62,4 @@ with Timer(prefix='Continuation Time:'):
             sol_i = num_solver.solve(k, last_sol)
             sol_set.append(sol_i)
 
-with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('sol_set.data')

@@ -1,5 +1,3 @@
-import pickle
-
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
 from giuseppe.io import InputOCP, SolutionSet
@@ -52,5 +50,4 @@ cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
 sol_set = cont.run_continuation(num_solver)
 
-with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('sol_set.data')

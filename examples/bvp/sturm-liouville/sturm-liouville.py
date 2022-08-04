@@ -1,5 +1,3 @@
-import pickle
-
 import numpy as np
 
 from giuseppe.continuation import ContinuationHandler
@@ -44,5 +42,4 @@ cont = ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'a': 100})
 sol_set = cont.run_continuation(num_solver)
 
-with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('sol_set.data')

@@ -1,8 +1,8 @@
-from os.path import splitext
-from dataclasses import dataclass
-from typing import Optional
 import json
 import pickle
+from dataclasses import dataclass
+from os.path import splitext
+from typing import Optional
 
 import bson
 

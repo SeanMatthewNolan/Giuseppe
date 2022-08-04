@@ -1,5 +1,3 @@
-import pickle
-
 import giuseppe
 
 G = 5.3
@@ -56,5 +54,4 @@ cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
 cont.run_continuation(num_solver)
 
-with open('sol_set.data', 'wb') as file:
-    pickle.dump(sol_set, file)
+sol_set.save('sol_set.data')

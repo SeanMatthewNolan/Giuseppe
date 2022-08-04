@@ -1,8 +1,13 @@
+import json
+import pickle
 import warnings
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence, Hashable
 from copy import deepcopy
-from typing import Union, overload
+from os.path import splitext
+from typing import Optional, Union, overload
+
+import bson
 
 from giuseppe.problems.bvp import SymBVP, AdiffBVP
 from giuseppe.problems.dual import SymDualOCP, AdiffDual, AdiffDualOCP
@@ -91,3 +96,119 @@ class SolutionSet(MutableSequence, Picky):
 
     def damn_sol(self, idx: int = -1):
         self.damned_sols.append(self.solutions.pop(idx))
+
+    def as_dict(self, arr_to_list: bool = False):
+        # TODO Add some more attributes which would be useful with plotting/ananlysis
+        sol_set_dict = {
+            'solutions': [sol.as_dict(arr_to_list=arr_to_list) for sol in self.solutions],
+            'damned_sols': [sol.as_dict(arr_to_list=arr_to_list) for sol in self.damned_sols],
+        }
+        return sol_set_dict
+
+    def as_list_of_dicts(self, arr_to_list: bool = False):
+        return [sol.as_dict(arr_to_list=arr_to_list) for sol in self]
+
+    def save(self, filename: str = 'sol_set.json', file_format: Optional[str] = None):
+        if file_format is None:
+            file_ext = splitext(filename)[1].lower()
+            if file_ext == '.json':
+                file_format = 'json'
+            elif file_ext in ['.bin', '.data', '.pickle']:
+                file_format = 'pickle'
+            elif file_ext in ['.dict']:
+                file_format = 'pickle_dict'
+            elif file_ext == '.bson':
+                file_format = 'bson'
+            elif file_ext == '.zip':
+                file_format = 'zip_json'
+            elif file_ext in ['.tar', '.gz', '.bz2', '.xz']:
+                file_format = 'tar_json'
+            else:
+                # Here is the default if user specifies neither format nor gives an extension.
+                # Also, if the given extension doesn't match
+                file_format = 'json'
+                filename += '.json'
+
+        file_format = file_format.lower()
+        if file_format == 'json':
+            self._save_json(filename)
+        elif file_format == 'bson':
+            self._save_bson(filename)
+        elif file_format == 'pickle':
+            self._save_pickle(filename)
+        elif file_format == 'pickle_dict':
+            self._save_pickle_dict(filename)
+        elif file_format == 'pickle_no_deps':
+            self._save_pickle_no_deps(filename)
+        elif file_format.startswith('zip_'):
+            self._save_zip(filename)
+        elif file_format.startswith('tar_'):
+            self._save_tar(filename)
+        else:
+            raise RuntimeError(f'File format \'{file_format}\' is not an option')
+
+    def _save_json(self, filename: str):
+        with open(filename, 'w') as file:
+            json.dump(self.as_list_of_dicts(arr_to_list=True), file)
+
+    def _save_bson(self, filename: str):
+        with open(filename, 'wb') as file:
+            file.write(bson.dumps(self.as_dict(arr_to_list=True)))
+
+    def _save_pickle(self, filename: str):
+        with open(filename, 'wb') as file:
+            pickle.dump(self, file)
+
+    def _save_pickle_dict(self, filename: str):
+        with open(filename, 'wb') as file:
+            pickle.dump(self.as_list_of_dicts(), file)
+
+    def _save_pickle_no_deps(self, filename: str):
+        with open(filename, 'wb') as file:
+            pickle.dump(self.as_list_of_dicts(arr_to_list=True), file)
+
+    def _save_zip(self, filename: str):
+        raise NotImplementedError
+
+    def _save_tar(self, filename: str):
+        raise NotImplementedError
+
+
+def _load_json(filename: str):
+    with open(filename, 'r') as file:
+        return json.load(file)
+
+
+def _load_bson(filename: str):
+    with open(filename, 'rb') as file:
+        return bson.loads(file.read())
+
+
+def _load_pickle(filename: str):
+    with open(filename, 'rb') as file:
+        return pickle.load(file)
+
+
+# TODO Consider embedding metadata into files to distinguish loading files of ambiguous type
+def load(filename: str = 'sol.json', file_format: Optional[str] = None) -> Solution:
+    if file_format is None:
+        file_ext = splitext(filename)[1].lower()
+        if file_ext == '.json':
+            file_format = 'json'
+        elif file_ext == '.bson':
+            file_format = 'bson'
+        elif file_ext in ['.bin', '.data', '.pickle', '.dict']:
+            file_format = 'pickle'
+        else:
+            raise RuntimeError(
+                f'Cannot determine file format automatically: Please specify \'file_format\' manually')
+
+    file_format = file_format.lower()
+    if file_format == 'json':
+        return _load_json(filename)
+    elif file_format == 'bson':
+        return _load_bson(filename)
+    elif file_format == 'pickle':
+        return _load_pickle(filename)
+    else:
+        raise RuntimeError(f'File format \'{file_format}\' is not an option')
