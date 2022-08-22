@@ -4,9 +4,8 @@ import giuseppe
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
 from giuseppe.io import InputOCP, SolutionSet
+from giuseppe.problems.recipes import DualizeSymbolic
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
-from giuseppe.problems.ocp import SymOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
@@ -89,21 +88,19 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
 #                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
+comp_dual_ocp = DualizeSymbolic()(ocp)
+
 with Timer(prefix='Complilation Time:'):
-    sym_ocp = SymOCP(ocp)
-    sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
+    num_solver = ScipySolveBVP(comp_dual_ocp)
 
 guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = SolutionSet(sym_bvp, seed_sol)
+sol_set = SolutionSet(comp_dual_ocp.comp_ocp.src_ocp, seed_sol)
 
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
-cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
+cont.add_linear_series(180, {'xi': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
