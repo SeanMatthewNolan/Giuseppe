@@ -149,11 +149,13 @@ class SolutionSet(MutableSequence, Picky):
             raise RuntimeError(f'File format \'{file_format}\' is not an option')
 
     def _save_json(self, filename: str):
-        pp = pprint.PrettyPrinter(indent=4, width=120, compact=True)
-        file_text = pp.pformat(self.as_dict())
+        # with open(filename, 'w') as file:
+        #     json.dump(self.as_list_of_dicts(arr_to_list=True), file)
 
         # Convert python format to JSON
         # (double quotes for strings, lower case for booleans, conversion of tuples to lists, and null for None)
+        pp = pprint.PrettyPrinter(indent=4, width=120, compact=True)
+        file_text = pp.pformat(self.as_list_of_dicts(arr_to_list=True))
         file_text = file_text.replace('\'', '\"') \
             .replace('False', 'false').replace('True', 'true') \
             .replace('(', '[').replace(')', ']') \
