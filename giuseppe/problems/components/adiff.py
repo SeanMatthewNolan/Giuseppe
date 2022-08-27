@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
 
 import casadi as ca
+import numpy as np
 
 
 @dataclass
@@ -32,3 +33,7 @@ def ca_wrap(name: str, ca_args: Iterable, function: Callable, func_args: Iterabl
                        (ca.vcat(expression),),
                        ca_arg_names,
                        (out_name,))
+
+
+def lambdify_ca(fun: ca.Function):
+    return lambda *args: np.asarray(fun(*args)).flatten()

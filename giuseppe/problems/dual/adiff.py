@@ -12,7 +12,7 @@ from ..ocp.compiled import CompOCP
 
 
 class AdiffDual(Picky):
-    SUPPORTED_INPUTS: type = Union[SymOCP, CompOCP, AdiffOCP]  # TODO change to take in SymOCP, CompOCP
+    SUPPORTED_INPUTS: type = Union[SymOCP, CompOCP, AdiffOCP]
 
     def __init__(self, source_ocp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_ocp)

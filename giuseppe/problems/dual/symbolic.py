@@ -46,6 +46,10 @@ class SymDual(Symbolic, Picky):
                 initial=initial_adjoined_bcs, terminal=terminal_adjoined_bcs
         )
 
+        self.num_costates = len(self.costates)
+        self.num_initial_adjoints = len(self.initial_adjoints)
+        self.num_terminal_adjoints = len(self.terminal_adjoints)
+
 
 class AlgebraicControlHandler:
     def __init__(self, sym_ocp: SymOCP, sym_dual: SymDual):

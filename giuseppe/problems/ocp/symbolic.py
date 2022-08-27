@@ -13,6 +13,11 @@ class SymOCP(SymBVP):
 
         super().__init__(input_data=input_data)
 
+        self.num_states = len(self.states)
+        self.num_parameters = len(self.parameters)
+        self.num_constants = len(self.constants)
+        self.num_controls = len(self.controls)
+
     def process_variables_from_input(self, input_data: InputOCP):
         super().process_variables_from_input(input_data)
         self.controls = SymMatrix([self.new_sym(control) for control in input_data.controls])

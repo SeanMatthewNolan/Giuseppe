@@ -11,16 +11,16 @@ from ..components.compiled import CompBoundaryConditions, CompCost
 class CompOCP(Picky):
     SUPPORTED_INPUTS: type = Union[SymOCP]
 
-    def __init__(self, source_ocp: SUPPORTED_INPUTS, use_jit_compile=True):
+    def __init__(self, source_ocp: SUPPORTED_INPUTS, use_jit_compile: bool = True):
         Picky.__init__(self, source_ocp)
 
         self.use_jit_compile = use_jit_compile
         self.src_ocp = deepcopy(source_ocp)  # source ocp is copied here for reference as it may be mutated later
 
-        self.num_states = len(self.src_ocp.states)
-        self.num_parameters = len(self.src_ocp.parameters)
-        self.num_constants = len(self.src_ocp.constants)
-        self.num_controls = len(self.src_ocp.controls)
+        self.num_states = self.src_ocp.num_states
+        self.num_parameters = self.src_ocp.num_parameters
+        self.num_constants = self.src_ocp.num_constants
+        self.num_controls = self.src_ocp.num_controls
 
         self.default_values = self.src_ocp.default_values
 
