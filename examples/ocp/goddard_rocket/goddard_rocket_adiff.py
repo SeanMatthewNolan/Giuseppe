@@ -37,7 +37,7 @@ goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
         regularizer=giuseppe.regularization.ControlConstraintHandler('eps_thrust * h_ref', method='sin'))
 
-with giuseppe.utils.Timer(prefix='Complilation Time:'):
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(goddard)
     adiff_ocp = giuseppe.problems.AdiffOCP(sym_ocp)
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)

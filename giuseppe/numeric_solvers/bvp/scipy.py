@@ -9,7 +9,7 @@ from giuseppe.io.solution import Solution
 from ...problems.bvp import CompBVP
 from ...problems.dual import CompDualOCP
 from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler, CompDiffControlHandlerNumeric
-from ...utils.complilation import jit_compile
+from ...utils.compilation import jit_compile
 from ...utils.mixins import Picky
 from ...utils.typing import NumbaArray, NumbaMatrix, NPArray
 

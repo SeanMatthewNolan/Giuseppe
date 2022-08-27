@@ -37,7 +37,7 @@ input_ocp.add_constraint('initial', 'v - v_0')
 input_ocp.add_constraint('terminal', 'x - x_f')
 input_ocp.add_constraint('terminal', 'y - y_f')
 
-with Timer(prefix='Complilation Time:'):
+with Timer(prefix='Compilation Time:'):
     sym_ocp = SymOCP(input_ocp)
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')

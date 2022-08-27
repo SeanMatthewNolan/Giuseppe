@@ -9,8 +9,8 @@ from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
 from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.utils import Timer
 
-giuseppe.utils.complilation.JIT_COMPILE = True
-giuseppe.utils.complilation.LAMB_MODS = ['numpy']
+giuseppe.utils.compilation.JIT_COMPILE = True
+giuseppe.utils.compilation.LAMB_MODS = ['numpy']
 
 ocp = InputOCP()
 

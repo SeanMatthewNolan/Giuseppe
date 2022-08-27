@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.utils.complilation import lambdify, jit_compile
+from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
 from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler, \

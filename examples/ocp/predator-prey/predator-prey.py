@@ -2,7 +2,7 @@ import pickle
 
 import giuseppe
 
-giuseppe.utils.complilation.JIT_COMPILE = True
+giuseppe.utils.compilation.JIT_COMPILE = True
 
 prob = giuseppe.io.InputOCP()
 
@@ -48,7 +48,7 @@ prob.add_constraint('terminal', 't - t_f')
 prob.add_inequality_constraint('control', 'u', lower_limit='0', upper_limit='u_max',
                                regularizer=giuseppe.regularization.ControlConstraintHandler('eps', 'atan'))
 
-with giuseppe.utils.Timer(prefix='Complilation Time:'):
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(prob)
     sym_dual = giuseppe.problems.SymDual(sym_ocp)
     sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='differential')

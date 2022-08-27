@@ -44,5 +44,5 @@ def jit_compile(func: Callable, signature: Optional = None):
             return numba.njit(cache=NUMBA_CACHE)(func)
 
     except NumbaError as e:
-        warn(f'Numba error {e} prevented complilation of function {func}. Uncompiled version will be used.')
+        warn(f'Numba error {e} prevented compilation of function {func}. Uncompiled version will be used.')
         return func

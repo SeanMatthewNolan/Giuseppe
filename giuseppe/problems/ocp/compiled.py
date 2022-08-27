@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Union
 
-from giuseppe.utils.complilation import lambdify
+from giuseppe.utils.compilation import lambdify
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray
 from .symbolic import SymOCP

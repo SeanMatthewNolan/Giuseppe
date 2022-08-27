@@ -37,7 +37,7 @@ goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
         regularizer=giuseppe.regularization.PenaltyConstraintHandler('eps_thrust * h_ref', method='sec'))
 
-with giuseppe.utils.Timer(prefix='Complilation Time:'):
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(goddard)
     sym_dual = giuseppe.problems.SymDual(sym_ocp)
     sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='differential')

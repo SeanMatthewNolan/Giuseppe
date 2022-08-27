@@ -12,7 +12,7 @@ from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
-giuseppe.utils.complilation.JIT_COMPILE = True
+giuseppe.utils.compilation.JIT_COMPILE = True
 
 ocp = InputOCP()
 
@@ -91,7 +91,7 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
 #                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec))
 
-with Timer(prefix='Complilation Time:'):
+with Timer(prefix='Compilation Time:'):
     sym_ocp = SymOCP(ocp)
     adiff_ocp = AdiffOCP(sym_ocp)
     adiff_dual = AdiffDual(adiff_ocp)

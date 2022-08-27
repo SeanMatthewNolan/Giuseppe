@@ -12,7 +12,7 @@ from giuseppe.problems.ocp import SymOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
-giuseppe.utils.complilation.JIT_COMPILE = True
+giuseppe.utils.compilation.JIT_COMPILE = True
 
 # TODO: WIP Does not fully converge
 
@@ -102,7 +102,7 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 ocp.add_inequality_constraint('path', 'q', upper_limit='q_max',
                               regularizer=PenaltyConstraintHandler('eps_q', method='rat'))
 
-with Timer(prefix='Complilation Time:'):
+with Timer(prefix='Compilation Time:'):
     sym_ocp = SymOCP(ocp)
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')

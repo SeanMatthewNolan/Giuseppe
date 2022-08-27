@@ -40,7 +40,7 @@ lunar.add_constraint('terminal', 'h - h_f')
 lunar.add_constraint('terminal', 'v_h - v_h_f')
 lunar.add_constraint('terminal', 'v_x - v_x_f')
 
-with giuseppe.utils.Timer(prefix='Complilation Time:'):
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(lunar)
     sym_dual = giuseppe.problems.SymDual(sym_ocp)
     sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')

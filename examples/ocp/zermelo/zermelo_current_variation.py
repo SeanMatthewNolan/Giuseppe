@@ -29,7 +29,7 @@ zermelo.add_constraint('initial', 'y - y_0')
 zermelo.add_constraint('terminal', 'x - x_f')
 zermelo.add_constraint('terminal', 'y - y_f')
 
-with giuseppe.utils.Timer(prefix='Complilation Time:'):
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(zermelo)
     sym_dual = giuseppe.problems.SymDual(sym_ocp)
     sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
