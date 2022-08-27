@@ -13,7 +13,7 @@ Continuation
 Solution Set
 ############
 
-.. autoclass:: giuseppe.continuation.solution_set.SolutionSet
+.. autoclass:: giuseppe.io.solution_set.SolutionSet
    :members:
    :special-members: __init__
    :undoc-members:
