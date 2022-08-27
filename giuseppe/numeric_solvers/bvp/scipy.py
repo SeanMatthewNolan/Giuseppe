@@ -115,6 +115,8 @@ class ScipySolveBVP(Picky):
             for idx, (ti, xi) in enumerate(zip(t_vec, x_vec.T)):
                 x_dot[:, idx] = bvp_dyn(ti, xi, p, k)
 
+            # x_dot = map(bvp_dyn, (t_vec, x_vec, p, k))
+
             return x_dot * tau_mult
 
         if self.use_jit_compile:
@@ -269,26 +271,43 @@ class ScipySolveBVP(Picky):
         costate_dyn = dual_ocp.comp_dual.costate_dynamics
         control_dyn = dual_ocp.control_handler.control_dynamics
 
+        state_dyn_map = np.vectorize(pyfunc=lambda t, x, u, p, k: np.asarray(state_dyn(t, x, u, p, k)),
+                                     signature='(1),(nx),(nu)->(nx)')
+        state_dyn_map.excluded.add(3)
+        state_dyn_map.excluded.add(4)
+        costate_dyn_map = np.vectorize(pyfunc=lambda t, x, lam, u, p, k: np.asarray(costate_dyn(t, x, lam, u, p, k)),
+                                       signature='(1),(nx),(nlam),(nu)->(nlam)')
+        costate_dyn_map.excluded.add(4)
+        costate_dyn_map.excluded.add(5)
+        control_dyn_map = np.vectorize(pyfunc=lambda t, x, lam, u, p, k: np.asarray(control_dyn(t, x, lam, u, p, k)),
+                                       signature='(1),(nx),(nlam),(nu)->(nu)')
+        control_dyn_map.excluded.add(4)
+        control_dyn_map.excluded.add(5)
+
+        y_dyn_map = np.vectorize(pyfunc=lambda t, x, lam, u, p, k: np.concatenate((state_dyn(t, x, u, p, k),
+                                                                                   costate_dyn(t, x, lam, u, p, k),
+                                                                                   control_dyn(t, x, lam, u, p, k))),
+                                 signature='(1),(nx),(nlam),(nu)->(ny)')
+        y_dyn_map.excluded.add(4)
+        y_dyn_map.excluded.add(5)
+
         n_x = dual_ocp.comp_ocp.num_states
         n_p = dual_ocp.comp_ocp.num_parameters
         n_lam = dual_ocp.comp_dual.num_costates
         n_u = dual_ocp.comp_ocp.num_controls
 
-        def dynamics(tau_vec: NPArray, y_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
-            t0, tf = p[-2], p[-1]
+        def dynamics(tau_vec: NPArray, y_vec: NPArray, pnut: NPArray, k: NPArray) -> NPArray:
+            t0, tf = pnut[-2], pnut[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
-            p = p[:n_p]
+            t_vec = t_vec.reshape(len(t_vec), 1)
+            p = pnut[:n_p]
 
-            y_dot = np.empty_like(y_vec)  # Need to pre-allocate for Numba
-            for idx, (ti, yi) in enumerate(zip(t_vec, y_vec.T)):
-                xi = yi[:n_x]
-                lami = yi[n_x:n_x + n_lam]
-                ui = yi[n_x + n_lam:n_x + n_lam + n_u]
+            x_vec = y_vec[:n_x, :].T
+            lam_vec = y_vec[n_x:n_x+n_lam, :].T
+            u_vec = y_vec[n_x+n_lam:n_x+n_lam+n_u, :].T
 
-                y_dot[:n_x, idx] = state_dyn(ti, xi, ui, p, k)
-                y_dot[n_x:n_x + n_lam, idx] = costate_dyn(ti, xi, lami, ui, p, k)
-                y_dot[n_x + n_lam:n_x + n_lam + n_u, idx] = control_dyn(ti, xi, lami, ui, p, k)
+            y_dot = y_dyn_map(t_vec, x_vec, lam_vec, u_vec, p, k).T
 
             return y_dot * tau_mult
 
