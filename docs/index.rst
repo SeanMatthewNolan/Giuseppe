@@ -7,6 +7,7 @@ Welcome to Giuseppe's documentation!
    README.rst
    dev_notes/abbreviations.md
    code.rst
+   theory/theory.rst
    dev_notes/design_philosophy.md
    dev_notes/todos.md
 
