@@ -115,7 +115,6 @@ class ScipySolveBVP(Picky):
             for idx, (ti, xi) in enumerate(zip(t_vec, x_vec.T)):
                 x_dot[:, idx] = bvp_dyn(ti, xi, p, k)
 
-            # x_dot = map(bvp_dyn, (t_vec, x_vec, p, k))
 
             return x_dot * tau_mult
 
@@ -280,7 +279,6 @@ class ScipySolveBVP(Picky):
             t0, tf = pnut[-2], pnut[-1]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
-            t_vec = t_vec.reshape(len(t_vec), 1)
             p = pnut[:n_p]
 
             y_dot = np.empty_like(y_vec) # Pre-allocate for Numba
@@ -288,6 +286,7 @@ class ScipySolveBVP(Picky):
                 xi = yi[:n_x]
                 lami = yi[n_x:n_x + n_lam]
                 ui = yi[n_x + n_lam:n_x + n_lam + n_u]
+                
                 y_dot[:n_x, idx] = state_dyn(ti, xi, ui, p, k)
                 y_dot[n_x:n_x + n_lam, idx] = costate_dyn(ti, xi, lami, ui, p, k)
                 y_dot[n_x + n_lam:n_x + n_lam + n_u, idx] = control_dyn(ti, xi, lami, ui, p, k)
