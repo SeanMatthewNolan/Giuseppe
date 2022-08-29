@@ -1,6 +1,8 @@
 Derivation of Necessary Conditions
 ##################################
 
+More information can be found in [1]_, [2]_.
+
 A single stage optimal control problem (OCP) seeks the trajectory which minimizes the cost functional :math:`J` with respect to a control :math:`\boldsymbol{u}{\left(t\right)}`.
 Here, we define the **independent variable** (a.k.a **time**) :math:`t` and continuously variable **state** :math:`\boldsymbol{x}{\left(t\right)}`.
 The control vector :math:`\boldsymbol{u}{\left(t\right)}` is assumed piecewise-continuous.
@@ -104,3 +106,6 @@ And additional boundary conditions:
     0 = \frac{\partial \Phi_f}{\partial t} + H_f = \frac{\partial \phi_f}{\partial t} + \boldsymbol{\nu}_f^T \frac{\partial \boldsymbol{\Psi}_f}{\partial t} + H_f \\
     0 = \frac{\partial \Phi_0}{\partial \boldsymbol{x}} + \boldsymbol{\lambda}_0^T = \frac{\partial \phi_0}{\partial \boldsymbol{x}} + \boldsymbol{\nu}_0^T \frac{\partial \boldsymbol{\Psi}_0}{\partial \boldsymbol{x}} + \boldsymbol{\lambda}_0^T \\
     0 = \frac{\partial \Phi_f}{\partial \boldsymbol{x}} - \boldsymbol{\lambda}_f^T = \frac{\partial \phi_f}{\partial \boldsymbol{x}} + \boldsymbol{\nu}_f^T \frac{\partial \boldsymbol{\Psi}_f}{\partial \boldsymbol{x}} - \boldsymbol{\lambda}_f^T \\
+
+.. [1]  Bryson, A. E., and Ho, Y.-C. Applied Optimal Control: Optimization, Estimation, and Control. Hemisphere Publishing Corporation, Washinngton, DC, 1975.
+.. [2]  Longuski, J. M., Guzman, J. J., and Prussing, J. E. Optimal Control with Aerospace Applications. Springer New York, New York, NY, 2014.
