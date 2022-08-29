@@ -23,18 +23,21 @@ class AdiffBVP(Picky):
         self.arg_names = ('t', 'x', 'p', 'k')
 
         if isinstance(self.src_bvp, AdiffInputBVP):
-            self.t = AdiffInputBVP.independent
-            self.x = AdiffInputBVP.states
-            self.p = AdiffInputBVP.parameters
-            self.k = AdiffInputBVP.constants
-            self.default_values = AdiffInputBVP.default_values
-            self.eom = AdiffInputBVP.eom
+            self.comp_bvp = None
 
-            self.num_states = self.x.shape[0]
-            self.num_parameters = self.p.shape[0]
-            self.num_constants = self.k.shape[0]
+            self.independent = self.src_bvp.independent
+            self.states = self.src_bvp.states.states
+            self.parameters = self.src_bvp.parameters
+            self.constants = self.src_bvp.constants.constants
+            self.default_values = self.src_bvp.constants.default_values
+            self.eom = self.src_bvp.states.eoms
+            self.inputConstraints = self.src_bvp.constraints
 
-            self.args = (self.t, self.x, self.p, self.k)
+            self.num_states = self.states.shape[0]
+            self.num_parameters = self.parameters.shape[0]
+            self.num_constants = self.constants.shape[0]
+
+            self.args = (self.independent, self.states, self.parameters, self.constants)
             self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
             self.ca_boundary_conditions = self.create_boundary_conditions()
         else:
@@ -77,7 +80,8 @@ class AdiffBVP(Picky):
         return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
 
     def create_boundary_conditions(self):
-        # TODO implement this
-        initial_boundary_conditions = ca.Funcation()
-        terminal_boundary_conditions = ca.Function()
+        initial_boundary_conditions = ca.Function('Psi_0', self.args, (self.inputConstraints.initial,),
+                                                  self.arg_names, ('Psi_0',))
+        terminal_boundary_conditions = ca.Function('Psi_f', self.args, (self.inputConstraints.terminal,),
+                                                   self.arg_names, ('Psi_f',))
         return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)

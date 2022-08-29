@@ -2,8 +2,8 @@ from typing import Optional, Union
 
 import casadi as ca
 
-from giuseppe.problems.components.adiffInput import InputState, InputConstant, InputNamedExpr, InputConstraints, \
-    InputInequalityConstraint, InputInequalityConstraints
+from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffConstant,\
+    InputAdiffConstraints, InputAdiffInequalityConstraint, InputAdiffInequalityConstraints
 from giuseppe.problems.regularization import Regularizer
 
 
@@ -14,17 +14,14 @@ class AdiffInputBVP:
 
     def __init__(self):
         """
-        Initilize InputBVP
+        Initilize AdiffInputBVP
         """
         self.independent = None
-        self.states: ca.SX = ca.SX.sym('', 0)
-        self.eom: ca.SX = ca.SX.sym('', 0)
+        self.states: InputAdiffState = InputAdiffState()
         self.parameters: ca.SX = ca.SX.sym('', 0)
-        self.constants: ca.SX = ca.SX.sym('', 0)
-        self.default_values = ca.SX()
-        self.constraints: InputConstraints = InputConstraints()
-        self.inequality_constraints: InputInequalityConstraints = InputInequalityConstraints()
-        self.expressions: list[InputNamedExpr] = []
+        self.constants: InputAdiffConstant = InputAdiffConstant()
+        self.constraints: InputAdiffConstraints = InputAdiffConstraints()
+        self.inequality_constraints: InputAdiffInequalityConstraints = InputAdiffInequalityConstraints()
 
     def set_independent(self, var: ca.SX):
         """
@@ -37,25 +34,25 @@ class AdiffInputBVP:
 
         Returns
         -------
-        self : InputBVP
+        self : AdiffInputBVP
             returns the problem object
 
         """
         self.independent = var
         return self
 
-    def add_state(self, var: ca.SX, var_eom: Union[ca.SX, float]):
-        self.states = ca.vcat((self.states, var))
-        self.eom = ca.vcat((self.eom, var_eom))
+    def add_state(self, state: ca.SX, state_eom: Union[ca.SX, float]):
+        self.states.states = ca.vcat((self.states.states, state))
+        self.states.eoms = ca.vcat((self.states.eoms, state_eom))
         return self
 
     def add_parameter(self, var: ca.SX):
         self.parameters.append(var)
         return self
 
-    def add_constant(self, var: ca.SX, default_value: Union[ca.SX, float] = ca.SX(0)):
-        self.constants = ca.vcat((self.constants, var))
-        self.default_values = ca.vcat((self.default_values, default_value))
+    def add_constant(self, constant: ca.SX, default_value: Union[ca.SX, float] = ca.SX(0)):
+        self.constants.constants = ca.vcat((self.constants.constants, constant))
+        self.constants.default_values = ca.vcat((self.constants.default_values, default_value))
         return self
 
     def add_constraint(self, location: str, expr: Union[ca.SX, float]):
@@ -64,21 +61,22 @@ class AdiffInputBVP:
         Parameters
         ----------
         location : str
-            type of constraint: 'initial', 'path', 'terminal', 'control'
+            type of constraint: 'initial', 'terminal'
         expr : ca.SX
             expression that defines constraint
 
         Returns
         -------
-        self : InputBVP
+        self : AdiffInputBVP
             returns the problem object
 
         """
-        self.constraints.__getattribute__(location).append(expr)
+        self.constraints.__setattr__(location, ca.vcat((self.constraints.__getattribute__(location), expr)))
         return self
 
     def add_inequality_constraint(
-            self, location: str, expr: ca.SX, lower_limit: Optional[Union[ca.SX, float]] = None, upper_limit: Optional[Union[ca.SX, float]] = None,
+            self, location: str, expr: ca.SX,
+            lower_limit: Optional[Union[ca.SX, float]] = None, upper_limit: Optional[Union[ca.SX, float]] = None,
             regularizer: Optional[Regularizer] = None):
         """
 
@@ -97,13 +95,13 @@ class AdiffInputBVP:
 
         Returns
         -------
-        self : InputBVP
+        self : AdiffInputBVP
             returns the problem object
 
         """
 
         self.inequality_constraints.__getattribute__(location).append(
-                InputInequalityConstraint(
+                InputAdiffInequalityConstraint(
                         expr, lower_limit=lower_limit, upper_limit=upper_limit, regularizer=regularizer))
 
         return self

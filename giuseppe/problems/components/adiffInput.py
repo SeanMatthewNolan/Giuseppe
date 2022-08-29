@@ -7,41 +7,42 @@ from giuseppe.problems.regularization import Regularizer
 
 
 @dataclass
-class InputConstant:
-    var: ca.SX
-    default_value: float = 0.
+class InputAdiffState:
+    states: ca.SX = ca.SX.sym('', 0)
+    eoms: ca.SX = ca.SX.sym('', 0)
 
 
 @dataclass
-class InputNamedExpr:
-    var: ca.SX
-    expr: ca.SX
+class InputAdiffConstant:
+    constants: ca.SX = ca.SX.sym('', 0)
+    default_values: ca.SX = ca.SX(0)
 
 
-class InputConstraints:
+@dataclass
+class InputAdiffConstraints:
     def __init__(self):
         self.initial: ca.SX = ca.SX.sym('', 0)
         self.terminal: ca.SX = ca.SX.sym('', 0)
 
 
 @dataclass
-class InputInequalityConstraint:
+class InputAdiffInequalityConstraint:
     expr: ca.SX
     lower_limit: ca.SX
     upper_limit: ca.SX
     regularizer: Optional[Regularizer] = None
 
 
-class InputInequalityConstraints:
+class InputAdiffInequalityConstraints:
     def __init__(self):
-        self.initial: list[InputInequalityConstraint] = []
-        self.path: list[InputInequalityConstraint] = []
-        self.terminal: list[InputInequalityConstraint] = []
-        self.control: list[InputInequalityConstraint] = []
+        self.initial: list[InputAdiffInequalityConstraints] = []
+        self.path: list[InputAdiffInequalityConstraints] = []
+        self.terminal: list[InputAdiffInequalityConstraints] = []
+        self.control: list[InputAdiffInequalityConstraints] = []
 
 
 @dataclass
-class InputCost:
+class InputAdiffCost:
     initial: ca.SX = ca.SX(0)
     path: ca.SX = ca.SX(0)
     terminal: ca.SX = ca.SX(0)

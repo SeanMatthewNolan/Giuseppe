@@ -6,3 +6,5 @@ from ..problems.ocp import InputOCP, AdiffInputOCP
 
 StrInputBVP = InputBVP
 StrInputOCP = InputOCP
+AdiffInputBVP = AdiffInputBVP
+AdiffInputOCP = AdiffInputOCP
