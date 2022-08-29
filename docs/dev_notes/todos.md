@@ -2,8 +2,14 @@
 
 ## TODOs
 
-- Add guess generators
-- Add inequality constraints 
+- Add advanced continuation methods
+- Streamline problem structe
+- Add annotations to solution class
+- Add finite difference necesary conditions
+- Add interactive visualization
+- Add "Active monitoring"
+- Add custom BVP solver
+- Add direct solver
 
 ## Ideas
 
