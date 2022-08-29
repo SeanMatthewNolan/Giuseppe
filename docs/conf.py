@@ -12,7 +12,7 @@ project = 'Giuseppe'
 copyright = '2022, Sean Matthew Nolan'
 author = 'Sean Matthew Nolan'
 
-release = '0.1.0'
+release = '0.1.2'
 
 extensions = [
     'myst_parser',
@@ -38,7 +38,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'classic'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
