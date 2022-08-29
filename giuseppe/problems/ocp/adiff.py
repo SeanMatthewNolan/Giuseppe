@@ -12,7 +12,7 @@ from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
 
 
 class AdiffOCP(Picky):
-    SUPPORTED_INPUTS: type = Union[SymOCP, CompOCP]
+    SUPPORTED_INPUTS: type = Union[AdiffInputOCP, SymOCP, CompOCP]
 
     def __init__(self, source_ocp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_ocp)
