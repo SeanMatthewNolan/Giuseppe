@@ -40,7 +40,7 @@ class AdiffOCP(Picky):
             self.num_constants = self.constants.shape[0]
 
             self.args = (self.independent, self.states, self.controls, self.parameters, self.constants)
-            self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
+            self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, ('dx_dt',))
             self.ca_boundary_conditions = self.create_boundary_conditions()
             self.ca_cost = self.create_cost()
 
@@ -104,10 +104,10 @@ class AdiffOCP(Picky):
 
     def create_cost(self):
         initial_cost = ca.Function('Phi_0', self.args, (self.inputCost.initial,),
-                                   self.iter_args, self.arg_names, ('Phi_0',))
+                                   self.arg_names, ('Phi_0',))
         path_cost = ca.Function('L', self.args, (self.inputCost.path,),
-                                self.iter_args, self.arg_names, ('L',))
+                                self.arg_names, ('L',))
         terminal_cost = ca.Function('Phi_f', self.args, (self.inputCost.terminal,),
-                                    self.iter_args, self.arg_names, ('Phi_f',))
+                                    self.arg_names, ('Phi_f',))
 
         return AdiffCost(initial_cost, path_cost, terminal_cost)
