@@ -1,6 +1,7 @@
 from typing import Optional, Union
 
 import casadi as ca
+import numpy as np
 
 from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffConstant,\
     InputAdiffConstraints, InputAdiffInequalityConstraint, InputAdiffInequalityConstraints
@@ -50,9 +51,9 @@ class AdiffInputBVP:
         self.parameters.append(var)
         return self
 
-    def add_constant(self, constant: ca.SX, default_value: Union[ca.SX, float] = ca.SX(0)):
+    def add_constant(self, constant: ca.SX, default_value: Union[np.ndarray, float] = ca.SX(0)):
         self.constants.constants = ca.vcat((self.constants.constants, constant))
-        self.constants.default_values = ca.vcat((self.constants.default_values, default_value))
+        self.constants.default_values = np.append(self.constants.default_values, default_value)
         return self
 
     def add_constraint(self, location: str, expr: Union[ca.SX, float]):

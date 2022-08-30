@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import casadi as ca
+import numpy as np
 
 from giuseppe.problems.regularization import Regularizer
 
@@ -15,7 +16,7 @@ class InputAdiffState:
 @dataclass
 class InputAdiffConstant:
     constants: ca.SX = ca.SX.sym('', 0)
-    default_values: ca.SX = ca.SX()
+    default_values: np.ndarray = np.empty((0, 1))
 
 
 @dataclass
