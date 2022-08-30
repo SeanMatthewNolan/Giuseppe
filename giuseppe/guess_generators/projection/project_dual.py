@@ -1,7 +1,9 @@
 from typing import Tuple, Union
 
 import numpy as np
+import casadi as ca
 
+from giuseppe.utils.conversion import ca_vec2arr
 from giuseppe.io.solution import Solution
 from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP
 from .project_to_nullspace import project_to_nullspace
@@ -45,8 +47,8 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, rel_tol: float = 
 
     def residual(values: np.ndarray) -> np.ndarray:
         nu0, lam, nuf = unpack_values(values)
-        bc_0 = np.asarray(adjoined_bc_0(t[0], x[:, 0], lam[:, 0], u[:, 0], p, nu0, k)).flatten()
-        bc_f = np.asarray(adjoined_bc_f(t[-1], x[:, -1], lam[:, -1], u[:, -1], p, nuf, k)).flatten()
+        bc_0 = ca_vec2arr(adjoined_bc_0(t[0], x[:, 0], lam[:, 0], u[:, 0], p, nu0, k))
+        bc_f = ca_vec2arr(adjoined_bc_f(t[-1], x[:, -1], lam[:, -1], u[:, -1], p, nuf, k))
 
         dyn_res = []
         for idx in range(num_t - 1):
@@ -61,8 +63,13 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, rel_tol: float = 
             lam_bar = (lam_right + lam_left) / 2
             u_bar = (u_right + u_left) / 2
 
+            d_lam = costate_dynamics(t_bar, x_bar, lam_bar, u_bar, p, k)
+            if isinstance(d_lam, Union[ca.SX, ca.DM]):
+                d_lam = ca_vec2arr(d_lam)
+            else:
+                d_lam = np.asarray(d_lam).flatten()
             dyn_res.append(
-                lam_right - lam_left - dt * np.asarray(costate_dynamics(t_bar, x_bar, lam_bar, u_bar, p, k)).flatten())
+                lam_right - lam_left - dt * d_lam)
 
         return np.concatenate((bc_0, np.array(dyn_res).flatten(), bc_f))
 

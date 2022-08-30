@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.integrate import solve_ivp
 
+from giuseppe.utils.conversion import ca_vec2arr
 from giuseppe.io import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 from ..constant import update_constant_value, initialize_guess_for_auto
@@ -175,7 +176,7 @@ def propagate_guess(
         dynamics = comp_prob.ca_dynamics
 
         def wrapped_dynamics(t, x):
-            return np.asarray(dynamics(t, x, guess.p, guess.k)).flatten()
+            return ca_vec2arr(dynamics(t, x, guess.p, guess.k))
 
         sol: _IVP_SOL = solve_ivp(
                 wrapped_dynamics, (guess.t[0], guess.t[-1]), initial_states, rtol=rel_tol, atol=abs_tol)
@@ -188,13 +189,13 @@ def propagate_guess(
 
         if isinstance(control, Callable):
             def wrapped_dynamics(t, x):
-                return np.asarray(dynamics(t, x, control(t, x, guess.p, guess.k), guess.p, guess.k)).flatten()
+                return ca_vec2arr(dynamics(t, x, control(t, x, guess.p, guess.k), guess.p, guess.k))
 
         else:
             update_constant_value(guess, 'u', control)
 
             def wrapped_dynamics(t, x):
-                return np.asarray(dynamics(t, x, guess.u[:, 0], guess.p, guess.k)).flatten()
+                return ca_vec2arr(dynamics(t, x, guess.u[:, 0], guess.p, guess.k))
 
         sol: _IVP_SOL = solve_ivp(
                 wrapped_dynamics, (guess.t[0], guess.t[-1]), initial_states, rtol=rel_tol, atol=abs_tol)
@@ -222,7 +223,7 @@ def propagate_guess(
                 x_dot = dynamics(t, x, u, guess.p, guess.k)
                 lam_dot = costate_dynamics(t, x, lam, u, guess.p, guess.k)
 
-                return np.concatenate((np.asarray(x_dot).flatten(), np.asarray(lam_dot).flatten()))
+                return np.concatenate((ca_vec2arr(x_dot), ca_vec2arr(lam_dot)))
 
         else:
             update_constant_value(guess, 'u', control)
@@ -235,7 +236,7 @@ def propagate_guess(
                 x_dot = dynamics(t, x, u, guess.p, guess.k)
                 lam_dot = costate_dynamics(t, x, lam, u, guess.p, guess.k)
 
-                return np.concatenate((np.asarray(x_dot).flatten(), np.asarray(lam_dot).flatten()))
+                return np.concatenate((ca_vec2arr(x_dot), ca_vec2arr(lam_dot)))
 
         sol: _IVP_SOL = solve_ivp(
                 wrapped_dynamics, (guess.t[0], guess.t[-1]), np.concatenate((initial_states, initial_costates)),

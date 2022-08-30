@@ -2,7 +2,9 @@ from copy import deepcopy
 from typing import Union, Tuple, Optional
 
 import numpy as np
+import casadi as ca
 
+from giuseppe.utils.conversion import ca_vec2arr
 from giuseppe.io.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, \
     AdiffBVP, AdiffOCP, AdiffDual, AdiffDualOCP
@@ -63,13 +65,13 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
         def bc_func(k):
             psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], guess.x[:, 0], guess.p, k)
             psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], guess.x[:, -1], guess.p, k)
-            return np.concatenate((np.asarray(psi_0).flatten(), np.asarray(psi_f).flatten()))
+            return np.concatenate((ca_vec2arr(psi_0), ca_vec2arr(psi_f)))
 
     elif isinstance(prob, AdiffOCP):
         def bc_func(k):
             psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], guess.x[:, 0], guess.u[:, 0], guess.p, k)
             psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], guess.x[:, -1], guess.u[:, -1], guess.p, k)
-            return np.concatenate((np.asarray(psi_0).flatten(), np.asarray(psi_f).flatten()))
+            return np.concatenate((ca_vec2arr(psi_0), ca_vec2arr(psi_f)))
 
     elif isinstance(prob, AdiffDualOCP):
         ocp_bc = prob.ocp.ca_boundary_conditions
@@ -85,10 +87,10 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
             adj_bcf = dual_bc.terminal(
                     guess.t[-1], guess.x[:, -1], guess.lam[:, -1], guess.u[:, -1], guess.p, guess.nuf, k)
 
-            return np.concatenate((np.asarray(psi_0).flatten(),
-                                   np.asarray(psi_f).flatten(),
-                                   np.asarray(adj_bc0).flatten(),
-                                   np.asarray(adj_bcf).flatten()))
+            return np.concatenate((ca_vec2arr(psi_0),
+                                   ca_vec2arr(psi_f),
+                                   ca_vec2arr(adj_bc0),
+                                   ca_vec2arr(adj_bcf)))
 
     else:
         raise ValueError(f'Problem type {type(prob)} not supported')
@@ -169,12 +171,12 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
         if location.lower() == 'initial':
             def bc_func(_x):
                 psi_0 = prob.ca_boundary_conditions.initial(guess.t[0], _x, guess.u[:, 0], guess.p, guess.k)
-                return np.asarray(psi_0).flatten()
+                return ca_vec2arr(psi_0)
 
         else:
             def bc_func(_x):
                 psi_f = prob.ca_boundary_conditions.terminal(guess.t[-1], _x, guess.u[:, -1], guess.p, guess.k)
-                return np.asarray(psi_f).flatten()
+                return ca_vec2arr(psi_f)
 
     else:
         raise ValueError(f'Problem type {type(prob)} not supported')
@@ -231,7 +233,11 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
 
         def adj_bc_func(_lam):
             adj_bc0 = dual_bc.initial(guess.t[0], states, _lam, guess.u[:, 0], guess.p, guess.nu0, guess.k)
-            return np.asarray(adj_bc0).flatten()
+            if isinstance(adj_bc0, Union[ca.SX, ca.DM]):
+                adj_bc0 = ca_vec2arr(adj_bc0)
+            else:
+                adj_bc0 = np.asarray(adj_bc0).flatten()
+            return adj_bc0
 
     elif location.lower() == 'terminal':
         lam_guess = guess.lam[:, -1]
@@ -240,7 +246,11 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
 
         def adj_bc_func(_lam):
             adj_bcf = dual_bc.terminal(guess.t[-1], states, _lam, guess.u[:, -1], guess.p, guess.nuf, guess.k)
-            return np.asarray(adj_bcf).flatten()
+            if isinstance(adj_bcf, Union[ca.SX, ca.DM]):
+                adj_bcf = ca_vec2arr(adj_bcf)
+            else:
+                adj_bcf = np.asarray(adj_bcf).flatten()
+            return adj_bcf
 
     else:
         raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')

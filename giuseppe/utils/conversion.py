@@ -33,3 +33,11 @@ def lists_to_arrays_in_dict(dict_obj: dict):
         elif isinstance(val, dict):
             dict_obj[key] = lists_to_arrays_in_dict(val)
     return dict_obj
+
+
+def ca_vec2arr(vec, d_type: type = float):
+    return np.asarray([d_type(vec[i]) for i in range(vec.shape[0])])
+
+
+def ca_mat2arr(mat, d_type: type = float):
+    return np.asarray([[d_type(mat[i, j]) for j in range(mat.shape[1])] for i in range(mat.shape[0])])
