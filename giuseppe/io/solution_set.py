@@ -27,14 +27,22 @@ class SolutionSet(MutableSequence, Picky):
         problem = deepcopy(problem)
         if type(problem) is SymDualOCP:
             self.constants = problem.ocp.constants
+            self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
         elif isinstance(problem, AdiffDualOCP):
-            self.constants = problem.dual.adiff_ocp.constants
+            self.constants = None
+            constants = problem.dual.adiff_ocp.constants
+            self.constant_names: tuple[Hashable, ...] = tuple(constants[i].name() for i in range(constants.numel()))
         elif isinstance(problem, AdiffDual):
-            self.constants = problem.adiff_ocp.constants
+            self.constants = None
+            constants = problem.adiff_ocp.constants
+            self.constant_names: tuple[Hashable, ...] = tuple(constants[i].name() for i in range(constants.numel()))
         elif isinstance(problem, AdiffOCP):
-            self.constants = problem.constants
+            self.constants = None
+            constants = problem.constants
+            self.constant_names: tuple[Hashable, ...] = tuple(constants[i].name() for i in range(constants.numel()))
         else:
             self.constants = problem.constants
+            self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
 
         if not seed_solution.converged:
             warnings.warn(
@@ -46,9 +54,6 @@ class SolutionSet(MutableSequence, Picky):
         self.solutions: list[Solution] = [seed_solution]
         self.continuation_slices: list[slice] = []
         self.damned_sols: list[Solution] = []
-
-        # Annotations
-        self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
 
     def insert(self, index: int, solution: Solution) -> None:
         self.solutions.insert(index, solution)
