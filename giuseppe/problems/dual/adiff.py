@@ -7,12 +7,12 @@ import casadi as ca
 from giuseppe.utils.mixins import Picky
 from .symbolic import SymOCP
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost
-from ..ocp.adiff import AdiffOCP
+from ..ocp.adiff import AdiffOCP, AdiffInputOCP
 from ..ocp.compiled import CompOCP
 
 
 class AdiffDual(Picky):
-    SUPPORTED_INPUTS: type = Union[SymOCP, CompOCP, AdiffOCP]
+    SUPPORTED_INPUTS: type = Union[AdiffInputOCP, SymOCP, CompOCP, AdiffOCP]
 
     def __init__(self, source_ocp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_ocp)
@@ -27,7 +27,7 @@ class AdiffDual(Picky):
                 self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp.src_ocp)
             else:
                 self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
-        elif isinstance(self.src_ocp, SymOCP):
+        elif isinstance(self.src_ocp, SymOCP) or isinstance(self.src_ocp, AdiffInputOCP):
             self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
         else:
             raise TypeError(f"AdiffDual cannot be initialized with a {type(source_ocp)} object!")
@@ -40,72 +40,63 @@ class AdiffDual(Picky):
         self.num_initial_adjoints = self.adiff_ocp.ca_boundary_conditions.initial.size_out(0)[0]
         self.num_terminal_adjoints = self.adiff_ocp.ca_boundary_conditions.terminal.size_out(0)[0]
 
+        self.independent = self.adiff_ocp.independent
+        self.states = self.adiff_ocp.states
+        self.controls = self.adiff_ocp.controls
+        self.parameters = self.adiff_ocp.parameters
+        self.constants = self.adiff_ocp.constants
+
+        self.costates = ca.SX.sym('lam', self.num_costates)
+        self.initial_adjoints = ca.SX.sym('_nu_0', self.num_initial_adjoints)
+        self.terminal_adjoints = ca.SX.sym('_nu_f', self.num_terminal_adjoints)
+        self.states_and_parameters = ca.vcat((self.states, self.parameters))
+
         self.arg_names = {'ocp': self.adiff_ocp.arg_names,
                           'initial': ('t', 'x', 'lam', 'u', 'p', '_nu_0', 'k'),
                           'dynamic': ('t', 'x', 'lam', 'u', 'p', 'k'),
                           'terminal': ('t', 'x', 'lam', 'u', 'p', '_nu_f', 'k')}
 
-        self.args = {'ocp': self.adiff_ocp.args}
-        self.args['dynamic'] = self.args['ocp'].copy()
-        self.args['dynamic'].insert(2, ca.SX.sym('lam', self.num_costates))
-        self.args['initial'] = self.args['dynamic'].copy()
-        self.args['initial'].insert(5, ca.SX.sym('_nu_0', self.num_initial_adjoints))
-        self.args['terminal'] = self.args['dynamic'].copy()
-        self.args['terminal'].insert(5, ca.SX.sym('_nu_f', self.num_terminal_adjoints))
+        self.args = {'ocp': self.adiff_ocp.args,
+                     'initial': (self.independent, self.states, self.costates, self.controls, self.parameters,
+                                 self.initial_adjoints, self.constants),
+                     'dynamic': (self.independent, self.states, self.costates, self.controls, self.parameters,
+                                 self.constants),
+                     'terminal': (self.independent, self.states, self.costates, self.controls, self.parameters,
+                                  self.terminal_adjoints, self.constants)}
 
-        # self.iter_args = {}
-        # for key in self.arg_names:
-        #     self.args[key] = [ca.SX.sym(name, length) for name, length in zip(self.arg_names[key], arg_lens[key])]
-        #     self.iter_args[key] = [ca.vertsplit(arg, 1) for arg in self.args[key][1:]]
-        #     self.iter_args[key].insert(0, self.args[key][0])  # Insert time separately b/c not wrapped in list
+        psi_0 = self.adiff_ocp.ca_boundary_conditions.initial(*self.args['ocp'])
+        psi_f = self.adiff_ocp.ca_boundary_conditions.terminal(*self.args['ocp'])
+        phi_0 = self.adiff_ocp.ca_cost.initial(*self.args['ocp'])
+        phi_f = self.adiff_ocp.ca_cost.terminal(*self.args['ocp'])
+        L = self.adiff_ocp.ca_cost.path(*self.args['ocp'])
+        f = self.adiff_ocp.eom
+        H = L + ca.dot(self.costates, f)
+        Hxp = ca.jacobian(H, self.states_and_parameters)
+        phi_0_adj = phi_0 + ca.dot(self.initial_adjoints, psi_0)
+        phi_f_adj = phi_f + ca.dot(self.terminal_adjoints, psi_f)
 
-        self.t = self.args['dynamic'][0]
-        self.x = self.args['dynamic'][1]
-        self.costates = self.args['dynamic'][2]
-        self.lam = self.costates[:self.num_states]
-        self.u = self.args['dynamic'][3]
-        self.p = self.args['dynamic'][4]
-        self.x_and_p = ca.vcat((self.x, self.p))
-        self._nu_0 = self.args['initial'][5]
-        self._nu_f = self.args['terminal'][5]
-        self.k = self.args['dynamic'][5]
-
-        psi0 = self.adiff_ocp.ca_boundary_conditions.initial
-        psif = self.adiff_ocp.ca_boundary_conditions.terminal
-
-        # TODO debug adjoints not agreeing with compiled solution
-        self.ca_hamiltonian = ca.Function('H', self.args['dynamic'],
-                                          (self.adiff_ocp.ca_cost.path(*self.adiff_ocp.args)
-                                           + ca.dot(self.lam, self.adiff_ocp.ca_dynamics(*self.adiff_ocp.args)),),
-                                          self.arg_names['dynamic'], ('H',))
-        self.ca_costate_dynamics = ca.Function('lam_dot', self.args['dynamic'],
-                                               (-ca.jacobian(self.ca_hamiltonian(*self.args['dynamic']),
-                                                             self.x_and_p).T,),
+        self.ca_hamiltonian = ca.Function('H', self.args['dynamic'], (H,), self.arg_names['dynamic'], ('H',))
+        self.ca_costate_dynamics = ca.Function('lam_dot', self.args['dynamic'], (-Hxp.T,),
                                                self.arg_names['dynamic'], ('lam_dot',))
 
-        initial_aug_cost = ca.Function('Phi_0adj', self.args['initial'],
-                                       (self.adiff_ocp.ca_cost.initial(*self.adiff_ocp.args)
-                                        + ca.dot(self._nu_0, psi0(*self.adiff_ocp.args)),),
-                                       self.arg_names['initial'], ('Phi_0adj',))
-        terminal_aug_cost = ca.Function('Phi_fadj', self.args['terminal'],
-                                        (self.adiff_ocp.ca_cost.terminal(*self.adiff_ocp.args)
-                                         + ca.dot(self._nu_f, psif(*self.adiff_ocp.args)),),
-                                        self.arg_names['terminal'], ('Phi_fadj',))
+        initial_aug_cost = ca.Function('Phi_0_adj', self.args['initial'], (phi_0_adj,),
+                                       self.arg_names['initial'], ('Phi_0_adj',))
+        terminal_aug_cost = ca.Function('Phi_f_adj', self.args['terminal'],
+                                        (phi_f_adj,),
+                                        self.arg_names['terminal'], ('Phi_f_adj',))
         self.ca_augmented_cost = AdiffCost(initial_aug_cost, self.ca_hamiltonian, terminal_aug_cost)
 
-        # TODO jacobian returning 0 instead of adjoints!
-        adj1 = ca.jacobian(initial_aug_cost(*self.args['initial']), self.t) - self.ca_hamiltonian(*self.args['dynamic'])
-        adj2 = ca.jacobian(initial_aug_cost(*self.args['initial']), self.x_and_p).T + self.costates
-        adj3 = ca.jacobian(terminal_aug_cost(*self.args['terminal']),
-                           self.t) + self.ca_hamiltonian(*self.args['dynamic'])
-        adj4 = ca.jacobian(terminal_aug_cost(*self.args['terminal']), self.x_and_p).T - self.costates
+        adj1 = ca.jacobian(phi_0_adj, self.independent) - H
+        adj2 = ca.jacobian(phi_0_adj, self.states_and_parameters).T + self.costates
+        adj3 = ca.jacobian(phi_f_adj, self.independent) + H
+        adj4 = ca.jacobian(phi_f_adj, self.states_and_parameters).T - self.costates
 
-        initial_adj_bcs = ca.Function('Psi_0adj', self.args['initial'],
+        initial_adj_bcs = ca.Function('Psi_0_adj', self.args['initial'],
                                       (ca.vertcat(adj1, adj2),),
-                                      self.arg_names['initial'], ('Psi_0adj',))
-        terminal_adj_bcs = ca.Function('Psi_fadj', self.args['terminal'],
+                                      self.arg_names['initial'], ('Psi_0_adj',))
+        terminal_adj_bcs = ca.Function('Psi_f_adj', self.args['terminal'],
                                        (ca.vertcat(adj3, adj4),),
-                                       self.arg_names['terminal'], ('Psi_fadj',))
+                                       self.arg_names['terminal'], ('Psi_f_adj',))
         self.ca_adj_boundary_conditions = AdiffBoundaryConditions(initial_adj_bcs, terminal_adj_bcs)
 
 # TODO implement AdiffAlgControlHandler using ca.DaeBuilder
@@ -136,12 +127,12 @@ class AdiffDiffControlHandler:
         arg_names = self.adiff_dual.arg_names['dynamic']
         ocp_arg_names = self.adiff_dual.arg_names['ocp']
 
-        _h_u = ca.jacobian(self.adiff_dual.ca_hamiltonian(*args), self.adiff_dual.u)
-        _h_uu = ca.jacobian(_h_u, self.adiff_dual.u)
-        _h_ut = ca.jacobian(_h_u, self.adiff_dual.t)
-        _h_ux = ca.jacobian(_h_u, self.adiff_dual.x)
+        _h_u = ca.jacobian(self.adiff_dual.ca_hamiltonian(*args), self.adiff_dual.controls)
+        _h_uu = ca.jacobian(_h_u, self.adiff_dual.controls)
+        _h_ut = ca.jacobian(_h_u, self.adiff_dual.independent)
+        _h_ux = ca.jacobian(_h_u, self.adiff_dual.states)
         _f = self.adiff_ocp.ca_dynamics(*ocp_args)
-        _f_u = ca.jacobian(_f, self.adiff_dual.u)
+        _f_u = ca.jacobian(_f, self.adiff_dual.controls)
         _lam_dot = self.adiff_dual.ca_costate_dynamics(*args)[:self.adiff_ocp.num_states]
 
         self.h_u: ca.Function = ca.Function('H_u', args, (_h_u,), arg_names, ('H_u',))
@@ -156,17 +147,11 @@ class AdiffDiffControlHandler:
                                                             arg_names, ('u_dot',))
         self.ca_control_bc = self.h_u
 
-    # TODO implement ca_control_dynamics
-    # def wrap_control_dynamics(self):
-
-    # TODO implement ca_bc
-    # def wrap_control_bc(self):
-
 
 class AdiffDualOCP:
     def __init__(self, adiff_ocp: AdiffOCP, adiff_dual: AdiffDual, control_method: str = 'differential'):
-        self.ocp = adiff_ocp
-        self.dual = adiff_dual
+        self.ocp = deepcopy(adiff_ocp)
+        self.dual = deepcopy(adiff_dual)
 
         if control_method.lower() == 'differential':
             self.control_handler = AdiffDiffControlHandler(self.ocp, self.dual)

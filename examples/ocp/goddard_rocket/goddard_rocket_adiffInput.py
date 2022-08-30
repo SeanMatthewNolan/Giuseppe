@@ -36,14 +36,13 @@ goddard.add_state(m, -thrust / c)
 h_0 = ca.SX.sym('h_0', 1)
 v_0 = ca.SX.sym('v_0', 1)
 m_0 = ca.SX.sym('m_0', 1)
+m_f = ca.SX.sym('m_f', 1)
+eps_thrust = ca.SX.sym('eps_thrust')
+
 goddard.add_constant(h_0, 0)
 goddard.add_constant(v_0, 0)
 goddard.add_constant(m_0, 3)
-
-m_f = ca.SX.sym('m_f', 1)
 goddard.add_constant(m_f, 2.95)
-
-eps_thrust = ca.SX.sym('eps_thrust')
 goddard.add_constant(eps_thrust, 0.01)
 
 goddard.set_cost(0, 0, -h)
@@ -61,19 +60,19 @@ goddard.add_constraint('terminal', m - m_f)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.AdiffOCP(goddard)
-#     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
-#     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
-#     comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-#     # num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False)
-#     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
-#
-# guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=80/180*3.14159)
-# seed_sol = num_solver.solve(guess.k, guess)
-# sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
-#
-# cont = giuseppe.continuation.ContinuationHandler(sol_set)
-# cont.add_linear_series(10, {'m_f': 1})
-# cont.add_logarithmic_series(20, {'eps_thrust': 1e-4}, bisection=True)
-# sol_set = cont.run_continuation(num_solver)
-#
-# sol_set.save('sol_set.data')
+    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
+    adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
+    comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False)
+    # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
+
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=80/180*3.14159)
+seed_sol = num_solver.solve(guess.k, guess)
+sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
+
+cont = giuseppe.continuation.ContinuationHandler(sol_set)
+cont.add_linear_series(10, {'m_f': 1})
+cont.add_logarithmic_series(20, {'eps_thrust': 1e-4}, bisection=True)
+sol_set = cont.run_continuation(num_solver)
+
+sol_set.save('sol_set.data')

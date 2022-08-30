@@ -15,7 +15,7 @@ class InputAdiffState:
 @dataclass
 class InputAdiffConstant:
     constants: ca.SX = ca.SX.sym('', 0)
-    default_values: ca.SX = ca.SX(0)
+    default_values: ca.SX = ca.SX()
 
 
 @dataclass
