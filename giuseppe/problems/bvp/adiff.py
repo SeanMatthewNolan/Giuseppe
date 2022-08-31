@@ -33,9 +33,9 @@ class AdiffBVP(Picky):
             self.eom = self.src_bvp.states.eoms
             self.inputConstraints = self.src_bvp.constraints
 
-            self.num_states = self.states.shape[0]
-            self.num_parameters = self.parameters.shape[0]
-            self.num_constants = self.constants.shape[0]
+            self.num_states = self.states.numel()
+            self.num_parameters = self.parameters.numel()
+            self.num_constants = self.constants.numel()
 
             self.args = (self.independent, self.states, self.parameters, self.constants)
             self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
@@ -57,9 +57,12 @@ class AdiffBVP(Picky):
             self.num_constants = self.comp_bvp.num_constants
             self.default_values = self.comp_bvp.default_values
 
-            arg_lens = (1, self.num_states, self.num_parameters, self.num_constants)
+            self.independent = ca.SX.sym('t', 1)
+            self.states = ca.SX.sym('x', self.num_states)
+            self.parameters = ca.SX.sym('p', self.num_parameters)
+            self.constants = ca.SX.sym('k', self.num_parameters)
 
-            self.args = [ca.SX.sym(name, length) for name, length in zip(self.arg_names, arg_lens)]
+            self.args = (self.independent, self.states, self.parameters, self.constants)
             self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]
             self.iter_args.insert(0, self.args[0])  # Insert time separately b/c not wrapped in list
 

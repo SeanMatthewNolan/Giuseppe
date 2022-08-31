@@ -21,9 +21,8 @@ class InputAdiffConstant:
 
 @dataclass
 class InputAdiffConstraints:
-    def __init__(self):
-        self.initial: ca.SX = ca.SX.sym('', 0)
-        self.terminal: ca.SX = ca.SX.sym('', 0)
+    initial: ca.SX = ca.SX.sym('', 0)
+    terminal: ca.SX = ca.SX.sym('', 0)
 
 
 @dataclass

@@ -4,6 +4,7 @@ from typing import Callable, Iterable, Optional
 import casadi as ca
 import numpy as np
 
+from giuseppe.utils.conversion import ca_vec2arr, ca_mat2arr
 
 @dataclass
 class AdiffBoundaryConditions:
@@ -36,4 +37,7 @@ def ca_wrap(name: str, ca_args: Iterable, function: Callable, func_args: Iterabl
 
 
 def lambdify_ca(fun: ca.Function):
-    return lambda *args: np.asarray(fun(*args)).flatten()
+    if fun.size_out()[1] == 1:
+        return lambda *args: ca_vec2arr(fun(*args))
+    else:
+        return lambda *args: ca_mat2arr(fun(*args))
