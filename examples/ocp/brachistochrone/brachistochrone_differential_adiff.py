@@ -46,7 +46,7 @@ with Timer(prefix='Compilation Time:'):
     adiff_ocp = AdiffOCP(sym_ocp)
     adiff_dual = AdiffDual(adiff_ocp)
     adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual)
-    num_solver = AdiffScipySolveBVP(adiff_dualocp, verbose=True)
+    num_solver = AdiffScipySolveBVP(adiff_dualocp)
 
 guess = generate_constant_guess(
         adiff_dualocp, t_span=0.25, x=np.array([0., 0., 1.]), lam=-0.1, u=-0.5, nu_0=-0.1, nu_f=-0.1)

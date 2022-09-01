@@ -24,8 +24,7 @@ class CompOCP(Picky):
 
         self.default_values = self.src_ocp.default_values
 
-        self.sym_args = (self.src_ocp.independent, self.src_ocp.states.flat(), self.src_ocp.controls.flat(),
-                         self.src_ocp.parameters.flat(), self.src_ocp.constants.flat())
+        self.sym_args = self.src_ocp.sym_args
 
         self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
 

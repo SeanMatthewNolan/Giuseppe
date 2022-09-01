@@ -17,6 +17,8 @@ class SymOCP(SymBVP):
         self.num_parameters = len(self.parameters)
         self.num_constants = len(self.constants)
         self.num_controls = len(self.controls)
+        self.sym_args = (self.independent, self.states.flat(), self.controls.flat(),
+                         self.parameters.flat(), self.constants.flat())
 
     def process_variables_from_input(self, input_data: InputOCP):
         super().process_variables_from_input(input_data)

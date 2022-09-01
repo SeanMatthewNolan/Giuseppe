@@ -64,12 +64,12 @@ class AdiffOCP(Picky):
 
             self.default_values = self.comp_ocp.default_values
 
-            # TODO constants need to have given string as name, not k_1, k_2, etc.
-            self.independent = ca.SX.sym('t', 1)
-            self.states = ca.SX.sym('x', self.num_states)
-            self.controls = ca.SX.sym('u', self.num_controls)
-            self.parameters = ca.SX.sym('p', self.num_parameters)
-            self.constants = ca.SX.sym('k', self.num_constants)
+            # Convert sympy symbolic args to CasADi symbolic args
+            self.independent = self.sym2ca_sym(self.src_ocp.sym_args[0])
+            self.states = self.sym2ca_sym(self.src_ocp.sym_args[1])
+            self.controls = self.sym2ca_sym(self.src_ocp.sym_args[2])
+            self.parameters = self.sym2ca_sym(self.src_ocp.sym_args[3])
+            self.constants = self.sym2ca_sym(self.src_ocp.sym_args[4])
 
             self.args = (self.independent, self.states, self.controls, self.parameters, self.constants)
             self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]
@@ -78,6 +78,28 @@ class AdiffOCP(Picky):
             self.ca_dynamics, self.eom = self.wrap_dynamics()
             self.ca_boundary_conditions, self.inputConstraints = self.wrap_boundary_conditions()
             self.ca_cost, self.inputCost = self.wrap_cost()
+
+    @staticmethod
+    def sym2ca_sym(sympy_sym):
+        """
+
+        Parameters
+        ----------
+        sympy_sym
+            A sympy scalar or vector
+
+        Returns
+        -------
+        ca_sym
+            A CasADi symbolic vector
+
+        """
+        if hasattr(sympy_sym, '__len__'):
+            length = len(sympy_sym)
+        else:
+            length = 1
+
+        return ca.SX.sym(str(sympy_sym), length)
 
     def wrap_dynamics(self):
         dynamics_fun = ca_wrap('f', self.args, self.comp_ocp.dynamics, self.iter_args,
