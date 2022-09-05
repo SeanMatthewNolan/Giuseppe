@@ -47,9 +47,12 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, rel_tol: float = 
 
     def residual(values: np.ndarray) -> np.ndarray:
         nu0, lam, nuf = unpack_values(values)
-        bc_0 = ca_vec2arr(adjoined_bc_0(t[0], x[:, 0], lam[:, 0], u[:, 0], p, nu0, k))
-        bc_f = ca_vec2arr(adjoined_bc_f(t[-1], x[:, -1], lam[:, -1], u[:, -1], p, nuf, k))
-
+        if isinstance(adjoined_bc_0, ca.Function):
+            bc_0 = ca_vec2arr(adjoined_bc_0(t[0], x[:, 0], lam[:, 0], u[:, 0], p, nu0, k))
+            bc_f = ca_vec2arr(adjoined_bc_f(t[-1], x[:, -1], lam[:, -1], u[:, -1], p, nuf, k))
+        else:
+            bc_0 = np.asarray(adjoined_bc_0(t[0], x[:, 0], lam[:, 0], u[:, 0], p, nu0, k)).flatten()
+            bc_f = np.asarray(adjoined_bc_f(t[-1], x[:, -1], lam[:, -1], u[:, -1], p, nuf, k)).flatten()
         dyn_res = []
         for idx in range(num_t - 1):
             t_left, t_right = t[idx], t[idx + 1]
