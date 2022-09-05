@@ -16,8 +16,8 @@ t = ca.SX.sym('t', 1)
 input_ocp.set_independent(t)
 
 # Control
-tha = ca.SX.sym('θ', 1)
-input_ocp.add_control(tha)
+θ = ca.SX.sym('θ', 1)
+input_ocp.add_control(θ)
 
 # Known Constant Parameters
 g = ca.SX.sym('g', 1)
@@ -28,9 +28,9 @@ x = ca.SX.sym('x', 1)
 y = ca.SX.sym('y', 1)
 v = ca.SX.sym('v', 1)
 
-input_ocp.add_state(x, v*ca.cos(tha))
-input_ocp.add_state(y, v*ca.sin(tha))
-input_ocp.add_state(v, -g*ca.sin(tha))
+input_ocp.add_state(x, v*ca.cos(θ))
+input_ocp.add_state(y, v*ca.sin(θ))
+input_ocp.add_state(v, -g*ca.sin(θ))
 
 # Boundary Conditions
 x_0 = ca.SX.sym('x_0', 1)
