@@ -7,7 +7,8 @@ import casadi as ca
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import SymMatrix
 from giuseppe.problems.ocp.adiffInput import AdiffInputOCP
-from giuseppe.problems.components.adiffInput import InputAdiffCost, InputAdiffConstraints
+from giuseppe.problems.components.adiffInput import InputAdiffCost, InputAdiffConstraints,\
+    InputAdiffInequalityConstraints
 from .compiled import CompOCP
 from .symbolic import SymOCP
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
@@ -34,6 +35,8 @@ class AdiffOCP(Picky):
             self.eom = self.src_ocp.states.eoms
             self.inputConstraints = self.src_ocp.constraints
             self.inputCost = self.src_ocp.cost
+
+            self.process_inequality_constraints(self.src_ocp.inequality_constraints)
 
             self.num_states = self.states.shape[0]
             self.num_controls = self.controls.shape[0]
@@ -145,3 +148,11 @@ class AdiffOCP(Picky):
         terminal_cost = ca.Function('Phi_f', self.args, (self.inputCost.terminal,),
                                     self.arg_names, ('Phi_f',))
         return AdiffCost(initial_cost, path_cost, terminal_cost)
+
+    def process_inequality_constraints(self, input_inequality_constraints: InputAdiffInequalityConstraints):
+        for position in ['initial', 'path', 'terminal', 'control']:
+            for constraint in input_inequality_constraints.__getattribute__(position):
+                if constraint.regularizer is None:
+                    raise NotImplementedError('Inequality constraint without regularizer not yet implemented')
+                else:
+                    constraint.regularizer.apply(self, constraint, position)

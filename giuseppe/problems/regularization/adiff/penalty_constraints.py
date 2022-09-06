@@ -1,22 +1,22 @@
 from typing import Union, Tuple, TYPE_CHECKING, TypeVar
 
 import sympy
+import casadi as ca
 
 from giuseppe.problems.regularization.generic import Regularizer
 from giuseppe.utils.typing import Symbol, SymExpr
 
 if TYPE_CHECKING:
-    from giuseppe.problems import SymOCP
-    from giuseppe.problems.components.input import InputInequalityConstraint
+    from giuseppe.problems import AdiffOCP
+    from giuseppe.problems.components.adiffInput import InputAdiffInequalityConstraint
 else:
-    SymOCP = TypeVar('SymOCP')
-    InputInequalityConstraint = TypeVar('InputInequalityConstraint')
+    AdiffOCP = TypeVar('AdiffOCP')
+    InputAdiffInequalityConstraint = TypeVar('InputAdiffInequalityConstraint')
 
 
-# TODO appropriately refactor for CasADi functions
 class AdiffPenaltyConstraintHandler(Regularizer):
-    def __init__(self, regulator: Union[str, Symbol], method: str = 'sec'):
-        self.regulator: Union[str, Symbol] = regulator
+    def __init__(self, regulator: ca.SX, method: str = 'sec'):
+        self.regulator: ca.SX = regulator
         self.method: str = method
 
         if method.lower() in ['utm', 'secant', 'sec']:
@@ -26,47 +26,43 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         else:
             raise ValueError(f'method \'{method}\' not implemented')
 
-    def apply(self, prob: SymOCP, constraint: InputInequalityConstraint, position: str) -> SymOCP:
+    def apply(self, prob: AdiffOCP, constraint: InputAdiffInequalityConstraint, position: str) -> AdiffOCP:
 
-        expr = prob.sympify(constraint.expr)
-        lower_limit = prob.sympify(constraint.lower_limit)
-        upper_limit = prob.sympify(constraint.upper_limit)
-        regulator = prob.sympify(self.regulator)
-
-        penalty_func = self.expr_generator(expr, lower_limit, upper_limit, regulator)
+        penalty_func = self.expr_generator(constraint.expr, constraint.lower_limit, constraint.upper_limit,
+                                           self.regulator)
 
         if position.lower() == 'initial':
-            prob.cost.initial += penalty_func
+            prob.inputCost.initial += penalty_func
         elif position.lower() in ['path', 'control']:
-            prob.cost.path += penalty_func
+            prob.inputCost.path += penalty_func
         elif position.lower() == 'terminal':
-            prob.cost.terminal += penalty_func
+            prob.inputCost.terminal += penalty_func
 
         return prob
 
     @staticmethod
-    def _gen_sec_expr(expr: SymExpr, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \
-            -> Tuple[SymExpr, SymExpr]:
+    def _gen_sec_expr(expr: ca.SX, lower_limit: Union[ca.SX, float], upper_limit: Union[ca.SX, float],
+                      regulator: ca.SX) -> ca.SX:
 
         if lower_limit is None or upper_limit is None:
             raise ValueError(f'Path constraints using UTM/secant method must have lower and upper limits')
 
-        penalty_func = regulator \
-            / sympy.cos(sympy.pi / 2 * (2 * expr - upper_limit - lower_limit) / (upper_limit - lower_limit)) - regulator
+        penalty_func = regulator / ca.cos(ca.pi / 2 * (2 * expr - upper_limit - lower_limit)
+                                          / (upper_limit - lower_limit)) - regulator
         return penalty_func
 
     @staticmethod
-    def _gen_rat_expr(expr: SymExpr, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \
-            -> Tuple[SymExpr, SymExpr]:
+    def _gen_rat_expr(expr: ca.SX, lower_limit: Union[ca.SX, float], upper_limit: Union[ca.SX, float],
+                      regulator: ca.SX) -> ca.SX:
 
         if lower_limit is not None and upper_limit is not None:
-            penalty_func = regulator \
-                * (1 / (expr - lower_limit) + 1 / (upper_limit - expr) + 4 / (lower_limit - upper_limit))
+            penalty_func = regulator * (1 / (expr - lower_limit) + 1 / (upper_limit - expr)
+                                        + 4 / (lower_limit - upper_limit))
         elif lower_limit is not None:
             penalty_func = regulator / (expr - lower_limit)
         elif upper_limit is not None:
             penalty_func = regulator / (upper_limit - expr)
         else:
-            raise ValueError(f'Lower or upper limit must be specificed for inequality path constraint.')
+            raise ValueError(f'Lower or upper limit must be specified for inequality path constraint.')
 
         return penalty_func

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 import casadi as ca
 import numpy as np
@@ -28,17 +28,17 @@ class InputAdiffConstraints:
 @dataclass
 class InputAdiffInequalityConstraint:
     expr: ca.SX
-    lower_limit: ca.SX
-    upper_limit: ca.SX
+    lower_limit: Union[ca.SX, float]
+    upper_limit: Union[ca.SX, float]
     regularizer: Optional[Regularizer] = None
 
 
 class InputAdiffInequalityConstraints:
     def __init__(self):
-        self.initial: list[InputAdiffInequalityConstraints] = []
-        self.path: list[InputAdiffInequalityConstraints] = []
-        self.terminal: list[InputAdiffInequalityConstraints] = []
-        self.control: list[InputAdiffInequalityConstraints] = []
+        self.initial: list[InputAdiffInequalityConstraint] = []
+        self.path: list[InputAdiffInequalityConstraint] = []
+        self.terminal: list[InputAdiffInequalityConstraint] = []
+        self.control: list[InputAdiffInequalityConstraint] = []
 
 
 @dataclass
