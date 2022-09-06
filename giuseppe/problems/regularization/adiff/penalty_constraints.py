@@ -65,4 +65,4 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         else:
             raise ValueError(f'Lower or upper limit must be specified for inequality path constraint.')
 
-        return penalty_func
+        return ca.SX.sym(penalty_func)
