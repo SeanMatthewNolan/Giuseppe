@@ -37,7 +37,7 @@ def ca_wrap(name: str, ca_args: Iterable, function: Callable, func_args: Iterabl
 
 
 def lambdify_ca(fun: ca.Function):
-    if fun.size_out()[1] == 1:
+    if fun.size_out(0)[1] == 1:
         return lambda *args: ca_vec2arr(fun(*args))
     else:
         return lambda *args: ca_mat2arr(fun(*args))
