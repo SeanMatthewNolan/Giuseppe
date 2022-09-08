@@ -26,13 +26,8 @@ class InputAdiffNamedExpr:
         self.wrapped_func = self.wrap_expr()
 
     def wrap_expr(self):
-        default_func = ca.Function(self.var.str(), self.func.sx_in(), (np.zeros(self.func.sx_out()[0].shape),))
-
-        def wrapped_func(*args):
-            try:
-                return self.func(*args)
-            except RuntimeError:
-                return default_func(*args)
+        def wrapped_func(args):
+            ca.if_else(ca.SX(args[0]).is_constant(), self.func(*args), self.var)
 
         return wrapped_func
 
