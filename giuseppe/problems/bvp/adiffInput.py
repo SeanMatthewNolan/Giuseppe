@@ -3,7 +3,7 @@ from typing import Optional, Union
 import casadi as ca
 import numpy as np
 
-from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffConstant, InputAdiffNamedExpr, \
+from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffConstant, \
     InputAdiffConstraints, InputAdiffInequalityConstraint, InputAdiffInequalityConstraints
 from giuseppe.problems.regularization import Regularizer
 
