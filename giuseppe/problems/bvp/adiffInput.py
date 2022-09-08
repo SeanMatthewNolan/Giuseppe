@@ -19,18 +19,18 @@ class AdiffInputBVP:
         """
         self.independent = None
         self.states: InputAdiffState = InputAdiffState()
-        self.parameters: ca.SX = ca.SX.sym('', 0)
+        self.parameters: ca.MX = ca.MX.sym('', 0)
         self.constants: InputAdiffConstant = InputAdiffConstant()
         self.constraints: InputAdiffConstraints = InputAdiffConstraints()
         self.inequality_constraints: InputAdiffInequalityConstraints = InputAdiffInequalityConstraints()
 
-    def set_independent(self, var: ca.SX):
+    def set_independent(self, var: ca.MX):
         """
         Set the name of the independent variable (usually time, t)
 
         Parameters
         ----------
-        var : ca.SX
+        var : ca.MX
             the independent variable (CasADi symbolic var)
 
         Returns
@@ -42,28 +42,28 @@ class AdiffInputBVP:
         self.independent = var
         return self
 
-    def add_state(self, state: ca.SX, state_eom: Union[ca.SX, float]):
+    def add_state(self, state: ca.MX, state_eom: Union[ca.MX, float]):
         self.states.states = ca.vcat((self.states.states, state))
         self.states.eoms = ca.vcat((self.states.eoms, state_eom))
         return self
 
-    def add_parameter(self, var: ca.SX):
+    def add_parameter(self, var: ca.MX):
         self.parameters.append(var)
         return self
 
-    def add_constant(self, constant: ca.SX, default_value: Union[np.ndarray, float] = ca.SX(0)):
+    def add_constant(self, constant: ca.MX, default_value: Union[np.ndarray, float] = ca.MX(0)):
         self.constants.constants = ca.vcat((self.constants.constants, constant))
         self.constants.default_values = np.append(self.constants.default_values, default_value)
         return self
 
-    def add_constraint(self, location: str, expr: Union[ca.SX, float]):
+    def add_constraint(self, location: str, expr: Union[ca.MX, float]):
         """
 
         Parameters
         ----------
         location : str
             type of constraint: 'initial', 'terminal'
-        expr : ca.SX
+        expr : ca.MX
             expression that defines constraint
 
         Returns
@@ -76,8 +76,8 @@ class AdiffInputBVP:
         return self
 
     def add_inequality_constraint(
-            self, location: str, expr: ca.SX,
-            lower_limit: Optional[Union[ca.SX, float]] = None, upper_limit: Optional[Union[ca.SX, float]] = None,
+            self, location: str, expr: ca.MX,
+            lower_limit: Optional[Union[ca.MX, float]] = None, upper_limit: Optional[Union[ca.MX, float]] = None,
             regularizer: Optional[Regularizer] = None):
         """
 
@@ -85,11 +85,11 @@ class AdiffInputBVP:
         ----------
         location : str
             type of constraint: 'initial', 'path', 'terminal', 'control'
-        expr : ca.SX
+        expr : ca.MX
             expression that defines inequality constraint
-        lower_limit : ca.SX
+        lower_limit : ca.MX
             expression that defines lower limit of constraint
-        upper_limit : ca.SX
+        upper_limit : ca.MX
             expression that defines upper limit of constraint
         regularizer : Regularizer
             method for applying constraint

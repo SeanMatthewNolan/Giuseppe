@@ -46,9 +46,9 @@ class AdiffDual(Picky):
         self.parameters = self.adiff_ocp.parameters
         self.constants = self.adiff_ocp.constants
 
-        self.costates = ca.SX.sym('lam', self.num_costates)
-        self.initial_adjoints = ca.SX.sym('_nu_0', self.num_initial_adjoints)
-        self.terminal_adjoints = ca.SX.sym('_nu_f', self.num_terminal_adjoints)
+        self.costates = ca.MX.sym('lam', self.num_costates)
+        self.initial_adjoints = ca.MX.sym('_nu_0', self.num_initial_adjoints)
+        self.terminal_adjoints = ca.MX.sym('_nu_f', self.num_terminal_adjoints)
         self.states_and_parameters = ca.vcat((self.states, self.parameters))
 
         self.arg_names = {'ocp': self.adiff_ocp.arg_names,

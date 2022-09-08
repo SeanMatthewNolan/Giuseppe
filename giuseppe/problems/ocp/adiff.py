@@ -102,7 +102,7 @@ class AdiffOCP(Picky):
         else:
             length = 1
 
-        return ca.SX.sym(str(sympy_sym), length)
+        return ca.MX.sym(str(sympy_sym), length)
 
     def wrap_dynamics(self):
         dynamics_fun = ca_wrap('f', self.args, self.comp_ocp.dynamics, self.iter_args,

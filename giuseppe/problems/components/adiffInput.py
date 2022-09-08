@@ -9,27 +9,27 @@ from giuseppe.problems.regularization import Regularizer
 
 @dataclass
 class InputAdiffState:
-    states: ca.SX = ca.SX.sym('', 0)
-    eoms: ca.SX = ca.SX.sym('', 0)
+    states: ca.MX = ca.MX.sym('', 0)
+    eoms: ca.MX = ca.MX.sym('', 0)
 
 
 @dataclass
 class InputAdiffConstant:
-    constants: ca.SX = ca.SX.sym('', 0)
+    constants: ca.MX = ca.MX.sym('', 0)
     default_values: np.ndarray = np.empty((0, 1))
 
 
 @dataclass
 class InputAdiffConstraints:
-    initial: ca.SX = ca.SX.sym('', 0)
-    terminal: ca.SX = ca.SX.sym('', 0)
+    initial: ca.MX = ca.MX.sym('', 0)
+    terminal: ca.MX = ca.MX.sym('', 0)
 
 
 @dataclass
 class InputAdiffInequalityConstraint:
-    expr: ca.SX
-    lower_limit: Union[ca.SX, float]
-    upper_limit: Union[ca.SX, float]
+    expr: ca.MX
+    lower_limit: Union[ca.MX, float]
+    upper_limit: Union[ca.MX, float]
     regularizer: Optional[Regularizer] = None
 
 
@@ -43,6 +43,6 @@ class InputAdiffInequalityConstraints:
 
 @dataclass
 class InputAdiffCost:
-    initial: ca.SX = ca.SX(0)
-    path: ca.SX = ca.SX(0)
-    terminal: ca.SX = ca.SX(0)
+    initial: ca.MX = ca.MX(0)
+    path: ca.MX = ca.MX(0)
+    terminal: ca.MX = ca.MX(0)

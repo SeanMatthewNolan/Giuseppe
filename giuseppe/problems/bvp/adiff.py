@@ -57,10 +57,10 @@ class AdiffBVP(Picky):
             self.num_constants = self.comp_bvp.num_constants
             self.default_values = self.comp_bvp.default_values
 
-            self.independent = ca.SX.sym('t', 1)
-            self.states = ca.SX.sym('x', self.num_states)
-            self.parameters = ca.SX.sym('p', self.num_parameters)
-            self.constants = ca.SX.sym('k', self.num_parameters)
+            self.independent = ca.MX.sym('t', 1)
+            self.states = ca.MX.sym('x', self.num_states)
+            self.parameters = ca.MX.sym('p', self.num_parameters)
+            self.constants = ca.MX.sym('k', self.num_parameters)
 
             self.args = (self.independent, self.states, self.parameters, self.constants)
             self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]
