@@ -6,19 +6,19 @@ import giuseppe
 ocp = giuseppe.io.AdiffInputOCP()
 
 # Independent Variable
-t = ca.SX.sym('t', 1)
+t = ca.MX.sym('t', 1)
 ocp.set_independent(t)
 
 # Control
-alpha = ca.SX.sym('alpha', 1)
+alpha = ca.MX.sym('alpha', 1)
 ocp.add_control(alpha)
 
 # Known Constant Parameters
-Isp = ca.SX.sym('Isp', 1)
-g0 = ca.SX.sym('g0', 1)
-S = ca.SX.sym('S', 1)
-mu = ca.SX.sym('mu', 1)
-Re = ca.SX.sym('Re', 1)
+Isp = ca.MX.sym('Isp', 1)
+g0 = ca.MX.sym('g0', 1)
+S = ca.MX.sym('S', 1)
+mu = ca.MX.sym('mu', 1)
+Re = ca.MX.sym('Re', 1)
 
 ocp.add_constant(Isp, 16000.0)  # s
 ocp.add_constant(g0, 32.174)  # ft/s^2
@@ -29,11 +29,15 @@ ocp.add_constant(Re, 20902900.0)  # ft
 # States
 h = ca.MX.sym('h', 1)
 v = ca.MX.sym('v', 1)
-gam = ca.SX.sym('gam', 1)
-w = ca.SX.sym('w', 1)
+gam = ca.MX.sym('gam', 1)
+w = ca.MX.sym('w', 1)
 
 # TODO add atmosphere model
 M = v / 1125.33  # assume a = 343 m/s = 1125.33 ft/s
+
+h_ref = 23800
+rho_0 = 0.002378
+rho = rho_0 * ca.exp(-h / h_ref)
 
 # Look-Up Tables
 interp_method = 'bspline'  # either 'bspline' or 'linear'
@@ -69,32 +73,67 @@ CLalpha = CLalpha_table(M)
 CD0 = CD0_table(M)
 eta = eta_table(M)
 
+# Expressions
+d2r = ca.pi / 180
+r2d = 180 / ca.pi
+alpha_hat = alpha * r2d
+
+CD = CD0 + eta * CLalpha * alpha_hat**2
+CL = CLalpha * alpha_hat
+drag = 0.5 * CD * S * rho * v**2
+lift = 0.5 * CL * S * rho * v**2
+
+r = Re + h
+mass = w / g0
+
+# Equations of Motion
+ocp.add_state(h, v * ca.sin(gam))
+ocp.add_state(v, 1/mass * (thrust * ca.cos(alpha) - drag) - mu/r**2 * ca.sin(gam))
+ocp.add_state(gam, 1/(mass*v) * (thrust*ca.sin(alpha) + lift) + ca.cos(gam) * (v/r - mu/(v*r**2)))
+ocp.add_state(w, -thrust/Isp)
+
 # Inequality Constraints
-h_min = ca.SX.sym('h_min', 1)
-h_max = ca.SX.sym('h_max', 1)
-eps_h = ca.SX.sym('eps_h', 1)
+h_min = ca.MX.sym('h_min', 1)
+h_max = ca.MX.sym('h_max', 1)
+eps_h = ca.MX.sym('eps_h', 1)
 
-gam_min = ca.SX.sym('gam_min', 1)
-gam_max = ca.SX.sym('gam_max', 1)
-eps_gam = ca.SX.sym('eps_gam', 1)
+ocp.add_constant(h_min, 0)  # ft
+ocp.add_constant(h_max, 69e3)  # ft
+ocp.add_constant(eps_h, 1)
 
-v_min = ca.SX.sym('v_min', 1)
-v_max = ca.SX.sym('v_max', 1)
-eps_v = ca.SX.sym('eps_v', 1)
+gam_max = ca.MX.sym('gam_max', 1)
+eps_gam = ca.MX.sym('eps_gam', 1)
 
-w_min = ca.SX.sym('w_min', 1)
-w_max = ca.SX.sym('w_max', 1)
-eps_w = ca.SX.sym('eps_w', 1)
+ocp.add_constant(gam_max, 89*d2r)  # rad
+ocp.add_constant(eps_gam, 1)
 
-alpha_min = ca.SX.sym('alpha_min', 1)
-alpha_max = ca.SX.sym('alpha_max', 1)
-eps_alpha = ca.SX.sym('eps_alpha', 1)
+v_min = ca.MX.sym('v_min', 1)
+v_max = ca.MX.sym('v_max', 1)
+eps_v = ca.MX.sym('eps_v', 1)
+
+ocp.add_constant(v_min, 1)  # ft
+ocp.add_constant(v_max, 2000)  # ft
+ocp.add_constant(eps_v, 1)
+
+w_min = ca.MX.sym('w_min', 1)
+w_max = ca.MX.sym('w_max', 1)
+eps_w = ca.MX.sym('eps_w', 1)
+
+ocp.add_constant(w_min, 0)  # lb
+ocp.add_constant(w_max, 45000)  # lb
+ocp.add_constant(eps_w, 1)
+
+alpha_max = ca.MX.sym('alpha_max', 1)
+eps_alpha = ca.MX.sym('eps_alpha', 1)
+
+ocp.add_constant(alpha_max, 20*d2r)
+ocp.add_constant(eps_alpha, 1)
 
 ocp.add_inequality_constraint('path', h,
                               lower_limit=h_min, upper_limit=h_max,
                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_h))
 ocp.add_inequality_constraint('path', gam,
-                              lower_limit=gam_min, upper_limit=gam_max,
+                              lower_limit=-gam_max, upper_limit=gam_max,
                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_gam))
 ocp.add_inequality_constraint('path', v,
                               lower_limit=v_min, upper_limit=v_max,
@@ -103,14 +142,14 @@ ocp.add_inequality_constraint('path', w,
                               lower_limit=w_min, upper_limit=w_max,
                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_w))
 ocp.add_inequality_constraint('path', alpha,
-                              lower_limit=alpha_min, upper_limit=alpha_max,
+                              lower_limit=-alpha_max, upper_limit=alpha_max,
                               regularizer=giuseppe.regularization.AdiffControlConstraintHandler(regulator=eps_alpha))
 
 # Initial Boundary Conditions
-h_0 = ca.SX.sym('h_0', 1)
-v_0 = ca.SX.sym('v_0', 1)
-gam_0 = ca.SX.sym('gam_0', 1)
-w_0 = ca.SX.sym('w_0', 1)
+h_0 = ca.MX.sym('h_0', 1)
+v_0 = ca.MX.sym('v_0', 1)
+gam_0 = ca.MX.sym('gam_0', 1)
+w_0 = ca.MX.sym('w_0', 1)
 
 ocp.add_constant(h_0, 0.0)  # ft
 ocp.add_constant(v_0, 424.26)  # ft/s
@@ -123,9 +162,9 @@ ocp.add_constraint(location='initial', expr=gam - gam_0)
 ocp.add_constraint(location='initial', expr=w - w_0)
 
 # Terminal Boundary Conditions
-h_f = ca.SX.sym('h_f', 1)
-v_f = ca.SX.sym('v_f', 1)
-gam_f = ca.SX.sym('gam_f', 1)
+h_f = ca.MX.sym('h_f', 1)
+v_f = ca.MX.sym('v_f', 1)
+gam_f = ca.MX.sym('gam_f', 1)
 
 ocp.add_constant(h_f, 65600.0)  # ft
 ocp.add_constant(v_f, 968.148)  # ft/s
@@ -135,7 +174,19 @@ ocp.add_constraint(location='terminal', expr=h - h_f)
 ocp.add_constraint(location='terminal', expr=v - v_f)
 ocp.add_constraint(location='terminal', expr=gam - gam_f)
 
+# Objective Function
+ocp.set_cost(0, 0, t)
+
 # Compilation
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
+    adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
+    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
+    adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
+    comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False)
+    # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
 # Continuation and Solving
-
+guess = giuseppe.guess_generators.auto_linear_guess(adiff_dualocp)
+seed_sol = num_solver.solve(guess.k, guess)
+sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)

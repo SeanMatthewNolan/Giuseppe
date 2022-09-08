@@ -4,11 +4,11 @@ import giuseppe
 goddard = giuseppe.io.AdiffInputOCP()
 
 # Constants
-max_thrust = ca.SX.sym('max_thrust', 1)
-g = ca.SX.sym('g', 1)
-sigma = ca.SX.sym('sigma', 1)
-c = ca.SX.sym('c', 1)
-h_ref = ca.SX.sym('h_ref', 1)
+max_thrust = ca.MX.sym('max_thrust', 1)
+g = ca.MX.sym('g', 1)
+sigma = ca.MX.sym('sigma', 1)
+c = ca.MX.sym('c', 1)
+h_ref = ca.MX.sym('h_ref', 1)
 
 goddard.add_constant(max_thrust, 193.044)  # TODO can this field be removed?
 goddard.add_constant(g, 32.174)
@@ -17,27 +17,27 @@ goddard.add_constant(c, 1580.9425279876559)
 goddard.add_constant(h_ref, 23_800)
 
 # Independent variable
-t = ca.SX.sym('t', 1)
+t = ca.MX.sym('t', 1)
 goddard.set_independent(t)
 
 # Control
-thrust = ca.SX.sym('thrust', 1)
+thrust = ca.MX.sym('thrust', 1)
 goddard.add_control(thrust)
 
 # States
-h = ca.SX.sym('h', 1)
-v = ca.SX.sym('v', 1)
-m = ca.SX.sym('m', 1)
+h = ca.MX.sym('h', 1)
+v = ca.MX.sym('v', 1)
+m = ca.MX.sym('m', 1)
 goddard.add_state(h, v)
 goddard.add_state(v, (thrust - sigma * v**2 * ca.exp(-h / h_ref))/m - g)
 goddard.add_state(m, -thrust / c)
 
 # Boundary Values
-h_0 = ca.SX.sym('h_0', 1)
-v_0 = ca.SX.sym('v_0', 1)
-m_0 = ca.SX.sym('m_0', 1)
-m_f = ca.SX.sym('m_f', 1)
-eps_thrust = ca.SX.sym('eps_thrust')
+h_0 = ca.MX.sym('h_0', 1)
+v_0 = ca.MX.sym('v_0', 1)
+m_0 = ca.MX.sym('m_0', 1)
+m_f = ca.MX.sym('m_f', 1)
+eps_thrust = ca.MX.sym('eps_thrust')
 
 goddard.add_constant(h_0, 0)
 goddard.add_constant(v_0, 0)
