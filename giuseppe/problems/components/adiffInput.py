@@ -19,22 +19,6 @@ class InputAdiffConstant:
     default_values: np.ndarray = np.empty((0, 1))
 
 
-class InputAdiffNamedExpr:
-    def __init__(self, var: ca.SX, func: ca.Function):
-        self.var: ca.SX = var
-        self.func: ca.Function = func
-        self.wrapped_func = self.wrap_expr()
-
-    def wrap_expr(self):
-        def wrapped_func(args):
-            ca.if_else(ca.SX(args[0]).is_constant(), self.func(*args), self.var)
-
-        return wrapped_func
-
-    def __repr__(self):
-        return f'NamedExpr {self.var.str()} for {self.func.str()}'
-
-
 @dataclass
 class InputAdiffConstraints:
     initial: ca.SX = ca.SX.sym('', 0)

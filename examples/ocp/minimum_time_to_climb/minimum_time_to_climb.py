@@ -26,6 +26,15 @@ ocp.add_constant(S, 530.0)  # ft^2
 ocp.add_constant(mu, 1.4076539e16)  # ft^3/s^2
 ocp.add_constant(Re, 20902900.0)  # ft
 
+# States
+h = ca.MX.sym('h', 1)
+v = ca.MX.sym('v', 1)
+gam = ca.SX.sym('gam', 1)
+w = ca.SX.sym('w', 1)
+
+# TODO add atmosphere model
+M = v / 1125.33  # assume a = 343 m/s = 1125.33 ft/s
+
 # Look-Up Tables
 interp_method = 'bspline'  # either 'bspline' or 'linear'
 
@@ -41,8 +50,11 @@ data_thrust = np.array(((24.2, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                         (0, 36.6, 38.5, 36.1, 31.6, 28.1, 24.2, 16.2, 10.0, 2.2),
                         (0, 0, 0, 38.7, 35.7, 32.0, 28.1, 19.3, 11.9, 2.9),
                         (0, 0, 0, 0, 0, 34.6, 31.1, 21.7, 13.3, 3.1)))
+
 data_flat_thrust = data_thrust.ravel(order='F')
 thrust_table = ca.interpolant('thrust_table', interp_method, (M_grid_thrust, h_grid_thrust), data_flat_thrust)
+
+thrust = thrust_table(ca.vcat((M, h)))
 
 M_grid_aero = np.array((0, 0.4, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8))
 data_CLalpha = np.array((3.44, 3.44, 3.44, 3.58, 4.44, 3.44, 3.01, 2.86, 2.44))
@@ -53,14 +65,9 @@ CLalpha_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), d
 CD0_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_CLalpha)
 eta_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_CLalpha)
 
-# Expressions
-# TODO implement expressions that map a sym to a casadi function
-
-# States & EOMs
-h = ca.SX.sym('h', 1)
-v = ca.SX.sym('v', 1)
-gam = ca.SX.sym('gam', 1)
-w = ca.SX.sym('w', 1)
+CLalpha = CLalpha_table(M)
+CD0 = CD0_table(M)
+eta = eta_table(M)
 
 # Inequality Constraints
 h_min = ca.SX.sym('h_min', 1)

@@ -23,7 +23,6 @@ class AdiffInputBVP:
         self.constants: InputAdiffConstant = InputAdiffConstant()
         self.constraints: InputAdiffConstraints = InputAdiffConstraints()
         self.inequality_constraints: InputAdiffInequalityConstraints = InputAdiffInequalityConstraints()
-        self.expressions: list[InputAdiffNamedExpr] = []
 
     def set_independent(self, var: ca.SX):
         """
@@ -55,10 +54,6 @@ class AdiffInputBVP:
     def add_constant(self, constant: ca.SX, default_value: Union[np.ndarray, float] = ca.SX(0)):
         self.constants.constants = ca.vcat((self.constants.constants, constant))
         self.constants.default_values = np.append(self.constants.default_values, default_value)
-        return self
-
-    def add_expression(self, expr_var: ca.SX, expr_func: ca.Function):
-        self.expressions.append(InputAdiffNamedExpr(var=expr_var, func=expr_func))
         return self
 
     def add_constraint(self, location: str, expr: Union[ca.SX, float]):
