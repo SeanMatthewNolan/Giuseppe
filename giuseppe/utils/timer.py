@@ -8,6 +8,7 @@ TIMER_TYPE = Callable[[], _TIMER_OUTPUT_TYPE]
 LOG_FUNC_TYPE = Callable[[str], None]
 
 
+# TODO Consider making this and other components useful in other projects a seperate library
 def format_time(elasped_time: _TIMER_OUTPUT_TYPE):
     if isinstance(elasped_time, int):
         microseconds, nanoseconds = divmod(elasped_time, 1e3)

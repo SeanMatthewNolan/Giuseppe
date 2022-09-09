@@ -117,6 +117,9 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
+    def add_grid_search(self, constants):
+        ...
+
     def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP], display=ProgressBarDisplay()) \
             -> SolutionSet:
         """

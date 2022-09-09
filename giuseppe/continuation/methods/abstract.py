@@ -17,7 +17,11 @@ class ContinuationSeries(Iterable, ABC):
 
     @abstractmethod
     def __iter__(self) -> Iterator[tuple[NPArray, Solution]]:
-        pass
+        ...
+
+    @abstractmethod
+    def __next__(self) -> tuple[NPArray, Solution]:
+        ...
 
     def __repr__(self):
         return 'Continuation Series'

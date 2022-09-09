@@ -50,6 +50,9 @@ class SolutionSet(MutableSequence, Picky):
         # Annotations
         self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
 
+    def __repr__(self):
+        return f'SolutionSet<{len(self)} Solutions>'
+
     def insert(self, index: int, solution: Solution) -> None:
         self.solutions.insert(index, solution)
 

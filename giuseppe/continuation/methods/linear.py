@@ -54,7 +54,7 @@ class LinearSeries(ContinuationSeries):
 
     def _get_constant_indices(self) -> list[int]:
         indices = []
-        for constant_key, target_value in self.target_mapping.items():
+        for constant_key in self.target_mapping.keys():
             try:
                 indices.append(self.solution_set.constant_names.index(constant_key))
             except ValueError:
