@@ -1,30 +1,24 @@
 from __future__ import annotations
 import json
-import pprint
 import pickle
+import pprint
 import warnings
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence, Hashable
 from copy import deepcopy
 from os.path import splitext
-from typing import Optional, Union, overload
+from typing import Optional, overload
 
 import bson
 
-from giuseppe.problems.bvp import SymBVP, AdiffBVP
 from giuseppe.problems.dual import SymDualOCP, AdiffDual, AdiffDualOCP
-from giuseppe.problems.ocp import SymOCP, AdiffOCP
-from giuseppe.utils.mixins import Picky
+from giuseppe.problems.ocp import AdiffOCP
 from .solution import Solution
 
 
 # TODO: add annotations to solution set
-class SolutionSet(MutableSequence, Picky):
-    SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
-
-    def __init__(self, problem: SUPPORTED_INPUTS, seed_solution: Solution):
-        Picky.__init__(self, problem)
-
+class SolutionSet(MutableSequence):
+    def __init__(self, problem, seed_solution: Solution):
         problem = deepcopy(problem)
         if type(problem) is SymDualOCP:
             self.constants = problem.ocp.constants

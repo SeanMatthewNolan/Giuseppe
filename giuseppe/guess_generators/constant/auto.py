@@ -5,11 +5,11 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import initialize_guess_w_default_value, update_constant_value
 from ..projection import project_to_nullspace
+from ...data import Solution
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 

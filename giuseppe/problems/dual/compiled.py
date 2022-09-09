@@ -8,11 +8,11 @@ from numpy.typing import ArrayLike
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, SymMatrix
+from .adiff import AdiffDual, AdiffDualOCP, AdiffOCP, AdiffDiffControlHandler
 from .symbolic import SymDual, SymDualOCP, SymOCP, AlgebraicControlHandler, DifferentialControlHandler, \
     DifferentialControlHandlerNumeric
-from .adiff import AdiffDual, AdiffDualOCP, AdiffOCP, AdiffDiffControlHandler
-from ..components.compiled import CompBoundaryConditions, CompCost
 from ..components.adiff import lambdify_ca
+from ..components.compiled import CompBoundaryConditions, CompCost
 from ..ocp.compiled import CompOCP
 
 

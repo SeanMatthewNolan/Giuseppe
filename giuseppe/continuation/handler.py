@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping
 from typing import Union, Optional
 
-from giuseppe.io.solution_set import SolutionSet
+from giuseppe.data.solution_set import SolutionSet
 from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries

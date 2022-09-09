@@ -2,12 +2,12 @@ from typing import Union, Optional, Callable, TypeVar
 
 from numpy.typing import ArrayLike
 
-from giuseppe.io import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import propagate_guess
 from ..constant import initialize_guess_for_auto
 from ..projection import match_states_to_bc, match_costates_to_bc
+from ...data import Solution
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]

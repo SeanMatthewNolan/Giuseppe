@@ -2,9 +2,9 @@ from typing import Tuple, Union
 
 import numpy as np
 
-from giuseppe.io.solution import Solution
 from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP
 from .project_to_nullspace import project_to_nullspace
+from ...data import Solution
 
 SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 

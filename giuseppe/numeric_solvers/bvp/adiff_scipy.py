@@ -7,7 +7,7 @@ import numpy as np
 from numpy import ndarray
 from scipy.integrate import solve_bvp
 
-from giuseppe.io import Solution
+from ...data import Solution
 from ...problems.bvp import AdiffBVP
 from ...problems.dual import AdiffDualOCP
 from ...problems.dual.adiff import AdiffDiffControlHandler

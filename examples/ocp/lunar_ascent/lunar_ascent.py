@@ -51,7 +51,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
 
 guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45/180*3.14159, t_span=T_GUESS)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
+sol_set = giuseppe.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
 cont.run_continuation(num_solver)

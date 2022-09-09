@@ -1,5 +1,6 @@
 import json
 import pickle
+from collections.abc import Hashable
 from dataclasses import dataclass
 from os.path import splitext
 from typing import Optional
@@ -8,6 +9,22 @@ import bson
 
 from giuseppe.utils.conversion import arrays_to_lists_in_dict, lists_to_arrays_in_dict
 from giuseppe.utils.typing import NPArray
+
+
+@dataclass
+class Annotations:
+    t: Optional[Hashable] = None
+    x: Optional[list[Hashable]] = None
+    p: Optional[list[Hashable]] = None
+    k: Optional[list[Hashable]] = None
+
+    u: Optional[list[Hashable]] = None
+
+    lam: Optional[list[Hashable]] = None
+    nu0: Optional[list[Hashable]] = None
+    nuf: Optional[list[Hashable]] = None
+
+    aux: Optional[dict] = None
 
 
 @dataclass
@@ -26,6 +43,8 @@ class Solution:
     aux: Optional[dict] = None
 
     converged: bool = False
+
+    annotations: Annotations = Annotations()
 
     def as_dict(self, arr_to_list: bool = False):
         sol_dict = {

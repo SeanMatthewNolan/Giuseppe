@@ -4,8 +4,8 @@ from copy import copy
 
 import numpy as np
 
-from giuseppe.io import Solution, SolutionSet
 from .abstract import ContinuationSeries
+from ...data import Solution, SolutionSet
 from ...utils.exceptions import ContinuationError
 from ...utils.typing import NPArray
 

@@ -5,9 +5,10 @@ import pickle
 import numpy as np
 
 import giuseppe
+from giuseppe import SolutionSet
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
-from giuseppe.io import InputOCP, SolutionSet
+from giuseppe.io import InputOCP
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP

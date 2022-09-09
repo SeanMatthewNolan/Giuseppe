@@ -40,7 +40,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
 
 guess = giuseppe.guess_generators.generate_constant_guess(comp_dual_ocp)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
+sol_set = giuseppe.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(6, {'c': 1})
 

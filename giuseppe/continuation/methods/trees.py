@@ -1,14 +1,10 @@
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
 from collections.abc import Iterator, Iterable
-from typing import Union, Optional
-from copy import copy
+from typing import Union
 
 import numpy as np
 
 from giuseppe.io import Solution, SolutionSet
 from .abstract import ContinuationSeries
-from ...utils.exceptions import ContinuationError
 from ...utils.typing import NPArray
 
 

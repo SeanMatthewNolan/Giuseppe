@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Optional
 
-from giuseppe.io import Solution, SolutionSet
+from ...data import Solution, SolutionSet
 from ...utils.strings import justify_str
 from ...utils.typing import NPArray
 

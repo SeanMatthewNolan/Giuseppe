@@ -4,10 +4,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.integrate import solve_ivp
 
-from giuseppe.io import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 from ..constant import update_constant_value, initialize_guess_for_auto
 from ..projection import match_constants_to_bcs, project_dual
+from ...data import Solution
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]

@@ -64,7 +64,7 @@ with open('guess.data', 'wb') as file:
     pickle.dump(guess, file)
 
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
+sol_set = giuseppe.SolutionSet(sym_bvp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'t_f': 1}, bisection=True)

@@ -1,15 +1,13 @@
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Iterator, Iterable
-from typing import Union, Optional
 from copy import copy
-from enum import Enum, auto
-import queue
+from dataclasses import dataclass
+from typing import Union
 
 import numpy as np
 
-from giuseppe.io import Solution, SolutionSet
 from .abstract import ContinuationSeries
+from ...data import Solution, SolutionSet
 from ...utils.exceptions import ContinuationError
 from ...utils.typing import NPArray, EMPTY_ARRAY
 

@@ -4,9 +4,9 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io.solution import Solution
 from giuseppe.problems.typing import AnyProblem
 from ..constant import update_constant_value, initialize_guess_w_default_value
+from ...data import Solution
 
 
 def update_linear_value(guess: Solution, name: str, initial_values: Optional[Union[float, ArrayLike]],
