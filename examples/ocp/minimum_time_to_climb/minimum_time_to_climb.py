@@ -199,7 +199,13 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True)
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
-# Continuation and Solving
+# Guess Generation (overwrites the terminal conditions in order to converge)
 guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=1)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
+
+# Continuations (from guess BCs to desired BCs)
+
+
+# Save Solution
+sol_set.save('sol_set.data')
