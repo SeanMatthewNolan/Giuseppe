@@ -40,7 +40,7 @@ rho_0 = 0.002378
 rho = rho_0 * ca.exp(-h / h_ref)
 
 # Look-Up Tables
-interp_method = 'bspline'  # either 'bspline' or 'linear'
+interp_method = 'linear'  # either 'bspline' or 'linear'
 
 M_grid_thrust = np.array((0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8))
 h_grid_thrust = np.array((0, 5, 10, 15, 20, 25, 30, 40, 50, 70)) * 1e3
@@ -187,10 +187,10 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
     comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True)
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
 # Continuation and Solving
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=100)
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=1)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
