@@ -14,17 +14,23 @@ alpha = ca.MX.sym('alpha', 1)
 ocp.add_control(alpha)
 
 # Known Constant Parameters
-Isp = ca.MX.sym('Isp', 1)
-g0 = ca.MX.sym('g0', 1)
-S = ca.MX.sym('S', 1)
-mu = ca.MX.sym('mu', 1)
-Re = ca.MX.sym('Re', 1)
+# Isp = ca.MX.sym('Isp', 1)
+# g0 = ca.MX.sym('g0', 1)
+# S = ca.MX.sym('S', 1)
+# mu = ca.MX.sym('mu', 1)
+# Re = ca.MX.sym('Re', 1)
+#
+# ocp.add_constant(Isp, 16000.0)  # s
+# ocp.add_constant(g0, 32.174)  # ft/s^2
+# ocp.add_constant(S, 530.0)  # ft^2
+# ocp.add_constant(mu, 1.4076539e16)  # ft^3/s^2
+# ocp.add_constant(Re, 20902900.0)  # ft
 
-ocp.add_constant(Isp, 16000.0)  # s
-ocp.add_constant(g0, 32.174)  # ft/s^2
-ocp.add_constant(S, 530.0)  # ft^2
-ocp.add_constant(mu, 1.4076539e16)  # ft^3/s^2
-ocp.add_constant(Re, 20902900.0)  # ft
+Isp = 16000
+g0 = 32.174
+S = 530
+mu = 1.4076539e16
+Re = 20902900
 
 # States
 h = ca.MX.sym('h', 1)
@@ -97,7 +103,7 @@ h_min = ca.MX.sym('h_min', 1)
 h_max = ca.MX.sym('h_max', 1)
 eps_h = ca.MX.sym('eps_h', 1)
 
-ocp.add_constant(h_min, 0)  # ft
+ocp.add_constant(h_min, -10)  # ft
 ocp.add_constant(h_max, 69e3)  # ft
 ocp.add_constant(eps_h, 1)
 
@@ -146,16 +152,19 @@ ocp.add_inequality_constraint('path', alpha,
                               regularizer=giuseppe.regularization.AdiffControlConstraintHandler(regulator=eps_alpha))
 
 # Initial Boundary Conditions
+t_0 = ca.MX.sym('t_0', 1)
 h_0 = ca.MX.sym('h_0', 1)
 v_0 = ca.MX.sym('v_0', 1)
 gam_0 = ca.MX.sym('gam_0', 1)
 w_0 = ca.MX.sym('w_0', 1)
 
+ocp.add_constant(t_0, 0.0)  # s
 ocp.add_constant(h_0, 0.0)  # ft
 ocp.add_constant(v_0, 424.26)  # ft/s
 ocp.add_constant(gam_0, 0.0)  # rad
 ocp.add_constant(w_0, 42000.0)  # lb
 
+ocp.add_constraint(location='initial', expr=t - t_0)
 ocp.add_constraint(location='initial', expr=h - h_0)
 ocp.add_constraint(location='initial', expr=v - v_0)
 ocp.add_constraint(location='initial', expr=gam - gam_0)
@@ -187,10 +196,10 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
     comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True)
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
 # Continuation and Solving
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=100)
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=1)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
