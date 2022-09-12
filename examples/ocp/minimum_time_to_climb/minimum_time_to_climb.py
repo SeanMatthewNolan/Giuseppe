@@ -166,9 +166,13 @@ h_f = ca.MX.sym('h_f', 1)
 v_f = ca.MX.sym('v_f', 1)
 gam_f = ca.MX.sym('gam_f', 1)
 
-ocp.add_constant(h_f, 65600.0)  # ft
-ocp.add_constant(v_f, 968.148)  # ft/s
-ocp.add_constant(gam_f, 0.0)  # rad
+# ocp.add_constant(h_f, 65600.0)  # ft
+# ocp.add_constant(v_f, 968.148)  # ft/s
+# ocp.add_constant(gam_f, 0.0)  # rad
+
+ocp.add_constant(h_f, -3.13284367e+03)  # ft
+ocp.add_constant(v_f, 3.11450056e+01)  # ft/s
+ocp.add_constant(gam_f, -1.44590179e+00)  # rad
 
 ocp.add_constraint(location='terminal', expr=h - h_f)
 ocp.add_constraint(location='terminal', expr=v - v_f)
@@ -187,6 +191,6 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
 # Continuation and Solving
-guess = giuseppe.guess_generators.auto_linear_guess(adiff_dualocp)
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
