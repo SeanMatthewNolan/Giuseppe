@@ -46,7 +46,7 @@ rho_0 = 0.002378
 rho = rho_0 * ca.exp(-h / h_ref)
 
 # Look-Up Tables
-interp_method = 'bspline'  # either 'bspline' or 'linear'
+interp_method = 'linear'  # either 'bspline' or 'linear'
 
 M_grid_thrust = np.array((0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8))
 h_grid_thrust = np.array((0, 5, 10, 15, 20, 25, 30, 40, 50, 70)) * 1e3
