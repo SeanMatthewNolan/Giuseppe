@@ -27,7 +27,7 @@ ax22 = fig_lam.add_subplot(2, 1, 2)
 ax22.set_xlabel(r'$t$')
 ax22.set_ylabel(r'$\lambda_y$')
 
-for sol in sol_set:
+for sol in sol_set[-6:]:
     ax11.plot(sol.x[0, :], sol.x[1, :])
     ax12.plot(sol.t, sol.u[0, :])
 
