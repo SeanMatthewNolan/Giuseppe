@@ -9,6 +9,7 @@ from giuseppe.io import Solution
 from ...problems.bvp import AdiffBVP
 from ...problems.dual import AdiffDualOCP
 from ...problems.dual.adiff import AdiffDiffControlHandler
+from ...problems.components.adiff import maybe_expand
 from ...utils.mixins import Picky
 from ...utils.typing import NPArray
 
@@ -84,7 +85,7 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_bvp_dynamics(bvp: AdiffBVP) -> _dyn_type:
-        bvp_dyn = bvp.ca_dynamics
+        bvp_dyn = maybe_expand(bvp.ca_dynamics)
         n_p = bvp.num_parameters
 
         def dynamics(tau_vec: NPArray, x_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
@@ -105,8 +106,8 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_bvp_bcs(bvp: AdiffBVP) -> _bc_type:
-        bvp_bc0 = bvp.ca_boundary_conditions.initial
-        bvp_bcf = bvp.ca_boundary_conditions.terminal
+        bvp_bc0 = maybe_expand(bvp.ca_boundary_conditions.initial)
+        bvp_bcf = maybe_expand(bvp.ca_boundary_conditions.terminal)
 
         n_p = bvp.num_parameters
 
@@ -145,6 +146,8 @@ class AdiffScipySolveBVP(Picky):
         _u_dot = dual_ocp.control_handler.ca_control_dynamics(*args)
         y_dyn = ca.Function('dy_dt', args, (ca.vcat((_x_dot, _lam_dot, _u_dot)),), arg_names, ('dy_dt',))
 
+        y_dyn = maybe_expand(y_dyn)
+
         n_x = dual_ocp.dual.num_states
         n_lam = dual_ocp.dual.num_costates
         n_p = dual_ocp.dual.num_parameters
@@ -177,13 +180,13 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_ocp_diff_bcs(dual_ocp: AdiffDualOCP) -> _bc_type:
-        ocp_bc0 = dual_ocp.ocp.ca_boundary_conditions.initial
-        ocp_bcf = dual_ocp.ocp.ca_boundary_conditions.terminal
+        ocp_bc0 = maybe_expand(dual_ocp.ocp.ca_boundary_conditions.initial)
+        ocp_bcf = maybe_expand(dual_ocp.ocp.ca_boundary_conditions.terminal)
 
-        dual_bc0 = dual_ocp.dual.ca_adj_boundary_conditions.initial
-        dual_bcf = dual_ocp.dual.ca_adj_boundary_conditions.terminal
+        dual_bc0 = maybe_expand(dual_ocp.dual.ca_adj_boundary_conditions.initial)
+        dual_bcf = maybe_expand(dual_ocp.dual.ca_adj_boundary_conditions.terminal)
 
-        control_bc = dual_ocp.control_handler.ca_control_bc
+        control_bc = maybe_expand(dual_ocp.control_handler.ca_control_bc)
 
         n_x = dual_ocp.dual.num_states
         n_lam = dual_ocp.dual.num_costates

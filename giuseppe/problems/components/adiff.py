@@ -42,3 +42,11 @@ def lambdify_ca(fun: ca.Function):
         return lambda *args: ca_vec2arr(fun(*args))
     else:
         return lambda *args: ca_mat2arr(fun(*args))
+
+
+def maybe_expand(fun: ca.Function):
+    try:
+        out_fun = fun.expand()
+    except RuntimeError:
+        out_fun = fun
+    return out_fun
