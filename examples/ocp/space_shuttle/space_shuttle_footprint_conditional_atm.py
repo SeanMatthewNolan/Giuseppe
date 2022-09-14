@@ -70,31 +70,11 @@ v = ca.MX.sym('v', 1)
 ψ = ca.MX.sym('ψ', 1)
 
 # Atmosphere Func
-atm = Atmosphere1976(use_metric=False, gravity=g0, earth_radius=re)
+atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
 
 
-# TODO refactor callback into backend
-class AtmosphereFunction(ca.Callback):
-    def __init__(self):
-        ca.Callback.__init__(self)
-        self.construct('atmosphere_function', {"enable_fd": True})
-
-    @staticmethod
-    def get_n_in(): return 1
-
-    @staticmethod
-    def get_n_out(): return 3
-
-    @staticmethod
-    def init(): return
-
-    @staticmethod
-    def eval(altitude):
-        return list(atm.atm_func(float(altitude[0])))
-
-
-ca_atm_func = AtmosphereFunction()
-rho = ca_atm_func(h)[2]  # AtmosphereFunction outputs temperature, pressure, density
+ca_rho_func = DensityFunction()
+rho = ca_rho_func(h)
 
 # Add Controls
 alpha = ca.MX.sym('α', 1)
@@ -171,9 +151,10 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.ocp.AdiffOCP(ocp)
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_bvp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, verbose=True)
 
 guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
+guess.k[-3:] = guess.x[(0, 3, 4), -1]  # match h_f, v_f, gam_f
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
 

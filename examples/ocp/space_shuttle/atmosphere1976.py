@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import casadi as ca
 
 
 class Atmosphere1976:
@@ -15,6 +16,9 @@ class Atmosphere1976:
         self.T_layers = np.array((292.15,))  # K
         self.P_layers = np.array((108_900,))  # Pa
         self.rho_layers = np.array((1.2985,))  # kg/m^3
+        self.layer_names = ['Troposphere', 'Tropopause',
+                            'Lower Stratosphere', 'Upper Stratosphere', 'Stratopause',
+                            'Lower Mesosphere', 'Upper Mesosphere', 'Mesopause']
 
         if gas_constant is not None:
             self.gas_constant = gas_constant
@@ -95,7 +99,7 @@ class Atmosphere1976:
     def geopotential2geometric(self, h_geopotential):
         return self.earth_radius * h_geopotential / (self.earth_radius - h_geopotential)
 
-    def atm_func(self, altitude_geometric):
+    def atm_data(self, altitude_geometric):
         altitude_geopotential = self.geometric2geopotential(altitude_geometric)
         if altitude_geopotential < self.h_layers[0]:
             altitude_geopotential = self.h_layers[0]
@@ -116,6 +120,45 @@ class Atmosphere1976:
                                        pressure_0=self.P_layers[layer_idx],
                                        density_0=self.rho_layers[layer_idx])
 
+    def temperature(self, altitude_geometric):
+        temperature, _, __ = self.atm_data(altitude_geometric)
+        return temperature
+
+    def pressure(self, altitude_geometric):
+        _, pressure, __ = self.atm_data(altitude_geometric)
+
+    def density(self, altitude_geometric):
+        _, __, density = self.atm_data(altitude_geometric)
+        return density
+
+    def layer(self, altitude_geometric):
+        altitude_geopotential = self.geometric2geopotential(altitude_geometric)
+        if altitude_geopotential < self.h_layers[0]:
+            altitude_geopotential = self.h_layers[0]
+        layer_idx = np.sum(altitude_geopotential >= self.h_layers) - 1
+
+        return self.layer_names[layer_idx]
+
+
+# TODO refactor callback into backend
+class DensityFunction(ca.Callback):
+    def __init__(self):
+        ca.Callback.__init__(self)
+        self.construct('atmosphere_function', {"enable_fd": True})
+
+    @staticmethod
+    def get_n_in(): return 1
+
+    @staticmethod
+    def get_n_out(): return 1
+
+    @staticmethod
+    def init(): return
+
+    @staticmethod
+    def eval(altitude):
+        return [atm.density(float(altitude[0]))]
+
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
@@ -133,17 +176,24 @@ if __name__ == "__main__":
 
     atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
     density_1976 = np.empty(shape=altitudes.shape)
+    layer_1976 = list()
+
     for i, h in enumerate(altitudes):
-        _, __, density_1976[i] = atm.atm_func(h)
+        density_1976[i] = atm.density(h)
+        layer_1976.append(atm.layer(h))
+    layer_1976 = np.array(layer_1976)
 
     fig = plt.figure(figsize=(6.5, 5))
     title = fig.suptitle('Compare 1976 to Exponential Atmosphere')
 
     ax1 = fig.add_subplot(111)
-    ax1.plot(density_exponential, altitudes / 10_000, label='Exponential')
-    ax1.plot(density_1976, altitudes / 10_000, label='1976')
+    ax1.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
+    for layer in atm.layer_names:
+        layer_idx = np.where(layer_1976 == layer)
+        if len(layer_idx[0]) > 0:
+            ax1.plot(density_1976[layer_idx] * 100_000, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
     ax1.grid()
-    ax1.set_xlabel('Density [slug / ft^3]')
+    ax1.set_xlabel('Density [slug / 100,000 ft^3]')
     ax1.set_ylabel('Altitude [10,000 ft]')
     ax1.legend()
 
