@@ -1,5 +1,6 @@
 from typing import Optional
 
+from giuseppe.data.solution import Annotations
 from giuseppe.problems.components.input import InputState, InputConstant, InputNamedExpr, InputConstraints, \
     InputInequalityConstraint, InputInequalityConstraints
 from giuseppe.problems.regularization import Regularizer
@@ -69,3 +70,11 @@ class InputBVP:
                         expr, lower_limit=lower_limit, upper_limit=upper_limit, regularizer=regularizer))
 
         return self
+
+    def form_annotations(self) -> Optional[Annotations]:
+        return Annotations(
+                t=self.independent,
+                x=[state.name for state in self.states],
+                p=self.parameters,
+                k=[constant.name for constant in self.constants],
+        )
