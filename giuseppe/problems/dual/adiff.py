@@ -153,8 +153,48 @@ class AdiffDualOCP:
         self.ocp = deepcopy(adiff_ocp)
         self.dual = deepcopy(adiff_dual)
 
+        self.independent = self.dual.independent
+        self.states = self.dual.states
+        self.costates = self.dual.costates
+        self.controls = self.dual.controls
+        self.parameters = self.dual.parameters
+        self.constants = self.dual.constants
+        self.initial_adjoints = self.dual.initial_adjoints
+        self.terminal_adjoints = self.dual.terminal_adjoints
+
+        self.initial_time = ca.MX.sym('t_0', 1)
+        self.terminal_time = ca.MX.sym('t_f', 1)
+
         if control_method.lower() == 'differential':
             self.control_handler = AdiffDiffControlHandler(self.ocp, self.dual)
         else:
             raise NotImplementedError(
                 f'\"{control_method}\" is not an implemented control method. Try \"differential\".')
+
+        self.dyn_jac_args = self.dual.args['dynamic']
+        self.dyn_jac_arg_names = self.dual.arg_names['dynamic']
+        self.param_jac_args = (self.independent, self.states, self.costates, self.controls, self.parameters,
+                               self.initial_adjoints, self.terminal_adjoints, self.constants)
+        self.param_jac_arg_names = ('t', 'x', 'lam', 'u', 'p', '_nu_0', '_nu_f', 't_0', 't_f', 'k')
+
+        _x_dot = self.ocp.ca_dynamics(*self.ocp.args)
+        _lam_dot = self.dual.ca_costate_dynamics(*self.dual.args['dynamic'])
+        _u_dot = self.control_handler.ca_control_dynamics(*self.dual.args['dynamic'])
+        _y_dot = ca.vcat((_x_dot, _lam_dot, _u_dot))
+
+        _dyn_y_jac = ca.jacobian(_y_dot, ca.vcat((self.states,  # x
+                                                  self.costates,  # lam
+                                                  self.controls)))  # u
+
+        _dyn_p_jac = ca.jacobian(_y_dot, ca.vcat((self.parameters,  # p
+                                                  self.initial_adjoints,  # nu_0
+                                                  self.terminal_adjoints,  # nu_f
+                                                  self.initial_time,  # t_0
+                                                  self.terminal_time)))  # t_f
+
+        # TODO add bc_jac to AdiffDualOCP
+
+        self.dyn_y_jac = ca.Function('dy_dx_lam_u', self.dyn_jac_args, (_dyn_y_jac,),
+                                     self.dyn_jac_arg_names, ('dy_dx_lam_u',))
+        self.dyn_p_jac = ca.Function('dy_dp_nu0_nuf', self.param_jac_args, (_dyn_p_jac,),
+                                     self.param_jac_arg_names, ('dy_dp_nu0_nuf',))

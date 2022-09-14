@@ -58,21 +58,25 @@ class AdiffScipySolveBVP(Picky):
         self.max_nodes: int = max_nodes
         self.verbose: bool = verbose
 
-        dynamics, boundary_conditions, preprocess, postprocess = self.load_problem(bvp)
+        dynamics, dyn_jac, boundary_conditions, preprocess, postprocess = self.load_problem(bvp)
         self.dynamics: _dyn_type = dynamics
+        self.dyn_jac = dyn_jac
         self.boundary_conditions: _bc_type = boundary_conditions
         self.preprocess: _preprocess_type = preprocess
         self.postprocess: _postprocess_type = postprocess
 
-    def load_problem(self, bvp: SUPPORTED_INPUTS) -> tuple[Callable, _bc_type, _preprocess_type, _postprocess_type]:
+    def load_problem(self, bvp: SUPPORTED_INPUTS) -> tuple[Callable, Callable,
+                                                           _bc_type, _preprocess_type, _postprocess_type]:
         if type(bvp) is AdiffBVP:
             dynamics = self._generate_bvp_dynamics(bvp)
+            dyn_jac = None
             boundary_conditions = self._generate_bvp_bcs(bvp)
             preprocess = self._preprocess_bvp_sol
             postprocess = self._postprocess_bvp_sol
         elif type(bvp) is AdiffDualOCP:
             if type(bvp.control_handler) is AdiffDiffControlHandler:
                 dynamics = self._generate_ocp_diff_dynamics(bvp)
+                dyn_jac = self._generate_ocp_diff_dynamics_jac(bvp)
                 boundary_conditions = self._generate_ocp_diff_bcs(bvp)
                 preprocess = self._preprocess_ocp_diff_sol
                 postprocess = self._generate_postprocess_ocp_diff_sol(bvp)
@@ -81,7 +85,7 @@ class AdiffScipySolveBVP(Picky):
         else:
             raise TypeError
 
-        return dynamics, boundary_conditions, preprocess, postprocess
+        return dynamics, dyn_jac, boundary_conditions, preprocess, postprocess
 
     @staticmethod
     def _generate_bvp_dynamics(bvp: AdiffBVP) -> _dyn_type:
@@ -177,6 +181,54 @@ class AdiffScipySolveBVP(Picky):
             return y_dot * tau_mult
 
         return dynamics
+
+    @staticmethod
+    def _generate_ocp_diff_dynamics_jac(dual_ocp: AdiffDualOCP):
+        df_dy = dual_ocp.dyn_y_jac
+        df_dp = dual_ocp.dyn_p_jac
+
+        n_x = dual_ocp.dual.num_states
+        n_lam = dual_ocp.dual.num_costates
+        n_p = dual_ocp.dual.num_parameters
+        n_nu00 = dual_ocp.dual.num_initial_adjoints
+
+        ind_lam0 = n_x
+        ind_u0 = n_x + n_lam
+
+        ind_nu00 = n_p
+        ind_nuf0 = n_p + n_nu00
+
+        def dynamics_jac(tau_vec: NPArray, y_vec: NPArray, p_nu_t: NPArray, k: NPArray):
+            t0, tf = p_nu_t[-2], p_nu_t[-1]
+            tau_mult = (tf - t0)
+            t_vec = tau_vec * tau_mult + t0
+            p = p_nu_t[:ind_nu00]
+            nu0 = p_nu_t[ind_nu00:ind_nuf0]
+            nuf = p_nu_t[ind_nuf0:-2]
+
+            map_size = len(tau_vec)
+
+            x_vec = y_vec[:ind_lam0, :]
+            lam_vec = y_vec[ind_lam0:ind_u0, :]
+            u_vec = y_vec[ind_u0:, :]
+
+            df_dy_map = df_dy.map(map_size)
+            df_dp_map = df_dp.map(map_size)
+
+            # Outputs as 2-D matrix places side-by-side (n_y) x (n_y x n_tau)
+            df_dy_vectorized = np.asarray(df_dy_map(t_vec, x_vec, lam_vec, u_vec, p, k))
+            df_dp_vectorized = np.asarray(df_dp_map(t_vec, x_vec, lam_vec, u_vec, p, nu0, nuf, t0, tf, k))
+
+            df_dy_vectorized = np.empty(shape=(len(y_vec), len(y_vec), len(tau_vec)))
+            df_dp_vectorized = np.empty(shape=(len(y_vec), len(p_nu_t), len(tau_vec)))
+            for i in range(len(tau_vec)):
+                df_dy_vectorized[:, :, i] = np.asarray(df_dy(t_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i], p, k))
+                df_dp_vectorized[:, :, i] = np.asarray(df_dp(t_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
+                                                             p, nu0, nuf, k))
+
+            return df_dy_vectorized, df_dp_vectorized
+
+        return dynamics_jac
 
     @staticmethod
     def _generate_ocp_diff_bcs(dual_ocp: AdiffDualOCP) -> _bc_type:
@@ -286,6 +338,8 @@ class AdiffScipySolveBVP(Picky):
                 lambda tau_vec, x_vec, p: self.dynamics(tau_vec, x_vec, p, k),
                 lambda x0, xf, p: self.boundary_conditions(x0, xf, p, k),
                 tau_guess, x_guess, p_guess,
+                fun_jac=lambda tau_vec, x_vec, p: self.dyn_jac(tau_vec, x_vec, p, k),
+                # bc_jac=lambda x0, xf, p: self.bc_jac(x0, xf, p, k),
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )
 
