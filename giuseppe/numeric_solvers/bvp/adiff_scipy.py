@@ -215,16 +215,12 @@ class AdiffScipySolveBVP(Picky):
             df_dy_map = df_dy.map(map_size)
             df_dp_map = df_dp.map(map_size)
 
-            # Outputs as 2-D matrix places side-by-side (n_y) x (n_y x n_tau)
-            df_dy_vectorized = np.asarray(df_dy_map(t_vec, x_vec, lam_vec, u_vec, p, k))
-            df_dp_vectorized = np.asarray(df_dp_map(t_vec, x_vec, lam_vec, u_vec, p, nu0, nuf, t0, tf, k))
-
             df_dy_vectorized = np.empty(shape=(len(y_vec), len(y_vec), len(tau_vec)))
             df_dp_vectorized = np.empty(shape=(len(y_vec), len(p_nu_t), len(tau_vec)))
             for i in range(len(tau_vec)):
                 df_dy_vectorized[:, :, i] = np.asarray(df_dy(t_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i], p, k))
                 df_dp_vectorized[:, :, i] = np.asarray(df_dp(t_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
-                                                             p, nu0, nuf, k))
+                                                             p, nu0, nuf, t0, tf, k))
 
             return df_dy_vectorized, df_dp_vectorized
 

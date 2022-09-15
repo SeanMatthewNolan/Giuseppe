@@ -162,8 +162,10 @@ class AdiffDualOCP:
         self.initial_adjoints = self.dual.initial_adjoints
         self.terminal_adjoints = self.dual.terminal_adjoints
 
-        self.initial_time = ca.MX.sym('t_0', 1)
-        self.terminal_time = ca.MX.sym('t_f', 1)
+        self.initial_independent = ca.MX.sym('t_0', 1)
+        self.terminal_independent = ca.MX.sym('t_f', 1)
+        self.tau = ca.MX.sym('τ', 1)
+        _independent = self.tau * (self.terminal_independent - self.initial_independent) + self.initial_independent
 
         if control_method.lower() == 'differential':
             self.control_handler = AdiffDiffControlHandler(self.ocp, self.dual)
@@ -173,9 +175,10 @@ class AdiffDualOCP:
 
         self.dyn_jac_args = self.dual.args['dynamic']
         self.dyn_jac_arg_names = self.dual.arg_names['dynamic']
-        self.param_jac_args = (self.independent, self.states, self.costates, self.controls, self.parameters,
-                               self.initial_adjoints, self.terminal_adjoints, self.constants)
-        self.param_jac_arg_names = ('t', 'x', 'lam', 'u', 'p', '_nu_0', '_nu_f', 't_0', 't_f', 'k')
+        self.param_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
+                               self.initial_adjoints, self.terminal_adjoints,
+                               self.initial_independent, self.terminal_independent, self.constants)
+        self.param_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', '_nu_0', '_nu_f', 't_0', 't_f', 'k')
 
         _x_dot = self.ocp.ca_dynamics(*self.ocp.args)
         _lam_dot = self.dual.ca_costate_dynamics(*self.dual.args['dynamic'])
@@ -186,11 +189,24 @@ class AdiffDualOCP:
                                                   self.costates,  # lam
                                                   self.controls)))  # u
 
-        _dyn_p_jac = ca.jacobian(_y_dot, ca.vcat((self.parameters,  # p
-                                                  self.initial_adjoints,  # nu_0
-                                                  self.terminal_adjoints,  # nu_f
-                                                  self.initial_time,  # t_0
-                                                  self.terminal_time)))  # t_f
+        # # Derivative w.r.t p, nu_0, nu_f, t_0, t_f (NOTE: t_0, t_f req. subs with t)
+        # _dyn_p_jac = ca.vcat(
+        #     (ca.jacobian(_y_dot, ca.vcat((self.parameters,  # p
+        #                                   self.initial_adjoints,  # nu_0
+        #                                   self.terminal_adjoints))),  # nu_f
+        #      ca.jacobian(ca.substitute(_y_dot, self.independent, self.initial_independent), self.initial_independent),
+        #      ca.jacobian(ca.substitute(_y_dot, self.independent, self.terminal_independent), self.terminal_independent))
+        # )
+
+        _dyn_p_jac = ca.jacobian(ca.substitute(_y_dot, self.independent, _independent),
+                                 ca.vcat((
+                                     self.parameters,  # p
+                                     self.initial_adjoints,  # nu_0
+                                     self.terminal_adjoints,  # nu_f
+                                     self.initial_independent,  # t_0
+                                     self.terminal_independent  # t_f
+                                 ))
+                                 )
 
         # TODO add bc_jac to AdiffDualOCP
 
