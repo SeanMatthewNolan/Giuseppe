@@ -141,23 +141,30 @@ class Atmosphere1976:
 
 
 # TODO refactor callback into backend
-class DensityFunction(ca.Callback):
-    def __init__(self):
+class CasidiFunction(ca.Callback):
+    def __init__(self, eval_func, func_name: str = 'func', n_in: int = 1, n_out: int = 1,
+                 options: Optional[dict] = None):
         ca.Callback.__init__(self)
-        self.construct('atmosphere_function', {"enable_fd": True})
+        self.eval_func = eval_func
+        self.n_in = n_in
+        self.n_out = n_out
 
-    @staticmethod
-    def get_n_in(): return 1
+        if options is None:
+            options = {"enable_fd": True, "fd_method": "smoothing"}
 
-    @staticmethod
-    def get_n_out(): return 1
+        self.construct(func_name, options)
+
+    def get_n_in(self):
+        return self.n_in
+
+    def get_n_out(self):
+        return self.n_out
 
     @staticmethod
     def init(): return
 
-    @staticmethod
-    def eval(altitude):
-        return [atm.density(float(altitude[0]))]
+    def eval(self, args):
+        return self.eval_func(*args)
 
 
 if __name__ == "__main__":
@@ -169,6 +176,7 @@ if __name__ == "__main__":
     h_ref = 23_800  # ft
 
     density_exponential = rho_0 * np.exp(-altitudes / h_ref)
+    density_deriv_exponential = -rho_0 / h_ref * np.exp(-altitudes / h_ref)
 
     re = 20_902_900
     mu = 0.14076539e17
@@ -178,23 +186,58 @@ if __name__ == "__main__":
     density_1976 = np.empty(shape=altitudes.shape)
     layer_1976 = list()
 
+    ca_rho_func = CasidiFunction(eval_func=lambda h: [atm.density(float(h))], n_in=1, n_out=1, func_name='density')
+    h_sym = ca.MX.sym('h')
+    rho_sym = ca_rho_func(h_sym)
+    rho_sym_deriv = ca.jacobian(rho_sym, h_sym)
+    ca_rho_deriv_func = ca.Function('drho_dh', (h_sym,), (rho_sym_deriv,), ('h',), ('drho_dh',))
+
+    density_1976_ca = np.empty(shape=altitudes.shape)
+    density_1976_deriv_ca = np.empty(shape=altitudes.shape)
+
     for i, h in enumerate(altitudes):
         density_1976[i] = atm.density(h)
         layer_1976.append(atm.layer(h))
+
+        density_1976_ca[i] = float(ca_rho_func(h))
+        density_1976_deriv_ca[i] = float(ca_rho_deriv_func(h))
+
     layer_1976 = np.array(layer_1976)
 
-    fig = plt.figure(figsize=(6.5, 5))
-    title = fig.suptitle('Compare 1976 to Exponential Atmosphere')
+    fig1 = plt.figure(figsize=(6.5, 5))
+    title = fig1.suptitle('Compare 1976 to Exponential Atmosphere')
 
-    ax1 = fig.add_subplot(111)
-    ax1.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
+    ax11 = fig1.add_subplot(111)
+    ax11.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
     for layer in atm.layer_names:
         layer_idx = np.where(layer_1976 == layer)
         if len(layer_idx[0]) > 0:
-            ax1.plot(density_1976[layer_idx] * 100_000, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
-    ax1.grid()
-    ax1.set_xlabel('Density [slug / 100,000 ft^3]')
-    ax1.set_ylabel('Altitude [10,000 ft]')
-    ax1.legend()
+            ax11.plot(density_1976[layer_idx] * 100_000, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
+    ax11.grid()
+    ax11.set_xlabel('Density [slug / 100,000 ft^3]')
+    ax11.set_ylabel('Altitude [10,000 ft]')
+    ax11.legend()
+
+    fig2 = plt.figure(figsize=(6.5, 5))
+    title = fig2.suptitle('CasADi Auto Derivative of 1976 Atmosphere')
+
+    ax21 = fig2.add_subplot(121)
+    ax22 = fig2.add_subplot(122)
+
+    ax21.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
+    ax22.plot(density_deriv_exponential * 1e9, altitudes / 10_000, label='Exponential')
+    for layer in atm.layer_names:
+        layer_idx = np.where(layer_1976 == layer)
+        if len(layer_idx[0]) > 0:
+            ax21.plot(density_1976_ca[layer_idx] * 100_000, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
+            ax22.plot(density_1976_deriv_ca[layer_idx] * 1e9, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
+    ax21.grid()
+    ax22.grid()
+
+    ax21.set_ylabel('Altitude [10,000 ft]')
+    ax21.set_xlabel(r'CasADi $\rho$ [slug / 100,000 ft^3]')
+    ax22.set_xlabel(r'CasADi $\dfrac{d\rho}{dh}$ [slug / 10^9 ft^4}')
+
+    ax21.legend()
 
     plt.show()
