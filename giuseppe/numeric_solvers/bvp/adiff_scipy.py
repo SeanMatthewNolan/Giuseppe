@@ -33,7 +33,8 @@ class AdiffScipySolveBVP(Picky):
     SUPPORTED_INPUTS = Union[AdiffBVP, AdiffDualOCP]
 
     def __init__(self, bvp: SUPPORTED_INPUTS,
-                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
+                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False,
+                 use_jac: bool = False):
         """
         Initialize ScipySolveBVP
 
@@ -57,6 +58,7 @@ class AdiffScipySolveBVP(Picky):
         self.bc_tol: float = bc_tol
         self.max_nodes: int = max_nodes
         self.verbose: bool = verbose
+        self.use_jac: bool = use_jac
 
         dynamics, dyn_jac, boundary_conditions, bc_jac, preprocess, postprocess = self.load_problem(bvp)
         self.dynamics: _dyn_type = dynamics
@@ -67,11 +69,12 @@ class AdiffScipySolveBVP(Picky):
         self.postprocess: _postprocess_type = postprocess
 
     def load_problem(self, bvp: SUPPORTED_INPUTS) -> tuple[Callable, Callable,
-                                                           _bc_type, _preprocess_type, _postprocess_type]:
+                                                           _bc_type, Callable, _preprocess_type, _postprocess_type]:
         if type(bvp) is AdiffBVP:
             dynamics = self._generate_bvp_dynamics(bvp)
             dyn_jac = None
             boundary_conditions = self._generate_bvp_bcs(bvp)
+            bc_jac = None
             preprocess = self._preprocess_bvp_sol
             postprocess = self._postprocess_bvp_sol
         elif type(bvp) is AdiffDualOCP:
@@ -120,7 +123,8 @@ class AdiffScipySolveBVP(Picky):
         def boundary_conditions(x0: NPArray, xf: NPArray, p: NPArray, k: NPArray):
             t0, tf = p[-2], p[-1]
             p = p[:n_p]
-            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)).flatten(), np.asarray(bvp_bcf(tf, xf, p, k)).flatten()))
+            return np.concatenate((np.asarray(bvp_bc0(t0, x0, p, k)).flatten(),
+                                   np.asarray(bvp_bcf(tf, xf, p, k)).flatten()))
 
         return boundary_conditions
 
@@ -339,12 +343,22 @@ class AdiffScipySolveBVP(Picky):
         tau_guess, x_guess, p_guess = self.preprocess(guess)
         k = constants
 
+        if self.use_jac:
+            def _fun_jac(tau_vec, x_vec, p):
+                return self.dyn_jac(tau_vec, x_vec, p, k)
+
+            def _bc_jac(x0, xf, p):
+                return self.bc_jac(x0, xf, p, k)
+        else:
+            _fun_jac = None
+            _bc_jac = None
+
         sol: _scipy_bvp_sol = solve_bvp(
                 lambda tau_vec, x_vec, p: self.dynamics(tau_vec, x_vec, p, k),
                 lambda x0, xf, p: self.boundary_conditions(x0, xf, p, k),
                 tau_guess, x_guess, p_guess,
-                fun_jac=lambda tau_vec, x_vec, p: self.dyn_jac(tau_vec, x_vec, p, k),
-                bc_jac=lambda x0, xf, p: self.bc_jac(x0, xf, p, k),
+                fun_jac=_fun_jac,
+                bc_jac=_bc_jac,
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )
 
