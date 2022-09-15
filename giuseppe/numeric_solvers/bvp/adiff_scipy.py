@@ -184,8 +184,8 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_ocp_diff_dynamics_jac(dual_ocp: AdiffDualOCP):
-        df_dy = dual_ocp.dyn_y_jac
-        df_dp = dual_ocp.dyn_p_jac
+        df_dy = maybe_expand(dual_ocp.dyn_y_jac)
+        df_dp = maybe_expand(dual_ocp.dyn_p_jac)
 
         n_x = dual_ocp.dual.num_states
         n_lam = dual_ocp.dual.num_costates
@@ -200,26 +200,20 @@ class AdiffScipySolveBVP(Picky):
 
         def dynamics_jac(tau_vec: NPArray, y_vec: NPArray, p_nu_t: NPArray, k: NPArray):
             t0, tf = p_nu_t[-2], p_nu_t[-1]
-            tau_mult = (tf - t0)
-            t_vec = tau_vec * tau_mult + t0
             p = p_nu_t[:ind_nu00]
             nu0 = p_nu_t[ind_nu00:ind_nuf0]
             nuf = p_nu_t[ind_nuf0:-2]
-
-            map_size = len(tau_vec)
 
             x_vec = y_vec[:ind_lam0, :]
             lam_vec = y_vec[ind_lam0:ind_u0, :]
             u_vec = y_vec[ind_u0:, :]
 
-            df_dy_map = df_dy.map(map_size)
-            df_dp_map = df_dp.map(map_size)
-
             df_dy_vectorized = np.empty(shape=(len(y_vec), len(y_vec), len(tau_vec)))
             df_dp_vectorized = np.empty(shape=(len(y_vec), len(p_nu_t), len(tau_vec)))
             for i in range(len(tau_vec)):
-                df_dy_vectorized[:, :, i] = np.asarray(df_dy(t_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i], p, k))
-                df_dp_vectorized[:, :, i] = np.asarray(df_dp(t_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
+                df_dy_vectorized[:, :, i] = np.asarray(df_dy(tau_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
+                                                             p, t0, tf, k))
+                df_dp_vectorized[:, :, i] = np.asarray(df_dp(tau_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
                                                              p, nu0, nuf, t0, tf, k))
 
             return df_dy_vectorized, df_dp_vectorized

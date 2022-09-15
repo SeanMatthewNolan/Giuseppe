@@ -173,8 +173,9 @@ class AdiffDualOCP:
             raise NotImplementedError(
                 f'\"{control_method}\" is not an implemented control method. Try \"differential\".')
 
-        self.dyn_jac_args = self.dual.args['dynamic']
-        self.dyn_jac_arg_names = self.dual.arg_names['dynamic']
+        self.dyn_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
+                             self.initial_independent, self.terminal_independent, self.constants)
+        self.dyn_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', 't_0', 't_f', 'k')
         self.param_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
                                self.initial_adjoints, self.terminal_adjoints,
                                self.initial_independent, self.terminal_independent, self.constants)
@@ -184,10 +185,17 @@ class AdiffDualOCP:
         _lam_dot = self.dual.ca_costate_dynamics(*self.dual.args['dynamic'])
         _u_dot = self.control_handler.ca_control_dynamics(*self.dual.args['dynamic'])
         _y_dot = ca.vcat((_x_dot, _lam_dot, _u_dot))
+        _dt_dtau = self.terminal_independent - self.initial_independent
+        _y_dot_transformed = ca.substitute(_y_dot, self.independent, _independent)
+        _dy_dtau = _y_dot_transformed * _dt_dtau
 
-        _dyn_y_jac = ca.jacobian(_y_dot, ca.vcat((self.states,  # x
-                                                  self.costates,  # lam
-                                                  self.controls)))  # u
+        _dyn_y_jac = ca.jacobian(_dy_dtau,
+                                 ca.vcat((
+                                     self.states,  # x
+                                     self.costates,  # lam
+                                     self.controls  # u
+                                 ))
+                                 )
 
         # # Derivative w.r.t p, nu_0, nu_f, t_0, t_f (NOTE: t_0, t_f req. subs with t)
         # _dyn_p_jac = ca.vcat(
@@ -198,7 +206,7 @@ class AdiffDualOCP:
         #      ca.jacobian(ca.substitute(_y_dot, self.independent, self.terminal_independent), self.terminal_independent))
         # )
 
-        _dyn_p_jac = ca.jacobian(ca.substitute(_y_dot, self.independent, _independent),
+        _dyn_p_jac = ca.jacobian(_dy_dtau,
                                  ca.vcat((
                                      self.parameters,  # p
                                      self.initial_adjoints,  # nu_0
