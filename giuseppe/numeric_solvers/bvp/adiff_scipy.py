@@ -58,10 +58,11 @@ class AdiffScipySolveBVP(Picky):
         self.max_nodes: int = max_nodes
         self.verbose: bool = verbose
 
-        dynamics, dyn_jac, boundary_conditions, preprocess, postprocess = self.load_problem(bvp)
+        dynamics, dyn_jac, boundary_conditions, bc_jac, preprocess, postprocess = self.load_problem(bvp)
         self.dynamics: _dyn_type = dynamics
         self.dyn_jac = dyn_jac
         self.boundary_conditions: _bc_type = boundary_conditions
+        self.bc_jac = bc_jac
         self.preprocess: _preprocess_type = preprocess
         self.postprocess: _postprocess_type = postprocess
 
@@ -78,6 +79,7 @@ class AdiffScipySolveBVP(Picky):
                 dynamics = self._generate_ocp_diff_dynamics(bvp)
                 dyn_jac = self._generate_ocp_diff_dynamics_jac(bvp)
                 boundary_conditions = self._generate_ocp_diff_bcs(bvp)
+                bc_jac = self._generate_ocp_diff_bc_jac(bvp)
                 preprocess = self._preprocess_ocp_diff_sol
                 postprocess = self._generate_postprocess_ocp_diff_sol(bvp)
             else:
@@ -85,7 +87,7 @@ class AdiffScipySolveBVP(Picky):
         else:
             raise TypeError
 
-        return dynamics, dyn_jac, boundary_conditions, preprocess, postprocess
+        return dynamics, dyn_jac, boundary_conditions, bc_jac, preprocess, postprocess
 
     @staticmethod
     def _generate_bvp_dynamics(bvp: AdiffBVP) -> _dyn_type:
@@ -267,6 +269,19 @@ class AdiffScipySolveBVP(Picky):
         return boundary_conditions
 
     @staticmethod
+    def _generate_ocp_diff_bc_jac(dual_ocp: AdiffDualOCP):
+        dbc_dya = maybe_expand(dual_ocp.dbc_dya)
+        dbc_dyb = maybe_expand(dual_ocp.dbc_dyb)
+        dbc_dp = maybe_expand(dual_ocp.dbc_dp)
+
+        def bc_jac(y0: NPArray, yf: NPArray, p_nu_t: NPArray, k: NPArray):
+            return np.asarray(dbc_dya(y0, yf, p_nu_t, k)), \
+                   np.asarray(dbc_dyb(y0, yf, p_nu_t, k)), \
+                   np.asarray(dbc_dp(y0, yf, p_nu_t, k))
+
+        return bc_jac
+
+    @staticmethod
     def _preprocess_ocp_diff_sol(sol: Solution) -> tuple[NPArray, NPArray, NPArray]:
         t0, tf = sol.t[0], sol.t[-1]
         tau_guess = (sol.t - t0) / (tf - t0)
@@ -329,7 +344,7 @@ class AdiffScipySolveBVP(Picky):
                 lambda x0, xf, p: self.boundary_conditions(x0, xf, p, k),
                 tau_guess, x_guess, p_guess,
                 fun_jac=lambda tau_vec, x_vec, p: self.dyn_jac(tau_vec, x_vec, p, k),
-                # bc_jac=lambda x0, xf, p: self.bc_jac(x0, xf, p, k),
+                bc_jac=lambda x0, xf, p: self.bc_jac(x0, xf, p, k),
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )
 

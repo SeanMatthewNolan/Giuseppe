@@ -142,10 +142,9 @@ class AdiffDiffControlHandler:
         self.f_u: ca.Function = ca.Function('f_u', ocp_args, (_f_u,), ocp_arg_names, ('f_u',))
 
         self.ca_control_dynamics: ca.Function = ca.Function('u_dot', args,
-                                                            (-ca.inv(_h_uu)
-                                                             @ (_h_ut + _h_ux @ _f + _f_u.T @ _lam_dot),),
+                                                            (-ca.solve(_h_uu, _h_ut + _h_ux @ _f + _f_u.T @ _lam_dot),),
                                                             arg_names, ('u_dot',))
-        self.ca_control_bc = self.h_u
+        self.ca_control_bc: ca.Function = ca.Function('u_bc', args, (_h_u.T,), arg_names, ('transpose_H_u',))
 
 
 class AdiffDualOCP:
@@ -162,6 +161,14 @@ class AdiffDualOCP:
         self.initial_adjoints = self.dual.initial_adjoints
         self.terminal_adjoints = self.dual.terminal_adjoints
 
+        self.num_states = self.dual.num_states
+        self.num_costates = self.dual.num_costates
+        self.num_controls = self.dual.num_controls
+        self.num_parameters = self.dual.num_parameters
+        self.num_constants = self.dual.num_constants
+        self.num_initial_adjoints = self.dual.num_initial_adjoints
+        self.num_terminal_adjoints = self.dual.num_terminal_adjoints
+
         self.initial_independent = ca.MX.sym('t_0', 1)
         self.terminal_independent = ca.MX.sym('t_f', 1)
         self.tau = ca.MX.sym('τ', 1)
@@ -173,13 +180,23 @@ class AdiffDualOCP:
             raise NotImplementedError(
                 f'\"{control_method}\" is not an implemented control method. Try \"differential\".')
 
-        self.dyn_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
+        self.dyn_y_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
                              self.initial_independent, self.terminal_independent, self.constants)
-        self.dyn_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', 't_0', 't_f', 'k')
-        self.param_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
+        self.dyn_y_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', 't_0', 't_f', 'k')
+        self.dyn_p_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
                                self.initial_adjoints, self.terminal_adjoints,
                                self.initial_independent, self.terminal_independent, self.constants)
-        self.param_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', '_nu_0', '_nu_f', 't_0', 't_f', 'k')
+        self.dyn_p_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', '_nu_0', '_nu_f', 't_0', 't_f', 'k')
+
+        # Jacobians for the Dynamics
+        self.dependent = ca.vcat((self.states, self.costates, self.controls))
+        self.bvp_parameters = ca.vcat((
+            self.parameters,  # p
+            self.initial_adjoints,  # nu_0
+            self.terminal_adjoints,  # nu_f
+            self.initial_independent,  # t_0
+            self.terminal_independent  # t_f
+        ))
 
         _x_dot = self.ocp.ca_dynamics(*self.ocp.args)
         _lam_dot = self.dual.ca_costate_dynamics(*self.dual.args['dynamic'])
@@ -189,36 +206,53 @@ class AdiffDualOCP:
         _y_dot_transformed = ca.substitute(_y_dot, self.independent, _independent)
         _dy_dtau = _y_dot_transformed * _dt_dtau
 
-        _dyn_y_jac = ca.jacobian(_dy_dtau,
-                                 ca.vcat((
-                                     self.states,  # x
-                                     self.costates,  # lam
-                                     self.controls  # u
-                                 ))
-                                 )
+        _dyn_y_jac = ca.jacobian(_dy_dtau, self.dependent)
 
-        # # Derivative w.r.t p, nu_0, nu_f, t_0, t_f (NOTE: t_0, t_f req. subs with t)
-        # _dyn_p_jac = ca.vcat(
-        #     (ca.jacobian(_y_dot, ca.vcat((self.parameters,  # p
-        #                                   self.initial_adjoints,  # nu_0
-        #                                   self.terminal_adjoints))),  # nu_f
-        #      ca.jacobian(ca.substitute(_y_dot, self.independent, self.initial_independent), self.initial_independent),
-        #      ca.jacobian(ca.substitute(_y_dot, self.independent, self.terminal_independent), self.terminal_independent))
-        # )
+        _dyn_p_jac = ca.jacobian(_dy_dtau, self.bvp_parameters)
 
-        _dyn_p_jac = ca.jacobian(_dy_dtau,
-                                 ca.vcat((
-                                     self.parameters,  # p
-                                     self.initial_adjoints,  # nu_0
-                                     self.terminal_adjoints,  # nu_f
-                                     self.initial_independent,  # t_0
-                                     self.terminal_independent  # t_f
-                                 ))
-                                 )
+        self.dyn_y_jac = ca.Function('dy_dx_lam_u', self.dyn_y_jac_args, (_dyn_y_jac,),
+                                     self.dyn_y_jac_arg_names, ('dy_dx_lam_u',))
+        self.dyn_p_jac = ca.Function('dy_dp_nu0_nuf', self.dyn_p_jac_args, (_dyn_p_jac,),
+                                     self.dyn_p_jac_arg_names, ('dy_dp_nu0_nuf',))
 
-        # TODO add bc_jac to AdiffDualOCP
+        # Jacobians for the Boundary Conditions
+        self.num_dependent = self.num_states + self.num_costates + self.num_controls
+        self.initial_dependent = ca.MX.sym('ya', self.num_dependent)
+        self.terminal_dependent = ca.MX.sym('yb', self.num_dependent)
 
-        self.dyn_y_jac = ca.Function('dy_dx_lam_u', self.dyn_jac_args, (_dyn_y_jac,),
-                                     self.dyn_jac_arg_names, ('dy_dx_lam_u',))
-        self.dyn_p_jac = ca.Function('dy_dp_nu0_nuf', self.param_jac_args, (_dyn_p_jac,),
-                                     self.param_jac_arg_names, ('dy_dp_nu0_nuf',))
+        self.bc_jac_args = (self.initial_dependent, self.terminal_dependent, self.bvp_parameters, self.constants)
+        self.bc_jac_arg_names = ('ya', 'yb', 'p_nu_t', 'k')
+
+        _idx_x0 = 0
+        _idx_lam0 = self.num_states
+        _idx_u0 = _idx_lam0 + self.num_costates
+
+        _x0 = self.initial_dependent[:_idx_lam0]
+        _lam0 = self.initial_dependent[_idx_lam0:_idx_u0]
+        _u0 = self.initial_dependent[_idx_u0:]
+
+        _xf = self.terminal_dependent[:_idx_lam0]
+        _lamf = self.terminal_dependent[_idx_lam0:_idx_u0]
+        _uf = self.terminal_dependent[_idx_u0:]
+
+        _bc = ca.vcat((self.ocp.ca_boundary_conditions.initial(self.initial_independent, _x0, _u0,
+                                                               self.parameters, self.constants),
+                       self.ocp.ca_boundary_conditions.terminal(self.terminal_independent, _xf, _uf,
+                                                                self.parameters, self.constants),
+                       self.dual.ca_adj_boundary_conditions.initial(self.initial_independent, _x0, _lam0, _u0,
+                                                                    self.parameters, self.initial_adjoints,
+                                                                    self.constants),
+                       self.dual.ca_adj_boundary_conditions.terminal(self.terminal_independent, _xf, _lamf, _uf,
+                                                                     self.parameters, self.terminal_adjoints,
+                                                                     self.constants),
+                       self.control_handler.ca_control_bc(self.initial_independent, _x0, _lam0, _u0,
+                                                          self.parameters, self.constants)
+                       ))
+
+        _dbc_dya = ca.jacobian(_bc, self.initial_dependent)
+        _dbc_dyb = ca.jacobian(_bc, self.terminal_dependent)
+        _dbc_dp = ca.jacobian(_bc, self.bvp_parameters)
+
+        self.dbc_dya = ca.Function('dbc_dya', self.bc_jac_args, (_dbc_dya,), self.bc_jac_arg_names, ('dbc_dya',))
+        self.dbc_dyb = ca.Function('dbc_dyb', self.bc_jac_args, (_dbc_dyb,), self.bc_jac_arg_names, ('dbc_dya',))
+        self.dbc_dp = ca.Function('dbc_dp_nu_t', self.bc_jac_args, (_dbc_dp,), self.bc_jac_arg_names, ('dbc_dp_nu_t',))
