@@ -148,7 +148,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.ocp.AdiffOCP(ocp)
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_bvp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, use_jac=True)
 
 guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
