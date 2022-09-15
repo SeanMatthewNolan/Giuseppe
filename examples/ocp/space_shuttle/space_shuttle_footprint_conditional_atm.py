@@ -3,7 +3,7 @@ import casadi as ca
 
 import giuseppe
 
-from atmosphere1976 import Atmosphere1976
+from atmosphere1976 import Atmosphere1976, CasidiFunction
 
 giuseppe.utils.compilation.JIT_COMPILE = True
 
@@ -73,7 +73,8 @@ v = ca.MX.sym('v', 1)
 atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
 
 
-ca_rho_func = DensityFunction()
+ca_rho_func = CasidiFunction(eval_func=lambda arg: [atm.density(float(arg))],
+                                           n_in=1, n_out=1, func_name='density')
 rho = ca_rho_func(h)
 
 # Add Controls
@@ -159,9 +160,10 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 20_000})
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
-sol_set.save('sol_set.data')
+sol_set.save('sol_set_conditional.data')

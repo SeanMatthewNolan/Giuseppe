@@ -6,7 +6,7 @@ import numpy as np
 DATA = 0
 
 if DATA == 0:
-    with open('sol_set.data', 'rb') as file:
+    with open('sol_set_conditional.data', 'rb') as file:
         sol = pickle.load(file)[-1]
 elif DATA == 1:
     with open('seed.data', 'rb') as file:
