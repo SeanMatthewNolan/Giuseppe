@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import casadi as ca
 
@@ -10,7 +12,7 @@ giuseppe.utils.compilation.JIT_COMPILE = True
 ocp = giuseppe.io.AdiffInputOCP()
 
 # Independent Variables
-t = ca.MX.sym('t', 1)
+t = ca.SX.sym('t', 1)
 ocp.set_independent(t)
 
 # Immutable Constants
@@ -27,25 +29,25 @@ b_1 = -0.61592e-2
 b_2 = 0.621408e-3
 
 # Mutable constants
-m = ca.MX.sym('m', 1)
-s_ref = ca.MX.sym('s_ref', 1)
-ξ = ca.MX.sym('ξ', 1)
+m = ca.SX.sym('m', 1)
+s_ref = ca.SX.sym('s_ref', 1)
+ξ = ca.SX.sym('ξ', 1)
 
 ocp.add_constant(m, 203_000 / 32.174)
 ocp.add_constant(s_ref, 2690)
 ocp.add_constant(ξ, 0)
 
-eps_alpha = ca.MX.sym('ε_α', 1)
-alpha_min = ca.MX.sym('α_min', 1)
-alpha_max = ca.MX.sym('α_max', 1)
+eps_alpha = ca.SX.sym('ε_α', 1)
+alpha_min = ca.SX.sym('α_min', 1)
+alpha_max = ca.SX.sym('α_max', 1)
 
 ocp.add_constant(eps_alpha, 1e-5)
 ocp.add_constant(alpha_min, -80 / 180 * 3.1419)
 ocp.add_constant(alpha_max, 80 / 180 * 3.1419)
 
-eps_beta = ca.MX.sym('ε_β', 1)
-beta_min = ca.MX.sym('β_min', 1)
-beta_max = ca.MX.sym('β_max', 1)
+eps_beta = ca.SX.sym('ε_β', 1)
+beta_min = ca.SX.sym('β_min', 1)
+beta_max = ca.SX.sym('β_max', 1)
 
 ocp.add_constant(eps_beta, 1e-10)
 ocp.add_constant(beta_min, -85 / 180 * 3.1419)
@@ -62,12 +64,12 @@ Pa2psf = 0.020885
 N2lb = 0.2248090795
 
 # State Variables
-h = ca.MX.sym('h', 1)
-φ = ca.MX.sym('φ', 1)
-θ = ca.MX.sym('θ', 1)
-v = ca.MX.sym('v', 1)
-γ = ca.MX.sym('γ', 1)
-ψ = ca.MX.sym('ψ', 1)
+h = ca.SX.sym('h', 1)
+φ = ca.SX.sym('φ', 1)
+θ = ca.SX.sym('θ', 1)
+v = ca.SX.sym('v', 1)
+γ = ca.SX.sym('γ', 1)
+ψ = ca.SX.sym('ψ', 1)
 
 # Atmosphere Func
 atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
@@ -75,11 +77,11 @@ atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
 
 ca_rho_func = CasidiFunction(eval_func=lambda arg: [atm.density(float(arg))],
                                            n_in=1, n_out=1, func_name='density')
-rho = ca_rho_func(h)
+_, __, rho = atm.get_sx_atm_expr(h)
 
 # Add Controls
-alpha = ca.MX.sym('α', 1)
-beta = ca.MX.sym('β', 1)
+alpha = ca.SX.sym('α', 1)
+beta = ca.SX.sym('β', 1)
 
 ocp.add_control(alpha)
 ocp.add_control(beta)
@@ -107,12 +109,12 @@ ocp.add_state(ψ, lift * ca.sin(beta)/(m * v * ca.cos(γ)) + v * ca.cos(γ) * ca
 ocp.set_cost(0, 0, -φ * ca.cos(ξ) - θ * ca.sin(ξ))
 
 # Boundary Values
-h_0 = ca.MX.sym('h_0', 1)
-φ_0 = ca.MX.sym('φ_0', 1)
-θ_0 = ca.MX.sym('θ_0', 1)
-v_0 = ca.MX.sym('v_0', 1)
-γ_0 = ca.MX.sym('γ_0', 1)
-ψ_0 = ca.MX.sym('ψ_0', 1)
+h_0 = ca.SX.sym('h_0', 1)
+φ_0 = ca.SX.sym('φ_0', 1)
+θ_0 = ca.SX.sym('θ_0', 1)
+v_0 = ca.SX.sym('v_0', 1)
+γ_0 = ca.SX.sym('γ_0', 1)
+ψ_0 = ca.SX.sym('ψ_0', 1)
 
 ocp.add_constant(h_0, 260_000)
 ocp.add_constant(φ_0, 0)
@@ -121,9 +123,9 @@ ocp.add_constant(v_0, 25_600)
 ocp.add_constant(γ_0, -1 / 180 * np.pi)
 ocp.add_constant(ψ_0, np.pi / 2)
 
-h_f = ca.MX.sym('h_f', 1)
-v_f = ca.MX.sym('v_f', 1)
-γ_f = ca.MX.sym('γ_f', 1)
+h_f = ca.SX.sym('h_f', 1)
+v_f = ca.SX.sym('v_f', 1)
+γ_f = ca.SX.sym('γ_f', 1)
 
 ocp.add_constant(h_f, 80_000)
 ocp.add_constant(v_f, 2_500)
@@ -152,18 +154,26 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.ocp.AdiffOCP(ocp)
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_bvp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, verbose=True)
+    num_solver1000 = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, verbose=True, max_nodes=1000)
+    num_solver2000 = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, verbose=True, max_nodes=2000)
 
 guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
 guess.k[-3:] = guess.x[(0, 3, 4), -1]  # match h_f, v_f, gam_f
-seed_sol = num_solver.solve(guess.k, guess)
+seed_sol = num_solver1000.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
 
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 20_000})
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
-cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
-cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
-sol_set = cont.run_continuation(num_solver)
+cont1 = giuseppe.continuation.ContinuationHandler(sol_set)
+cont1.add_linear_series(100, {'h_f': 200_000, 'v_f': 20_000})
+cont1.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 * np.pi / 180})
+cont1.add_linear_series(90, {'ξ': 0.4 * np.pi}, bisection=True)
+cont1.add_linear_series(90, {'ξ': 0.5 * np.pi, 'γ_f': -7 * np.pi / 180}, bisection=True)
+sol_set1 = cont1.run_continuation(num_solver1000)
 
-sol_set.save('sol_set_conditional.data')
+sol_set1.save('sol_set_conditional.data')
+
+# if abs(sol_set1.solutions[-1].k[2] - np.pi/2) < 1e-4:
+#     cont2 = giuseppe.continuation.ContinuationHandler(deepcopy(sol_set1))
+#     cont2.add_linear_series(10, {'h_f': 30_000, 'v_f': 1_715}, bisection=True)
+#     sol_set2 = cont2.run_continuation(num_solver2000)
+#
+#     sol_set2.save('sol_set_conditional_30_000.data')

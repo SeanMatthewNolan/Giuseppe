@@ -13,18 +13,18 @@ import giuseppe
 
 giuseppe.utils.compilation.JIT_COMPILE = True
 
-ocp = giuseppe.io.AdiffInputOCP()
+ocp = giuseppe.io.AdiffInputOCP(dtype=ca.SX)
 
 # Independent Variables
-t = ca.MX.sym('t', 1)
+t = ca.SX.sym('t', 1)
 ocp.set_independent(t)
 
 # Constants
-rho_0 = ca.MX.sym('ρ_0', 1)
-h_ref = ca.MX.sym('h_ref', 1)
-re = ca.MX.sym('re', 1)
-m = ca.MX.sym('m', 1)
-mu = ca.MX.sym('µ', 1)
+rho_0 = ca.SX.sym('ρ_0', 1)
+h_ref = ca.SX.sym('h_ref', 1)
+re = ca.SX.sym('re', 1)
+m = ca.SX.sym('m', 1)
+mu = ca.SX.sym('µ', 1)
 
 ocp.add_constant(rho_0, 0.002378)
 ocp.add_constant(h_ref, 23_800)
@@ -32,12 +32,12 @@ ocp.add_constant(re, 20_902_900)
 ocp.add_constant(m, 203_000 / 32.174)
 ocp.add_constant(mu, 0.14076539e17)
 
-a_0 = ca.MX.sym('a_0', 1)
-a_1 = ca.MX.sym('a_1', 1)
-b_0 = ca.MX.sym('b_0', 1)
-b_1 = ca.MX.sym('b_1', 1)
-b_2 = ca.MX.sym('b_2', 1)
-s_ref = ca.MX.sym('s_ref', 1)
+a_0 = ca.SX.sym('a_0', 1)
+a_1 = ca.SX.sym('a_1', 1)
+b_0 = ca.SX.sym('b_0', 1)
+b_1 = ca.SX.sym('b_1', 1)
+b_2 = ca.SX.sym('b_2', 1)
+s_ref = ca.SX.sym('s_ref', 1)
 
 ocp.add_constant(a_0, -0.20704)
 ocp.add_constant(a_1, 0.029244)
@@ -46,39 +46,39 @@ ocp.add_constant(b_1, -0.61592e-2)
 ocp.add_constant(b_2, 0.621408e-3)
 ocp.add_constant(s_ref, 2690)
 
-ξ = ca.MX.sym('ξ', 1)
+ξ = ca.SX.sym('ξ', 1)
 ocp.add_constant(ξ, 0)
 
-eps_alpha = ca.MX.sym('ε_α', 1)
-alpha_min = ca.MX.sym('α_min', 1)
-alpha_max = ca.MX.sym('α_max', 1)
+eps_alpha = ca.SX.sym('ε_α', 1)
+alpha_min = ca.SX.sym('α_min', 1)
+alpha_max = ca.SX.sym('α_max', 1)
 
 ocp.add_constant(eps_alpha, 1e-5)
 ocp.add_constant(alpha_min, -80 / 180 * 3.1419)
 ocp.add_constant(alpha_max, 80 / 180 * 3.1419)
 
-eps_beta = ca.MX.sym('ε_β', 1)
-beta_min = ca.MX.sym('β_min', 1)
-beta_max = ca.MX.sym('β_max', 1)
+eps_beta = ca.SX.sym('ε_β', 1)
+beta_min = ca.SX.sym('β_min', 1)
+beta_max = ca.SX.sym('β_max', 1)
 
 ocp.add_constant(eps_beta, 1e-10)
 ocp.add_constant(beta_min, -85 / 180 * 3.1419)
 ocp.add_constant(beta_max, 85 / 180 * 3.1419)
 
 # Add Controls
-alpha = ca.MX.sym('α', 1)
-beta = ca.MX.sym('β', 1)
+alpha = ca.SX.sym('α', 1)
+beta = ca.SX.sym('β', 1)
 
 ocp.add_control(alpha)
 ocp.add_control(beta)
 
 # State Variables
-h = ca.MX.sym('h', 1)
-φ = ca.MX.sym('φ', 1)
-θ = ca.MX.sym('θ', 1)
-v = ca.MX.sym('v', 1)
-γ = ca.MX.sym('γ', 1)
-ψ = ca.MX.sym('ψ', 1)
+h = ca.SX.sym('h', 1)
+φ = ca.SX.sym('φ', 1)
+θ = ca.SX.sym('θ', 1)
+v = ca.SX.sym('v', 1)
+γ = ca.SX.sym('γ', 1)
+ψ = ca.SX.sym('ψ', 1)
 
 # Expressions
 r = re + h
@@ -103,12 +103,12 @@ ocp.add_state(ψ, lift * ca.sin(beta)/(m * v * ca.cos(γ)) + v * ca.cos(γ) * ca
 ocp.set_cost(0, 0, -φ * ca.cos(ξ) - θ * ca.sin(ξ))
 
 # Boundary Values
-h_0 = ca.MX.sym('h_0', 1)
-φ_0 = ca.MX.sym('φ_0', 1)
-θ_0 = ca.MX.sym('θ_0', 1)
-v_0 = ca.MX.sym('v_0', 1)
-γ_0 = ca.MX.sym('γ_0', 1)
-ψ_0 = ca.MX.sym('ψ_0', 1)
+h_0 = ca.SX.sym('h_0', 1)
+φ_0 = ca.SX.sym('φ_0', 1)
+θ_0 = ca.SX.sym('θ_0', 1)
+v_0 = ca.SX.sym('v_0', 1)
+γ_0 = ca.SX.sym('γ_0', 1)
+ψ_0 = ca.SX.sym('ψ_0', 1)
 
 ocp.add_constant(h_0, 260_000)
 ocp.add_constant(φ_0, 0)
@@ -117,9 +117,9 @@ ocp.add_constant(v_0, 25_600)
 ocp.add_constant(γ_0, -1 / 180 * np.pi)
 ocp.add_constant(ψ_0, np.pi / 2)
 
-h_f = ca.MX.sym('h_f', 1)
-v_f = ca.MX.sym('v_f', 1)
-γ_f = ca.MX.sym('γ_f', 1)
+h_f = ca.SX.sym('h_f', 1)
+v_f = ca.SX.sym('v_f', 1)
+γ_f = ca.SX.sym('γ_f', 1)
 
 ocp.add_constant(h_f, 80_000)
 ocp.add_constant(v_f, 2_500)

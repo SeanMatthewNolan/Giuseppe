@@ -139,31 +139,30 @@ class Atmosphere1976:
 
         return self.layer_names[layer_idx]
 
-    def eval_sx_atm_expr(self, altitude_geopotential, layer_idx, idx):
-        temperature, pressure, density = ca.if_else(
-            layer_idx == idx,  # Conditional (outer)
-            ca.if_else(self.lapse_layers[layer_idx] == 0,  # Conditional (inner)
-                       self.isothermal_layer(altitude=altitude_geopotential,
-                                             altitude_0=self.h_layers[layer_idx],
-                                             temperature_0=self.T_layers[layer_idx],
-                                             pressure_0=self.P_layers[layer_idx],
-                                             density_0=self.rho_layers[layer_idx]),  # True (inner) -- dT = 0
-                       self.gradient_layer(altitude=altitude_geopotential,
-                                           lapse_rate=self.lapse_layers[idx],
-                                           altitude_0=self.h_layers[layer_idx],
-                                           temperature_0=self.T_layers[layer_idx],
-                                           pressure_0=self.P_layers[layer_idx],
-                                           density_0=self.rho_layers[layer_idx])  # False (inner) -- dT =/= 0
-                       ),  # True (outer) -- layer_idx = idx
-            self.eval_sx_atm_expr(altitude_geopotential, layer_idx, idx + 1)
-        )
-
-        return temperature, pressure, density
-
     def get_sx_atm_expr(self, altitude_geometric: ca.SX):
         altitude_geopotential = self.geometric2geopotential(altitude_geometric)
         layer_idx = ca.sum1(altitude_geopotential >= self.h_layers) - 1
-        temperature, pressure, density = self.eval_sx_atm_expr(altitude_geopotential, layer_idx, 0)
+
+        temperature = ca.SX(0)
+        pressure = ca.SX(0)
+        density = ca.SX(0)
+        for idx, lapse_rate in enumerate(self.lapse_layers):
+            if lapse_rate == 0:
+                temperature_i, pressure_i, density_i = self.isothermal_layer(altitude=altitude_geopotential,
+                                                                             altitude_0=self.h_layers[idx],
+                                                                             temperature_0=self.T_layers[idx],
+                                                                             pressure_0=self.P_layers[idx],
+                                                                             density_0=self.rho_layers[idx])
+            else:
+                temperature_i, pressure_i, density_i = self.gradient_layer(altitude=altitude_geopotential,
+                                                                           lapse_rate=lapse_rate,
+                                                                           altitude_0=self.h_layers[idx],
+                                                                           temperature_0=self.T_layers[idx],
+                                                                           pressure_0=self.P_layers[idx],
+                                                                           density_0=self.rho_layers[idx])
+            temperature += ca.if_else(layer_idx == idx, temperature_i, 0)
+            pressure += ca.if_else(layer_idx == idx, pressure_i, 0)
+            density += ca.if_else(layer_idx == idx, density_i, 0)
 
         return temperature, pressure, density
 
@@ -215,13 +214,11 @@ if __name__ == "__main__":
     layer_1976 = list()
 
     h_sx = ca.SX.sym('h')
-    atm.get_sx_atm_expr(h_sx)
+    _, __, rho_expr = atm.get_sx_atm_expr(h_sx)
 
-    ca_rho_func = CasidiFunction(eval_func=lambda h: [atm.density(float(h))], n_in=1, n_out=1, func_name='density')
-    h_sym = ca.MX.sym('h')
-    rho_sym = ca_rho_func(h_sym)
-    rho_sym_deriv = ca.jacobian(rho_sym, h_sym)
-    ca_rho_deriv_func = ca.Function('drho_dh', (h_sym,), (rho_sym_deriv,), ('h',), ('drho_dh',))
+    ca_rho_func = ca.Function('rho', (h_sx,), (rho_expr,), ('h',), ('rho',))
+    rho_expr_deriv = ca.jacobian(rho_expr, h_sx)
+    ca_rho_deriv_func = ca.Function('drho_dh', (h_sx,), (rho_expr_deriv,), ('h',), ('drho_dh',))
 
     density_1976_ca = np.empty(shape=altitudes.shape)
     density_1976_deriv_ca = np.empty(shape=altitudes.shape)
