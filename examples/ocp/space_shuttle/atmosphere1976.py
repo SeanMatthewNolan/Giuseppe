@@ -139,6 +139,34 @@ class Atmosphere1976:
 
         return self.layer_names[layer_idx]
 
+    def eval_sx_atm_expr(self, altitude_geopotential, layer_idx, idx):
+        temperature, pressure, density = ca.if_else(
+            layer_idx == idx,  # Conditional (outer)
+            ca.if_else(self.lapse_layers[layer_idx] == 0,  # Conditional (inner)
+                       self.isothermal_layer(altitude=altitude_geopotential,
+                                             altitude_0=self.h_layers[layer_idx],
+                                             temperature_0=self.T_layers[layer_idx],
+                                             pressure_0=self.P_layers[layer_idx],
+                                             density_0=self.rho_layers[layer_idx]),  # True (inner) -- dT = 0
+                       self.gradient_layer(altitude=altitude_geopotential,
+                                           lapse_rate=self.lapse_layers[idx],
+                                           altitude_0=self.h_layers[layer_idx],
+                                           temperature_0=self.T_layers[layer_idx],
+                                           pressure_0=self.P_layers[layer_idx],
+                                           density_0=self.rho_layers[layer_idx])  # False (inner) -- dT =/= 0
+                       ),  # True (outer) -- layer_idx = idx
+            self.eval_sx_atm_expr(altitude_geopotential, layer_idx, idx + 1)
+        )
+
+        return temperature, pressure, density
+
+    def get_sx_atm_expr(self, altitude_geometric: ca.SX):
+        altitude_geopotential = self.geometric2geopotential(altitude_geometric)
+        layer_idx = ca.sum1(altitude_geopotential >= self.h_layers) - 1
+        temperature, pressure, density = self.eval_sx_atm_expr(altitude_geopotential, layer_idx, 0)
+
+        return temperature, pressure, density
+
 
 # TODO refactor callback into backend
 class CasidiFunction(ca.Callback):
@@ -170,7 +198,7 @@ class CasidiFunction(ca.Callback):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
-    altitudes = np.linspace(80_000, 260_000, 1_000)
+    altitudes = np.linspace(30_000, 260_000, 10_000)
 
     rho_0 = 0.002378  # slug/ft**3
     h_ref = 23_800  # ft
@@ -185,6 +213,9 @@ if __name__ == "__main__":
     atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
     density_1976 = np.empty(shape=altitudes.shape)
     layer_1976 = list()
+
+    h_sx = ca.SX.sym('h')
+    atm.get_sx_atm_expr(h_sx)
 
     ca_rho_func = CasidiFunction(eval_func=lambda h: [atm.density(float(h))], n_in=1, n_out=1, func_name='density')
     h_sym = ca.MX.sym('h')
@@ -210,9 +241,12 @@ if __name__ == "__main__":
     ax11 = fig1.add_subplot(111)
     ax11.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
     for layer in atm.layer_names:
-        layer_idx = np.where(layer_1976 == layer)
-        if len(layer_idx[0]) > 0:
-            ax11.plot(density_1976[layer_idx] * 100_000, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
+        layer_idcs = np.where(layer_1976 == layer)
+        if len(layer_idcs[0]) > 0:
+            ax11.plot(density_1976[layer_idcs] * 100_000, altitudes[layer_idcs] / 10_000, label=layer + ' 1976')
+    xlim11 = ax11.get_xlim()
+    ax11.plot(xlim11, np.array((1, 1)) * 80_000 / 10_000, 'k--', zorder=0)
+    ax11.set_xlim(xlim11)
     ax11.grid()
     ax11.set_xlabel('Density [slug / 100,000 ft^3]')
     ax11.set_ylabel('Altitude [10,000 ft]')
@@ -227,10 +261,14 @@ if __name__ == "__main__":
     ax21.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
     ax22.plot(density_deriv_exponential * 1e9, altitudes / 10_000, label='Exponential')
     for layer in atm.layer_names:
-        layer_idx = np.where(layer_1976 == layer)
-        if len(layer_idx[0]) > 0:
-            ax21.plot(density_1976_ca[layer_idx] * 100_000, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
-            ax22.plot(density_1976_deriv_ca[layer_idx] * 1e9, altitudes[layer_idx] / 10_000, label=layer + ' 1976')
+        layer_idcs = np.where(layer_1976 == layer)
+        if len(layer_idcs[0]) > 0:
+            ax21.plot(density_1976_ca[layer_idcs] * 100_000, altitudes[layer_idcs] / 10_000, label=layer + ' 1976')
+            ax22.plot(density_1976_deriv_ca[layer_idcs] * 1e9, altitudes[layer_idcs] / 10_000, label=layer + ' 1976')
+    xlim21 = ax21.get_xlim()
+    xlim22 = ax22.get_xlim()
+    ax21.plot(xlim21, np.array((1, 1)) * 80_000 / 10_000, 'k--', zorder=0)
+    ax22.plot(xlim22, np.array((1, 1)) * 80_000 / 10_000, 'k--', zorder=0)
     ax21.grid()
     ax22.grid()
 
