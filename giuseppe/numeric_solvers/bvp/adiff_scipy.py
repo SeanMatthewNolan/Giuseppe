@@ -205,6 +205,7 @@ class AdiffScipySolveBVP(Picky):
         ind_nuf0 = n_p + n_nu00
 
         def dynamics_jac(tau_vec: NPArray, y_vec: NPArray, p_nu_t: NPArray, k: NPArray):
+            # TODO refactor without long for loop
             t0, tf = p_nu_t[-2], p_nu_t[-1]
             p = p_nu_t[:ind_nu00]
             nu0 = p_nu_t[ind_nu00:ind_nuf0]

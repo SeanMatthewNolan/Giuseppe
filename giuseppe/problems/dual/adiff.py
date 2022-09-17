@@ -183,16 +183,10 @@ class AdiffDualOCP:
             raise NotImplementedError(
                 f'\"{control_method}\" is not an implemented control method. Try \"differential\".')
 
-        self.dyn_y_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
-                             self.initial_independent, self.terminal_independent, self.constants)
-        self.dyn_y_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', 't_0', 't_f', 'k')
-        self.dyn_p_jac_args = (self.tau, self.states, self.costates, self.controls, self.parameters,
-                               self.initial_adjoints, self.terminal_adjoints,
-                               self.initial_independent, self.terminal_independent, self.constants)
-        self.dyn_p_jac_arg_names = ('τ', 'x', 'lam', 'u', 'p', '_nu_0', '_nu_f', 't_0', 't_f', 'k')
-
         # Jacobians for the Dynamics
         self.dependent = ca.vcat((self.states, self.costates, self.controls))
+        self.num_dependent = self.dependent.shape[0]
+
         self.bvp_parameters = ca.vcat((
             self.parameters,  # p
             self.initial_adjoints,  # nu_0
@@ -210,16 +204,17 @@ class AdiffDualOCP:
         _dy_dtau = _y_dot_transformed * _dt_dtau
 
         _dyn_y_jac = ca.jacobian(_dy_dtau, self.dependent)
-
+        # TODO finish refactoring
         _dyn_p_jac = ca.jacobian(_dy_dtau, self.bvp_parameters)
 
-        self.dyn_y_jac = ca.Function('dy_dx_lam_u', self.dyn_y_jac_args, (_dyn_y_jac,),
-                                     self.dyn_y_jac_arg_names, ('dy_dx_lam_u',))
-        self.dyn_p_jac = ca.Function('dy_dp_nu0_nuf', self.dyn_p_jac_args, (_dyn_p_jac,),
-                                     self.dyn_p_jac_arg_names, ('dy_dp_nu0_nuf',))
+        self.dy_dy = ca.Function('dy_dy', (self.tau, self.dependent, self.bvp_parameters, self.constants),
+                                 ca.horzsplit(_dyn_y_jac),
+                                 ('τ', 'y', 'p_nu_t', 'k'), ('dy_dy',))
+        self.dy_dp = ca.Function('dy_dp', (self.tau, self.dependent, self.bvp_parameters, self.constants),
+                                 ca.horzsplit(_dyn_p_jac),
+                                 ('τ', 'y', 'p_nu_t', 'k'), ('dy_dp_nu_t',))
 
         # Jacobians for the Boundary Conditions
-        self.num_dependent = self.num_states + self.num_costates + self.num_controls
         self.initial_dependent = self.dtype.sym('ya', self.num_dependent)
         self.terminal_dependent = self.dtype.sym('yb', self.num_dependent)
 
