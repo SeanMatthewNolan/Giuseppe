@@ -11,16 +11,20 @@ class AdiffInputOCP(AdiffInputBVP):
     Class to input optimal control problem data for symbolic processing
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX):
+        super().__init__(dtype=dtype)
 
-        self.controls = ca.MX.sym('', 0)
+        self.controls = dtype()
         self.cost: InputAdiffCost = InputAdiffCost()
 
-    def add_control(self, var: ca.MX):
+    def add_control(self, var: Union[ca.SX, ca.MX]):
+        assert(type(var) == self.dtype)
         self.controls = ca.vcat((self.controls, var))
         return self
 
-    def set_cost(self, initial: Union[ca.MX, float], path: Union[ca.MX, float], terminal: Union[ca.MX, float]):
+    def set_cost(self,
+                 initial: Union[ca.SX, ca.MX, float],
+                 path: Union[ca.SX, ca.MX, float],
+                 terminal: Union[ca.SX, ca.MX, float]):
         self.cost = InputAdiffCost(initial, path, terminal)
         return self

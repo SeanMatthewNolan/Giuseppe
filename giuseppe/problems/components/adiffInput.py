@@ -7,30 +7,60 @@ import numpy as np
 from giuseppe.problems.regularization import Regularizer
 
 
-@dataclass
 class InputAdiffState:
-    states: ca.MX = ca.MX.sym('', 0)
-    eoms: ca.MX = ca.MX.sym('', 0)
+    def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
+                 states: Optional[Union[ca.SX, ca.MX]] = None,
+                 eoms: Optional[Union[ca.SX, ca.MX]] = None):
+        if states is not None:
+            self.states = states
+        else:
+            self.states: Union[ca.SX, ca.MX] = dtype()
+
+        if eoms is not None:
+            self.eoms = eoms
+        else:
+            self.eoms: Union[ca.SX, ca.MX] = dtype()
 
 
-@dataclass
 class InputAdiffConstant:
-    constants: ca.MX = ca.MX.sym('', 0)
-    default_values: np.ndarray = np.empty((0, 1))
+    def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
+                 constants: Optional[Union[ca.SX, ca.MX]] = None,
+                 default_values: Optional[np.ndarray] = None):
+        if constants is not None:
+            self.constants = constants
+        else:
+            self.constants: Union[ca.SX, ca.MX] = dtype()
+        if default_values is not None:
+            self.default_values = default_values
+        else:
+            self.default_values: np.ndarray = np.empty((0, 1))
 
 
-@dataclass
 class InputAdiffConstraints:
-    initial: ca.MX = ca.MX.sym('', 0)
-    terminal: ca.MX = ca.MX.sym('', 0)
+    def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
+                 initial: Optional[Union[ca.SX, ca.MX]] = None,
+                 terminal: Optional[Union[ca.SX, ca.MX]] = None):
+        if initial is not None:
+            self.initial = initial
+        else:
+            self.initial: Union[ca.SX, ca.MX] = dtype()
+
+        if terminal is not None:
+            self.terminal = terminal
+        else:
+            self.terminal: Union[ca.SX, ca.MX] = dtype()
 
 
-@dataclass
 class InputAdiffInequalityConstraint:
-    expr: ca.MX
-    lower_limit: Union[ca.MX, float]
-    upper_limit: Union[ca.MX, float]
-    regularizer: Optional[Regularizer] = None
+    def __init__(self,
+                 expr: Union[ca.SX, ca.MX],
+                 lower_limit,
+                 upper_limit,
+                 regularizer: Optional[Regularizer] = None):
+        self.expr: Union[ca.SX, ca.MX] = expr
+        self.lower_limit: Union[ca.MX, float] = lower_limit
+        self.upper_limit: Union[ca.MX, float] = upper_limit
+        self.regularizer: Optional[Regularizer] = regularizer
 
 
 class InputAdiffInequalityConstraints:
@@ -43,6 +73,6 @@ class InputAdiffInequalityConstraints:
 
 @dataclass
 class InputAdiffCost:
-    initial: ca.MX = ca.MX(0)
-    path: ca.MX = ca.MX(0)
-    terminal: ca.MX = ca.MX(0)
+    initial: Union[ca.SX, ca.MX, float] = 0.0
+    path: Union[ca.SX, ca.MX, float] = 0.0
+    terminal: Union[ca.SX, ca.MX, float] = 0.0

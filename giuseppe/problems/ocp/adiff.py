@@ -24,6 +24,7 @@ class AdiffOCP(Picky):
         self.arg_names = ('t', 'x', 'u', 'p', 'k')
 
         if isinstance(self.src_ocp, AdiffInputOCP):
+            self.dtype = self.src_ocp.dtype
             self.comp_ocp = None
             self.independent = self.src_ocp.independent
             self.states = self.src_ocp.states.states
@@ -49,6 +50,7 @@ class AdiffOCP(Picky):
             self.ca_cost = self.create_cost()
 
         else:
+            self.dtype = ca.SX
             if isinstance(self.src_ocp, CompOCP):
                 if self.src_ocp.use_jit_compile:
                     warn('AdiffDual cannot accept JIT compiled CompDual! Recompiling CompDual without JIT...')
@@ -82,8 +84,7 @@ class AdiffOCP(Picky):
             self.ca_boundary_conditions, self.inputConstraints = self.wrap_boundary_conditions()
             self.ca_cost, self.inputCost = self.wrap_cost()
 
-    @staticmethod
-    def sym2ca_sym(sympy_sym):
+    def sym2ca_sym(self, sympy_sym):
         """
 
         Parameters
@@ -102,7 +103,7 @@ class AdiffOCP(Picky):
         else:
             length = 1
 
-        return ca.MX.sym(str(sympy_sym), length)
+        return self.dtype.sym(str(sympy_sym), length)
 
     def wrap_dynamics(self):
         dynamics_fun = ca_wrap('f', self.args, self.comp_ocp.dynamics, self.iter_args,

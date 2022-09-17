@@ -32,6 +32,7 @@ class AdiffDual(Picky):
         else:
             raise TypeError(f"AdiffDual cannot be initialized with a {type(source_ocp)} object!")
 
+        self.dtype = self.adiff_ocp.dtype
         self.num_states = self.adiff_ocp.num_states
         self.num_controls = self.adiff_ocp.num_controls
         self.num_parameters = self.adiff_ocp.num_parameters
@@ -46,9 +47,9 @@ class AdiffDual(Picky):
         self.parameters = self.adiff_ocp.parameters
         self.constants = self.adiff_ocp.constants
 
-        self.costates = ca.MX.sym('lam', self.num_costates)
-        self.initial_adjoints = ca.MX.sym('_nu_0', self.num_initial_adjoints)
-        self.terminal_adjoints = ca.MX.sym('_nu_f', self.num_terminal_adjoints)
+        self.costates = self.dtype.sym('lam', self.num_costates)
+        self.initial_adjoints = self.dtype.sym('_nu_0', self.num_initial_adjoints)
+        self.terminal_adjoints = self.dtype.sym('_nu_f', self.num_terminal_adjoints)
         self.states_and_parameters = ca.vcat((self.states, self.parameters))
 
         self.arg_names = {'ocp': self.adiff_ocp.arg_names,
@@ -152,6 +153,8 @@ class AdiffDualOCP:
         self.ocp = deepcopy(adiff_ocp)
         self.dual = deepcopy(adiff_dual)
 
+        self.dtype = self.dual.dtype
+
         self.independent = self.dual.independent
         self.states = self.dual.states
         self.costates = self.dual.costates
@@ -169,9 +172,9 @@ class AdiffDualOCP:
         self.num_initial_adjoints = self.dual.num_initial_adjoints
         self.num_terminal_adjoints = self.dual.num_terminal_adjoints
 
-        self.initial_independent = ca.MX.sym('t_0', 1)
-        self.terminal_independent = ca.MX.sym('t_f', 1)
-        self.tau = ca.MX.sym('τ', 1)
+        self.initial_independent = self.dtype.sym('t_0', 1)
+        self.terminal_independent = self.dtype.sym('t_f', 1)
+        self.tau = self.dtype.sym('τ', 1)
         _independent = self.tau * (self.terminal_independent - self.initial_independent) + self.initial_independent
 
         if control_method.lower() == 'differential':
@@ -217,8 +220,8 @@ class AdiffDualOCP:
 
         # Jacobians for the Boundary Conditions
         self.num_dependent = self.num_states + self.num_costates + self.num_controls
-        self.initial_dependent = ca.MX.sym('ya', self.num_dependent)
-        self.terminal_dependent = ca.MX.sym('yb', self.num_dependent)
+        self.initial_dependent = self.dtype.sym('ya', self.num_dependent)
+        self.terminal_dependent = self.dtype.sym('yb', self.num_dependent)
 
         self.bc_jac_args = (self.initial_dependent, self.terminal_dependent, self.bvp_parameters, self.constants)
         self.bc_jac_arg_names = ('ya', 'yb', 'p_nu_t', 'k')
