@@ -20,13 +20,13 @@ ocp.add_control(alpha)
 # mu = ca.MX.sym('mu', 1)
 # Re = ca.MX.sym('Re', 1)
 #
-# ocp.add_constant(Isp, 16000.0)  # s
+# ocp.add_constant(Isp, 1600.0)  # s
 # ocp.add_constant(g0, 32.174)  # ft/s^2
 # ocp.add_constant(S, 530.0)  # ft^2
 # ocp.add_constant(mu, 1.4076539e16)  # ft^3/s^2
 # ocp.add_constant(Re, 20902900.0)  # ft
 
-Isp = 16000
+Isp = 1600.0
 g0 = 32.174
 S = 530
 mu = 1.4076539e16
@@ -46,7 +46,7 @@ rho_0 = 0.002378
 rho = rho_0 * ca.exp(-h / h_ref)
 
 # Look-Up Tables
-interp_method = 'linear'  # either 'bspline' or 'linear'
+interp_method = 'bspline'  # either 'bspline' or 'linear'
 
 M_grid_thrust = np.array((0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8))
 h_grid_thrust = np.array((0, 5, 10, 15, 20, 25, 30, 40, 50, 70)) * 1e3
@@ -59,7 +59,7 @@ data_thrust = np.array(((24.2, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                         (36.1, 38.0, 34.9, 31.3, 27.3, 23.6, 20.1, 13.4, 8.3, 1.7),
                         (0, 36.6, 38.5, 36.1, 31.6, 28.1, 24.2, 16.2, 10.0, 2.2),
                         (0, 0, 0, 38.7, 35.7, 32.0, 28.1, 19.3, 11.9, 2.9),
-                        (0, 0, 0, 0, 0, 34.6, 31.1, 21.7, 13.3, 3.1)))
+                        (0, 0, 0, 0, 0, 34.6, 31.1, 21.7, 13.3, 3.1))) * 1e3
 
 data_flat_thrust = data_thrust.ravel(order='F')
 thrust_table = ca.interpolant('thrust_table', interp_method, (M_grid_thrust, h_grid_thrust), data_flat_thrust)
@@ -72,8 +72,8 @@ data_CD0 = np.array((0.013, 0.013, 0.013, 0.014, 0.031, 0.041, 0.039, 0.036, 0.0
 data_eta = np.array((0.54, 0.54, 0.54, 0.75, 0.79, 0.78, 0.89, 0.93, 0.93))
 
 CLalpha_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_CLalpha)
-CD0_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_CLalpha)
-eta_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_CLalpha)
+CD0_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_CD0)
+eta_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_eta)
 
 CLalpha = CLalpha_table(M)
 CD0 = CD0_table(M)
@@ -82,7 +82,8 @@ eta = eta_table(M)
 # Expressions
 d2r = ca.pi / 180
 r2d = 180 / ca.pi
-alpha_hat = alpha * r2d
+alpha_hat = alpha
+# alpha_hat = alpha * r2d
 
 CD = CD0 + eta * CLalpha * alpha_hat**2
 CL = CLalpha * alpha_hat
@@ -99,41 +100,48 @@ ocp.add_state(gam, 1/(mass*v) * (thrust*ca.sin(alpha) + lift) + ca.cos(gam) * (v
 ocp.add_state(w, -thrust/Isp)
 
 # Inequality Constraints
-h_min = ca.MX.sym('h_min', 1)
-h_max = ca.MX.sym('h_max', 1)
+# h_min = ca.MX.sym('h_min', 1)
+# h_max = ca.MX.sym('h_max', 1)
 eps_h = ca.MX.sym('eps_h', 1)
 
-ocp.add_constant(h_min, -10)  # ft
-ocp.add_constant(h_max, 69e3)  # ft
-ocp.add_constant(eps_h, 1)
+h_min = -10
+h_max = 69e3
+# ocp.add_constant(h_min, -10)  # ft
+# ocp.add_constant(h_max, 69e3)  # ft
+ocp.add_constant(eps_h, 1e-3)
 
-gam_max = ca.MX.sym('gam_max', 1)
+gam_max = 89*d2r
+# gam_max = ca.MX.sym('gam_max', 1)
 eps_gam = ca.MX.sym('eps_gam', 1)
 
-ocp.add_constant(gam_max, 89*d2r)  # rad
-ocp.add_constant(eps_gam, 1)
+# ocp.add_constant(gam_max, 89*d2r)  # rad
+ocp.add_constant(eps_gam, 1e-3)
 
-v_min = ca.MX.sym('v_min', 1)
-v_max = ca.MX.sym('v_max', 1)
+v_min = 1
+v_max = 2000
+# v_min = ca.MX.sym('v_min', 1)
+# v_max = ca.MX.sym('v_max', 1)
 eps_v = ca.MX.sym('eps_v', 1)
 
-ocp.add_constant(v_min, 1)  # ft
-ocp.add_constant(v_max, 2000)  # ft
-ocp.add_constant(eps_v, 1)
+# ocp.add_constant(v_min, 1)  # ft
+# ocp.add_constant(v_max, 2000)  # ft
+ocp.add_constant(eps_v, 1e-3)
 
-w_min = ca.MX.sym('w_min', 1)
-w_max = ca.MX.sym('w_max', 1)
+w_min = 0
+w_max = 45000
+# w_min = ca.MX.sym('w_min', 1)
+# w_max = ca.MX.sym('w_max', 1)
 eps_w = ca.MX.sym('eps_w', 1)
 
-ocp.add_constant(w_min, 0)  # lb
-ocp.add_constant(w_max, 45000)  # lb
-ocp.add_constant(eps_w, 1)
+# ocp.add_constant(w_min, 0)  # lb
+# ocp.add_constant(w_max, 45000)  # lb
+ocp.add_constant(eps_w, 1e-3)
 
 alpha_max = ca.MX.sym('alpha_max', 1)
 eps_alpha = ca.MX.sym('eps_alpha', 1)
 
 ocp.add_constant(alpha_max, 20*d2r)
-ocp.add_constant(eps_alpha, 1)
+ocp.add_constant(eps_alpha, 1e-3)
 
 ocp.add_inequality_constraint('path', h,
                               lower_limit=h_min, upper_limit=h_max,
@@ -175,13 +183,9 @@ h_f = ca.MX.sym('h_f', 1)
 v_f = ca.MX.sym('v_f', 1)
 gam_f = ca.MX.sym('gam_f', 1)
 
-# ocp.add_constant(h_f, 65600.0)  # ft
-# ocp.add_constant(v_f, 968.148)  # ft/s
-# ocp.add_constant(gam_f, 0.0)  # rad
-
-ocp.add_constant(h_f, -3.13284367e+03)  # ft
-ocp.add_constant(v_f, 3.11450056e+01)  # ft/s
-ocp.add_constant(gam_f, -1.44590179e+00)  # rad
+ocp.add_constant(h_f, 65600.0)  # ft
+ocp.add_constant(v_f, 968.148)  # ft/s
+ocp.add_constant(gam_f, 0.0)  # rad
 
 ocp.add_constraint(location='terminal', expr=h - h_f)
 ocp.add_constraint(location='terminal', expr=v - v_f)
@@ -205,7 +209,10 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 # Continuations (from guess BCs to desired BCs)
-
+cont = giuseppe.continuation.ContinuationHandler(sol_set)
+cont.add_linear_series(100, {'v_f': 500, 'h_f': 0.0, 'gam_f': 0.0}, bisection=True)
+# cont.add_linear_series(1000, {'h_f': 65600.0, 'v_f': 968.148, 'gam_f': 0.0}, bisection=True)
+sol_set = cont.run_continuation(num_solver)
 
 # Save Solution
 sol_set.save('sol_set.data')

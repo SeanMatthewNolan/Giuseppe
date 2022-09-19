@@ -96,8 +96,8 @@ with Timer(prefix='Compilation Time:'):
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
     comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver1000 = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, verbose=True, max_nodes=1_000)
-    num_solver2000 = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, verbose=True, max_nodes=2_000)
+    num_solver1000 = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, verbose=False, max_nodes=1_000)
+    num_solver2000 = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, verbose=False, max_nodes=2_000)
 
 guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver1000.solve(guess.k, guess)
@@ -113,7 +113,7 @@ sol_set1 = cont1.run_continuation(num_solver1000)
 sol_set1.save('sol_set.data')
 
 cont2 = ContinuationHandler(deepcopy(sol_set1))
-cont2.add_linear_series(10, {'h_f': 30_000, 'v_f': 1_715}, bisection=True)
+cont2.add_linear_series(10, {'h_f': 25_000, 'v_f': 1_250}, bisection=True)
 sol_set2 = cont2.run_continuation(num_solver2000)
 
 sol_set2.save('sol_set_30_000.data')
