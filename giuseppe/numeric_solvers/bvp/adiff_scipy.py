@@ -190,38 +190,18 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_ocp_diff_dynamics_jac(dual_ocp: AdiffDualOCP):
-        df_dy = maybe_expand(dual_ocp.dyn_y_jac)
-        df_dp = maybe_expand(dual_ocp.dyn_p_jac)
-
-        n_x = dual_ocp.dual.num_states
-        n_lam = dual_ocp.dual.num_costates
-        n_p = dual_ocp.dual.num_parameters
-        n_nu00 = dual_ocp.dual.num_initial_adjoints
-
-        ind_lam0 = n_x
-        ind_u0 = n_x + n_lam
-
-        ind_nu00 = n_p
-        ind_nuf0 = n_p + n_nu00
+        df_dy = maybe_expand(dual_ocp.df_dy)
+        df_dp = maybe_expand(dual_ocp.df_dp)
 
         def dynamics_jac(tau_vec: NPArray, y_vec: NPArray, p_nu_t: NPArray, k: NPArray):
-            # TODO refactor without long for loop
-            t0, tf = p_nu_t[-2], p_nu_t[-1]
-            p = p_nu_t[:ind_nu00]
-            nu0 = p_nu_t[ind_nu00:ind_nuf0]
-            nuf = p_nu_t[ind_nuf0:-2]
 
-            x_vec = y_vec[:ind_lam0, :]
-            lam_vec = y_vec[ind_lam0:ind_u0, :]
-            u_vec = y_vec[ind_u0:, :]
+            map_size = len(tau_vec)
 
-            df_dy_vectorized = np.empty(shape=(len(y_vec), len(y_vec), len(tau_vec)))
-            df_dp_vectorized = np.empty(shape=(len(y_vec), len(p_nu_t), len(tau_vec)))
-            for i in range(len(tau_vec)):
-                df_dy_vectorized[:, :, i] = np.asarray(df_dy(tau_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
-                                                             p, t0, tf, k))
-                df_dp_vectorized[:, :, i] = np.asarray(df_dp(tau_vec[i], x_vec[:, i], lam_vec[:, i], u_vec[:, i],
-                                                             p, nu0, nuf, t0, tf, k))
+            df_dy_map = df_dy.map(map_size)
+            df_dp_map = df_dp.map(map_size)
+
+            df_dy_vectorized = np.asarray(tuple(df_dy_map(tau_vec, y_vec, p_nu_t, k))).transpose((1, 0, 2))
+            df_dp_vectorized = np.asarray(tuple(df_dp_map(tau_vec, y_vec, p_nu_t, k))).transpose((1, 0, 2))
 
             return df_dy_vectorized, df_dp_vectorized
 

@@ -194,6 +194,7 @@ class AdiffDualOCP:
             self.initial_independent,  # t_0
             self.terminal_independent  # t_f
         ))
+        self.num_bvp_parameters = self.bvp_parameters.shape[0]
 
         _x_dot = self.ocp.ca_dynamics(*self.ocp.args)
         _lam_dot = self.dual.ca_costate_dynamics(*self.dual.args['dynamic'])
@@ -204,15 +205,22 @@ class AdiffDualOCP:
         _dy_dtau = _y_dot_transformed * _dt_dtau
 
         _dyn_y_jac = ca.jacobian(_dy_dtau, self.dependent)
-        # TODO finish refactoring
         _dyn_p_jac = ca.jacobian(_dy_dtau, self.bvp_parameters)
 
-        self.dy_dy = ca.Function('dy_dy', (self.tau, self.dependent, self.bvp_parameters, self.constants),
+        _df_dy_out_labs = list()
+        for i in range(self.num_dependent):
+            _df_dy_out_labs.append(f'df_dy{i+1}')
+
+        _df_dp_out_labs = list()
+        for i in range(self.num_bvp_parameters):
+            _df_dp_out_labs.append(f'df_dp{i+1}')
+
+        self.df_dy = ca.Function('df_dy', (self.tau, self.dependent, self.bvp_parameters, self.constants),
                                  ca.horzsplit(_dyn_y_jac),
-                                 ('τ', 'y', 'p_nu_t', 'k'), ('dy_dy',))
-        self.dy_dp = ca.Function('dy_dp', (self.tau, self.dependent, self.bvp_parameters, self.constants),
+                                 ('τ', 'y', 'p_nu_t', 'k'), _df_dy_out_labs)
+        self.df_dp = ca.Function('df_dp', (self.tau, self.dependent, self.bvp_parameters, self.constants),
                                  ca.horzsplit(_dyn_p_jac),
-                                 ('τ', 'y', 'p_nu_t', 'k'), ('dy_dp_nu_t',))
+                                 ('τ', 'y', 'p_nu_t', 'k'), _df_dp_out_labs)
 
         # Jacobians for the Boundary Conditions
         self.initial_dependent = self.dtype.sym('ya', self.num_dependent)
