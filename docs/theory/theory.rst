@@ -6,4 +6,4 @@ Theory and Mathematical Reference for Giuseppe
    :caption: Contents:
 
    necessary_conditions.rst
-
+   index_reduction.rst
