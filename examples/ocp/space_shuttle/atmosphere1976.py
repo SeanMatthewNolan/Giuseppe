@@ -46,7 +46,7 @@ class Atmosphere1976:
             newtons2lb = 0.2248090795
 
             if gas_constant is None:
-                # N-m/kg K * (lb/N) * (ft/m) * (kg/slug) * (K/R) = ft-lb / slug - K
+                # N-m/kg K * (lb/N) * (ft/m) * (kg/slug) * (K/R) = ft-lb / slug - R
                 self.gas_constant = self.gas_constant * newtons2lb * m2ft * slug2kg * rankine2kelvin
             if earth_radius is None:
                 self.earth_radius = self.earth_radius * m2ft  # m * (ft/m) = ft
@@ -197,7 +197,7 @@ class CasidiFunction(ca.Callback):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
-    altitudes = np.linspace(30_000, 260_000, 10_000)
+    altitudes = np.linspace(0, 260_000, 10_000)
 
     rho_0 = 0.002378  # slug/ft**3
     h_ref = 23_800  # ft
@@ -250,18 +250,18 @@ if __name__ == "__main__":
     ax11.legend()
 
     fig2 = plt.figure(figsize=(6.5, 5))
-    title = fig2.suptitle('CasADi Auto Derivative of 1976 Atmosphere')
+    # title = fig2.suptitle('Comparison of Exponential and 1976 Standard Atmosphere')
 
     ax21 = fig2.add_subplot(121)
     ax22 = fig2.add_subplot(122)
 
-    ax21.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential')
-    ax22.plot(density_deriv_exponential * 1e9, altitudes / 10_000, label='Exponential')
+    ax21.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential Atm.')
+    ax22.plot(density_deriv_exponential * 1e9, altitudes / 10_000, label='Exponential Atm.')
     for layer in atm.layer_names:
         layer_idcs = np.where(layer_1976 == layer)
         if len(layer_idcs[0]) > 0:
-            ax21.plot(density_1976_ca[layer_idcs] * 100_000, altitudes[layer_idcs] / 10_000, label=layer + ' 1976')
-            ax22.plot(density_1976_deriv_ca[layer_idcs] * 1e9, altitudes[layer_idcs] / 10_000, label=layer + ' 1976')
+            ax21.plot(density_1976_ca[layer_idcs] * 100_000, altitudes[layer_idcs] / 10_000, '--', label=layer)
+            ax22.plot(density_1976_deriv_ca[layer_idcs] * 1e9, altitudes[layer_idcs] / 10_000, '--', label=layer)
     xlim21 = ax21.get_xlim()
     xlim22 = ax22.get_xlim()
     ax21.plot(xlim21, np.array((1, 1)) * 80_000 / 10_000, 'k--', zorder=0)
@@ -270,9 +270,16 @@ if __name__ == "__main__":
     ax22.grid()
 
     ax21.set_ylabel('Altitude [10,000 ft]')
-    ax21.set_xlabel(r'CasADi $\rho$ [slug / 100,000 ft^3]')
-    ax22.set_xlabel(r'CasADi $\dfrac{d\rho}{dh}$ [slug / 10^9 ft^4}')
+    ax21.set_xlabel(r'$\rho$ [slug / 100,000 ft$^3$]')
+    ax22.set_xlabel(r'$-\dfrac{d\rho}{dh}$ [slug / 10$^9$ ft$^4$]')
+    # ax21.set_xscale('log')
 
     ax21.legend()
+
+    fig2.tight_layout()
+
+    fig2.savefig('atm_comparison.eps',
+                 format='eps',
+                 bbox_inches='tight')
 
     plt.show()
