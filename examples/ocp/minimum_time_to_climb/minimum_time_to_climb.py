@@ -1,9 +1,10 @@
 import numpy as np
 import casadi as ca
+import pickle
 
 import giuseppe
 
-ocp = giuseppe.io.AdiffInputOCP()
+ocp = giuseppe.io.AdiffInputOCP(dtype=ca.MX)
 
 # Independent Variable
 t = ca.MX.sym('t', 1)
@@ -13,19 +14,7 @@ ocp.set_independent(t)
 alpha = ca.MX.sym('alpha', 1)
 ocp.add_control(alpha)
 
-# Known Constant Parameters
-# Isp = ca.MX.sym('Isp', 1)
-# g0 = ca.MX.sym('g0', 1)
-# S = ca.MX.sym('S', 1)
-# mu = ca.MX.sym('mu', 1)
-# Re = ca.MX.sym('Re', 1)
-#
-# ocp.add_constant(Isp, 1600.0)  # s
-# ocp.add_constant(g0, 32.174)  # ft/s^2
-# ocp.add_constant(S, 530.0)  # ft^2
-# ocp.add_constant(mu, 1.4076539e16)  # ft^3/s^2
-# ocp.add_constant(Re, 20902900.0)  # ft
-
+# Immutable Constant Parameters
 Isp = 1600.0
 g0 = 32.174
 S = 530
@@ -77,13 +66,17 @@ eta_table = ca.interpolant('CLalpha_table', interp_method, (M_grid_aero,), data_
 
 CLalpha = CLalpha_table(M)
 CD0 = CD0_table(M)
-eta = eta_table(M)
+# eta = eta_table(M)
+
+k_eta = ca.MX.sym('k_eta', 1)
+ocp.add_constant(k_eta, 0)
+# eta = 0.54 * (1 - k_eta) + k_eta * eta_table(M)
+eta = 0.54
 
 # Expressions
 d2r = ca.pi / 180
 r2d = 180 / ca.pi
 alpha_hat = alpha
-# alpha_hat = alpha * r2d
 
 CD = CD0 + eta * CLalpha * alpha_hat**2
 CL = CLalpha * alpha_hat
@@ -100,42 +93,11 @@ ocp.add_state(gam, 1/(mass*v) * (thrust*ca.sin(alpha) + lift) + ca.cos(gam) * (v
 ocp.add_state(w, -thrust/Isp)
 
 # Inequality Constraints
-# h_min = ca.MX.sym('h_min', 1)
-# h_max = ca.MX.sym('h_max', 1)
 eps_h = ca.MX.sym('eps_h', 1)
 
 h_min = -10
 h_max = 69e3
-# ocp.add_constant(h_min, -10)  # ft
-# ocp.add_constant(h_max, 69e3)  # ft
-ocp.add_constant(eps_h, 1e-3)
-
-gam_max = 89*d2r
-# gam_max = ca.MX.sym('gam_max', 1)
-eps_gam = ca.MX.sym('eps_gam', 1)
-
-# ocp.add_constant(gam_max, 89*d2r)  # rad
-ocp.add_constant(eps_gam, 1e-3)
-
-v_min = 1
-v_max = 2000
-# v_min = ca.MX.sym('v_min', 1)
-# v_max = ca.MX.sym('v_max', 1)
-eps_v = ca.MX.sym('eps_v', 1)
-
-# ocp.add_constant(v_min, 1)  # ft
-# ocp.add_constant(v_max, 2000)  # ft
-ocp.add_constant(eps_v, 1e-3)
-
-w_min = 0
-w_max = 45000
-# w_min = ca.MX.sym('w_min', 1)
-# w_max = ca.MX.sym('w_max', 1)
-eps_w = ca.MX.sym('eps_w', 1)
-
-# ocp.add_constant(w_min, 0)  # lb
-# ocp.add_constant(w_max, 45000)  # lb
-ocp.add_constant(eps_w, 1e-3)
+ocp.add_constant(eps_h, 1e-5)
 
 alpha_max = ca.MX.sym('alpha_max', 1)
 eps_alpha = ca.MX.sym('eps_alpha', 1)
@@ -146,18 +108,9 @@ ocp.add_constant(eps_alpha, 1e-3)
 ocp.add_inequality_constraint('path', h,
                               lower_limit=h_min, upper_limit=h_max,
                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_h))
-ocp.add_inequality_constraint('path', gam,
-                              lower_limit=-gam_max, upper_limit=gam_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_gam))
-ocp.add_inequality_constraint('path', v,
-                              lower_limit=v_min, upper_limit=v_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_v))
-ocp.add_inequality_constraint('path', w,
-                              lower_limit=w_min, upper_limit=w_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_w))
 ocp.add_inequality_constraint('path', alpha,
                               lower_limit=-alpha_max, upper_limit=alpha_max,
-                              regularizer=giuseppe.regularization.AdiffControlConstraintHandler(regulator=eps_alpha))
+                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_alpha))
 
 # Initial Boundary Conditions
 t_0 = ca.MX.sym('t_0', 1)
@@ -199,19 +152,24 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
-    comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True)
-    # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True, use_jac=True)
 
 # Guess Generation (overwrites the terminal conditions in order to converge)
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=(2*d2r,), t_span=1)
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=6*d2r, t_span=0.1)
 seed_sol = num_solver.solve(guess.k, guess)
+
+print(num_solver.resolve_bcs(seed_sol))
+
+with open('seed_sol.data', 'wb') as file:
+    pickle.dump(seed_sol, file)
+
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 # Continuations (from guess BCs to desired BCs)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'v_f': 500, 'h_f': 0.0, 'gam_f': 0.0}, bisection=True)
-# cont.add_linear_series(1000, {'h_f': 65600.0, 'v_f': 968.148, 'gam_f': 0.0}, bisection=True)
+cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180}, bisection=True)
+cont.add_linear_series(100, {'h_f': 1_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180}, bisection=True)
+cont.add_linear_series(100, {'h_f': 65600.0, 'v_f': 968.148, 'gam_f': 0.0}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 # Save Solution

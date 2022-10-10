@@ -3,8 +3,11 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-with open('sol_set.data', 'rb') as file:
-    sol = pickle.load(file)[-1]
+# with open('sol_set.data', 'rb') as file:
+#     sol = pickle.load(file)[-1]
+
+with open('seed_sol.data', 'rb') as file:
+    sol = pickle.load(file)
 
 t_lab = 'Time [sec]'
 r2d = 180 / np.pi
@@ -14,7 +17,7 @@ title = fig.suptitle('Min. Time to Climb')
 
 # Alt. vs. Time
 ax1 = fig.add_subplot(321)
-ax1.plot(sol.t, sol.x[0, :] / 1000)
+ax1.plot(sol.t, sol.x[0, :] / 1_000)
 xlabel_1 = ax1.set_xlabel(t_lab)
 ylabel_1 = ax1.set_ylabel('Altitude [1000 ft]')
 ax1.grid()
@@ -49,7 +52,7 @@ ax5.grid()
 
 # Alt. Vs. Velocity
 ax6 = fig.add_subplot(326)
-ax6.plot(sol.x[1, :], sol.x[0, :])
+ax6.plot(sol.x[1, :] / 100, sol.x[0, :] / 1_000)
 xlabel_6 = ax6.set_xlabel('Velocity [100 ft/s]')
 ylabel_6 = ax6.set_ylabel('Altitude [1000 ft]')
 ax6.grid()
