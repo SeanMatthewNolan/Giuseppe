@@ -65,11 +65,11 @@ for ax_idx, plot_num in enumerate(plot_nums):
     ax2.append(fig2.add_subplot(2, 2, plot_num))
     idx = indices[ax_idx]
 
-    if plot_num % 2 == 0:  # Right Column of plots
+    if plot_num % 2 == 1:  # Left Column of plots
         ax2[ax_idx].plot(sol.t, sol.u[idx, :] * mult[idx], line_styles[idx], label='Exp.')
         ax2[ax_idx].plot(sol_cond.t, sol_cond.u[idx, :] * mult[idx], zorder=0, label='Cond.')
         ax2[ax_idx].grid()
-    else:  # Left column of plots
+    else:  # Right column of plots
         ax2[ax_idx].plot(sol_25k.t, sol_25k.u[idx, :] * mult[idx], label='Exp.')
         ax2[ax_idx].plot(sol_cond_25k.t, sol_cond_25k.u[idx, :] * mult[idx], zorder=0, label='Cond.')
         ax2[ax_idx].grid()
