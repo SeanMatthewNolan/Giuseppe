@@ -303,6 +303,13 @@ class AdiffScipySolveBVP(Picky):
 
         return _postprocess_ocp_diff_sol
 
+    def resolve_bcs(self, sol: Solution):
+        y0 = np.concatenate((sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0]))
+        yf = np.concatenate((sol.x[:, -1], sol.lam[:, -1], sol.u[:, -1]))
+        p_nu_t = np.concatenate((sol.p, sol.nu0, sol.nuf, sol.t[((0, -1),)]))
+
+        return self.boundary_conditions(y0, yf, p_nu_t, sol.k)
+
     def solve(self, constants: NPArray, guess: Solution) -> Solution:
         """
         Solve BVP (or dualized OCP) with instance of ScipySolveBVP
