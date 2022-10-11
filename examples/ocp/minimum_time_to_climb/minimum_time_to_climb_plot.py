@@ -2,12 +2,15 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib as mpl
+mpl.rcParams['axes.formatter.useoffset'] = False
 
-DATA = 1
+DATA = 0
 
 if DATA == 0:
     with open('sol_set.data', 'rb') as file:
-        sol = pickle.load(file)[-1]
+        sols = pickle.load(file)
+        sol = sols[-1]
 elif DATA == 1:
     with open('seed.data', 'rb') as file:
         sol = pickle.load(file)
@@ -16,11 +19,12 @@ elif DATA == 2:
         sol = pickle.load(file)
 
 alpha_reg = sol.u[0, :]
-alpha_max = sol.k[1]
+alpha_max = sol.k[2]
 alpha_min = -alpha_max
-eps_alpha = sol.k[2]
+eps_alpha = sol.k[3]
 
-alpha = (alpha_max - alpha_min) / np.pi * np.arctan(alpha_reg / eps_alpha) + 0.5 * (alpha_max + alpha_min)
+# alpha = (alpha_max - alpha_min) / np.pi * np.arctan(alpha_reg / eps_alpha) + 0.5 * (alpha_max + alpha_min)
+alpha = 0.5 * (alpha_max - alpha_min) * np.sin(alpha_reg) + 0.5 * (alpha_max + alpha_min)
 
 t_lab = 'Time [sec]'
 r2d = 180 / np.pi
@@ -69,5 +73,7 @@ ax6.plot(sol.x[1, :] / 100, sol.x[0, :] / 1_000)
 xlabel_6 = ax6.set_xlabel('Velocity [100 ft/s]')
 ylabel_6 = ax6.set_ylabel('Altitude [1000 ft]')
 ax6.grid()
+
+fig.tight_layout()
 
 plt.show()
