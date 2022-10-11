@@ -33,7 +33,7 @@ class AdiffScipySolveBVP(Picky):
     SUPPORTED_INPUTS = Union[AdiffBVP, AdiffDualOCP]
 
     def __init__(self, bvp: SUPPORTED_INPUTS,
-                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False,
+                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: Union[bool, int] = False,
                  use_jac: bool = False):
         """
         Initialize ScipySolveBVP
