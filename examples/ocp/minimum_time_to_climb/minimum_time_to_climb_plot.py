@@ -2,8 +2,6 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib as mpl
-mpl.rcParams['axes.formatter.useoffset'] = False
 
 DATA = 0
 
@@ -17,14 +15,6 @@ elif DATA == 1:
 elif DATA == 2:
     with open('guess.data', 'rb') as file:
         sol = pickle.load(file)
-
-alpha_reg = sol.u[0, :]
-alpha_max = sol.k[2]
-alpha_min = -alpha_max
-eps_alpha = sol.k[3]
-
-# alpha = (alpha_max - alpha_min) / np.pi * np.arctan(alpha_reg / eps_alpha) + 0.5 * (alpha_max + alpha_min)
-alpha = 0.5 * (alpha_max - alpha_min) * np.sin(alpha_reg) + 0.5 * (alpha_max + alpha_min)
 
 t_lab = 'Time [sec]'
 r2d = 180 / np.pi
@@ -62,7 +52,7 @@ ax4.grid()
 
 # AoA vs. Time
 ax5 = fig.add_subplot(325)
-ax5.plot(sol.t, alpha * r2d)
+ax5.plot(sol.t, sol.u[0, :] * r2d)
 xlabel_5 = ax5.set_xlabel(t_lab)
 ylabel_5 = ax5.set_ylabel(r'$\alpha$ [deg]')
 ax5.grid()

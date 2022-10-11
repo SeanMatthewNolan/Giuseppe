@@ -100,44 +100,17 @@ h_max = 69e3
 ocp.add_constant(eps_h, 1e-5)
 
 alpha_max = ca.MX.sym('alpha_max', 1)
-alpha_min = -alpha_max
 eps_alpha = ca.MX.sym('eps_alpha', 1)
 
 ocp.add_constant(alpha_max, 20*d2r)
-ocp.add_constant(eps_alpha, 1e-5)
+ocp.add_constant(eps_alpha, 1e-3)
 
 ocp.add_inequality_constraint('path', h,
                               lower_limit=h_min, upper_limit=h_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(
-                                  regulator=eps_h / h_ref))
-# ocp.add_inequality_constraint('path', alpha,
-#                               lower_limit=-alpha_max, upper_limit=alpha_max,
-#                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(
-#                                   regulator=eps_alpha / (2 * alpha_max)))
-
-# ocp.add_inequality_constraint('control', alpha,
-#                               lower_limit=alpha_min, upper_limit=alpha_max,
-#                               regularizer=giuseppe.regularization.AdiffControlConstraintHandler(
-#                                   regulator=eps_alpha, method='atan'))
-#
-# alpha_reg_fun = ca.Function('alpha_reg', (alpha, alpha_max, eps_alpha),
-#                             (eps_alpha
-#                              * ca.tan(ca.pi/(alpha_max - alpha_min) * (alpha - 0.5 * (alpha_max + alpha_min))),),
-#                             ('alpha', 'alpha_max', 'eps_alpha'), ('alpha_reg',))
-
-ocp.add_inequality_constraint('control', alpha,
-                              lower_limit=alpha_min, upper_limit=alpha_max,
-                              regularizer=giuseppe.regularization.AdiffControlConstraintHandler(
-                                  regulator=eps_alpha, method='sin'))
-
-alpha_reg_fun = ca.Function('alpha_reg', (alpha, alpha_max),
-                            (ca.arcsin((alpha - 0.5 * (alpha_max + alpha_min)) * 2 / (alpha_max - alpha_min)),),
-                            ('alpha', 'alpha_max'), ('alpha_reg',))
-
-alpha_reg = ca.MX.sym('alpha_reg', 1)
-alpha_fun = ca.Function('alpha', (alpha_reg, alpha_max),
-                        (0.5*(alpha_max - alpha_min) * ca.sin(alpha_reg) + 0.5 * (alpha_max + alpha_min),),
-                        ('alpha_reg', 'alpha_max'), ('alpha',))
+                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_h))
+ocp.add_inequality_constraint('path', alpha,
+                              lower_limit=-alpha_max, upper_limit=alpha_max,
+                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_alpha))
 
 # Initial Boundary Conditions
 t_0 = ca.MX.sym('t_0', 1)
@@ -182,10 +155,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True, use_jac=True)
 
 # Guess Generation (overwrites the terminal conditions in order to converge)
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp,
-                                                       control=alpha_reg_fun(6*d2r, 20*d2r),
-                                                       t_span=0.1)
-guess.k[0] = 0  # set k_eta = 0
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=6*d2r, t_span=0.1)
 
 with open('guess.data', 'wb') as file:
     pickle.dump(guess, file)
@@ -199,12 +169,10 @@ sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 # Continuations (from guess BCs to desired BCs)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-# cont.add_linear_series(100, {'h_f': 0, 'v_f': 200, 'gam_f': 0 * np.pi/180}, bisection=True)
-# cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180}, bisection=True)
-cont.add_linear_series(50, {'h_f': 10, 'v_f': 450, 'gam_f': 2.5 * np.pi/180}, bisection=True)
-cont.add_linear_series(50, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180}, bisection=True)
-cont.add_linear_series(200, {'h_f': 500, 'v_f': 1_000, 'gam_f': 35 * np.pi/180}, bisection=True)
-cont.add_linear_series(100, {'h_f': 65600.0, 'v_f': 968.148, 'gam_f': 0.0}, bisection=True)
+cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180})
+cont.add_linear_series(100, {'h_f': 1_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
+cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
+cont.add_linear_series(100, {'gam_f': 0})
 sol_set = cont.run_continuation(num_solver)
 
 # Save Solution
