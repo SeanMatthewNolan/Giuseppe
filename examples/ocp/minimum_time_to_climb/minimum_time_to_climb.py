@@ -4,7 +4,8 @@ import pickle
 
 import giuseppe
 
-from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline, CD0_table_bspline, a
+from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
+    CD0_table_bspline_expanded, a
 
 ocp = giuseppe.io.AdiffInputOCP(dtype=ca.MX)
 
@@ -38,8 +39,8 @@ rho = rho_0 * ca.exp(-h / h_ref)
 
 # Look-Up Tables
 thrust = thrust_table_bspline(M)
-CLalpha = CLalpha_table_bspline(M)
-CD0 = CD0_table_bspline(M)
+CLalpha = CLalpha_table_bspline_expanded(M)
+CD0 = CD0_table_bspline_expanded(M)
 eta = eta_table_bspline_expanded(M)
 
 # Expressions

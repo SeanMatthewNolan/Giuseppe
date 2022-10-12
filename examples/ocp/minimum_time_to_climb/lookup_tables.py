@@ -77,18 +77,33 @@ diff_CD0_fun_linear = ca.Function('dCD0_dv', (v,), (CD0_linear,), ('v',), ('dCD0
 diff_eta_fun_linear = ca.Function('deta_dv', (v,), (ca.jacobian(eta_linear, v),), ('v',), ('deta_dv',))
 
 # Expand Table for flatter subsonic spline
-M_grid_aero_expanded = np.array((0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8))
-data_CLalpha_expanded = np.array((3.44, 3.44, 3.44, 3.44, 3.44, 3.44, 3.58, 4.44, 3.44, 3.01, 2.86, 2.44))
-data_CD0_expanded = np.array((0.013, 0.013, 0.013, 0.013, 0.013, 0.013, 0.014, 0.031, 0.041, 0.039, 0.036, 0.035))
-data_eta_expanded = np.array((0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.75, 0.79, 0.78, 0.89, 0.93, 0.93))
+# Added Points: 0.2, 0.6, 0.7 all flat
+# 0.85 is the geometric mean data(0.85) = sqrt(data(0.8) * data(0.9))
+tau = 0.25
+M_grid_aero_expanded = np.array((0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.85, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8))
+data_CLalpha_expanded = np.array((3.44, data_CLalpha[0], 3.44, data_CLalpha[1], data_CLalpha[1], 3.44,
+                                  (1 - tau) * data_CLalpha[2] + tau * data_CLalpha[3],
+                                  3.58, 4.44, 3.44, 3.01, 2.86, 2.44))
+data_CD0_expanded = np.array((0.013, data_CD0[0], 0.013, data_CD0[1], data_CD0[1], 0.013,
+                              (1 - tau) * data_CD0[2] + tau * data_CD0[3],
+                              0.014, 0.031, 0.041, 0.039, 0.036, 0.035))
+data_eta_expanded = np.array((0.54, data_eta[0], 0.54, data_eta[1], data_eta[1], 0.54,
+                              (1 - tau) * data_eta[2] + tau * data_eta[3],
+                              0.75, 0.79, 0.78, 0.89, 0.93, 0.93))
 
 CLalpha_table_bspline_expanded = ca.interpolant('CLalpha_table', 'bspline',
                                                 (M_grid_aero_expanded,), data_CLalpha_expanded)
 CD0_table_bspline_expanded = ca.interpolant('CLalpha_table', 'bspline', (M_grid_aero_expanded,), data_CD0_expanded)
 eta_table_bspline_expanded = ca.interpolant('CLalpha_table', 'bspline', (M_grid_aero_expanded,), data_eta_expanded)
 
+CLalpha_bspline_expanded = CLalpha_table_bspline_expanded(M)
+CD0_bspline_expanded = CD0_table_bspline_expanded(M)
 eta_bspline_expanded = eta_table_bspline_expanded(M)
 
+diff_CLalpha_fun_bspline_expanded = ca.Function('dCLalpha_dv', (v,), (ca.jacobian(CLalpha_bspline_expanded, v),),
+                                                ('v',), ('dCLalpha_dv',))
+diff_CD0_fun_bspline_expanded = ca.Function('dCD0_dv', (v,), (ca.jacobian(CD0_bspline_expanded, v),),
+                                            ('v',), ('dCD0_dv',))
 diff_eta_fun_bspline_expanded = ca.Function('deta_dv', (v,), (ca.jacobian(eta_bspline_expanded, v),),
                                             ('v',), ('deta_dv',))
 
@@ -118,93 +133,106 @@ if __name__ == "__main__":
 
     expanded_idcs = (tuple(expanded_idcs),)
 
-    eta_bspline_vals = eta_table_bspline(M)
     CLalpha_bspline_vals = CLalpha_table_bspline(M)
     CD0_bspline_vals = CD0_table_bspline(M)
+    eta_bspline_vals = eta_table_bspline(M)
+
+    CLalpha_bspline_expanded_vals = CLalpha_table_bspline_expanded(M)
+    CD0_bspline_expanded_vals = CD0_table_bspline_expanded(M)
     eta_bspline_expanded_vals = eta_table_bspline_expanded(M)
 
-    eta_linear_vals = eta_table_linear(M)
     CLalpha_linear_vals = CLalpha_table_linear(M)
     CD0_linear_vals = CD0_table_linear(M)
-    eta_linear_expanded_vals = eta_table_linear(M)
+    eta_linear_vals = eta_table_linear(M)
 
     dv_dM = a
 
-    diff_eta_bspline_vals = diff_eta_fun_bspline(v)
     diff_CLalpha_bspline_vals = diff_CLalpha_fun_bspline(v)
     diff_CD0_bspline_vals = diff_CD0_fun_bspline(v)
+    diff_eta_bspline_vals = diff_eta_fun_bspline(v)
+
+    diff_CLalpha_bspline_expanded_vals = diff_CLalpha_fun_bspline_expanded(v)
+    diff_CD0_bspline_expanded_vals = diff_CD0_fun_bspline_expanded(v)
     diff_eta_bspline_expanded_vals = diff_eta_fun_bspline_expanded(v)
 
-    diff_eta_linear_vals = diff_eta_fun_linear(v)
     diff_CLalpha_linear_vals = diff_CLalpha_fun_linear(v)
     diff_CD0_linear_vals = diff_CD0_fun_linear(v)
+    diff_eta_linear_vals = diff_eta_fun_linear(v)
 
-    deta_bspline_dM = diff_eta_bspline_vals * dv_dM
     dCLalpha_bspline_dM = diff_CLalpha_bspline_vals * dv_dM
     dCD0_bspline_dM = diff_CD0_bspline_vals * dv_dM
+    deta_bspline_dM = diff_eta_bspline_vals * dv_dM
+
+    dCLalpha_bspline_dM_expanded = diff_CLalpha_bspline_expanded_vals * dv_dM
+    dCD0_bspline_dM_expanded = diff_CD0_bspline_expanded_vals * dv_dM
     deta_bspline_dM_expanded = diff_eta_bspline_expanded_vals * dv_dM
 
-    deta_linear_dM = diff_eta_linear_vals * dv_dM
     dCLalpha_linear_dM = diff_CLalpha_linear_vals * dv_dM
     dCD0_linear_dM = diff_CD0_linear_vals * dv_dM
+    deta_linear_dM = diff_eta_linear_vals * dv_dM
 
-    # FIGURE 1 (Eta)
+    # FIGURE 1 (CLalpha)
     fig1 = plt.figure(figsize=(6.5, 5))
 
     ax11 = fig1.add_subplot(211)
-    ax11.plot(M, eta_linear_vals, color=cols[1], label='Linear')
-    ax11.plot(M, eta_bspline_vals, color=cols[0], label='Spline')
-    ax11.plot(M, eta_bspline_expanded_vals, '--', color=cols[0])
-    ax11.plot(M_grid_aero, data_eta, 'kx', label='Table')
-    ax11.plot(M_grid_aero_expanded[expanded_idcs], data_eta_expanded[expanded_idcs], 'ko')
+    ax11.plot(M, CLalpha_linear_vals, color=cols[1], label='Linear')
+    ax11.plot(M, CLalpha_bspline_vals, color=cols[0], label='Spline')
+    ax11.plot(M, CLalpha_bspline_expanded_vals, '--', color=cols[0])
+    ax11.plot(M_grid_aero, data_CLalpha, 'kx', label='Table')
+    ax11.plot(M_grid_aero_expanded[expanded_idcs], data_CLalpha_expanded[expanded_idcs], 'ko')
     ax11.grid()
-    ax11.set_ylabel(r'$\eta$')
+    ax11.set_ylabel(r'$C_{L,\alpha}$')
 
     ax12 = fig1.add_subplot(212)
-    ax12.plot(M, deta_linear_dM, color=cols[1])
-    ax12.plot(M, deta_bspline_dM, color=cols[0])
-    ax12.plot(M, deta_bspline_dM_expanded, '--', color=cols[0])
+    ax12.plot(M, dCLalpha_linear_dM, color=cols[1])
+    ax12.plot(M, dCLalpha_bspline_dM, color=cols[0])
+    ax12.plot(M, dCLalpha_bspline_dM_expanded, color=cols[0])
     ax12.grid()
-    ax12.set_ylabel(r'$\dfrac{d\eta}{dM}$')
+    ax12.set_ylabel(r'$\dfrac{dC_{L,\alpha}}{dM}$')
     ax12.set_xlabel(M_LAB)
 
     fig1.tight_layout()
 
-    # FIGURE 2 (CLalpha)
+    # FIGURE 2 (CD0)
     fig2 = plt.figure(figsize=(6.5, 5))
 
     ax21 = fig2.add_subplot(211)
-    ax21.plot(M, CLalpha_linear_vals, color=cols[1], label='Linear')
-    ax21.plot(M, CLalpha_bspline_vals, color=cols[0], label='Spline')
-
-    ax21.plot(M_grid_aero, data_CLalpha, 'kx', label='Table')
+    ax21.plot(M, CD0_linear_vals, color=cols[1], label='Linear')
+    ax21.plot(M, CD0_bspline_vals, color=cols[0], label='Spline')
+    ax21.plot(M, CD0_bspline_expanded_vals, '--', color=cols[0])
+    ax21.plot(M_grid_aero, data_CD0, 'kx', label='Table')
+    ax21.plot(M_grid_aero_expanded[expanded_idcs], data_CD0_expanded[expanded_idcs], 'ko')
     ax21.grid()
-    ax21.set_ylabel(r'$C_{L,\alpha}$')
+    ax21.set_ylabel(r'$C_{D,0}$')
 
     ax22 = fig2.add_subplot(212)
-    ax22.plot(M, dCLalpha_linear_dM, color=cols[1])
-    ax22.plot(M, dCLalpha_bspline_dM, color=cols[0])
+    ax22.plot(M, dCD0_linear_dM, color=cols[1])
+    ax22.plot(M, dCD0_bspline_dM, color=cols[0])
+    ax22.plot(M, dCD0_bspline_dM_expanded, color=cols[0])
     ax22.grid()
-    ax22.set_ylabel(r'$\dfrac{dC_{L,\alpha}}{dM}$')
+    ax22.set_ylabel(r'$\dfrac{dC_{D,0}}{dM}$')
     ax22.set_xlabel(M_LAB)
 
     fig2.tight_layout()
 
-    # FIGURE 3 (CD0)
+    # FIGURE 3 (Eta)
     fig3 = plt.figure(figsize=(6.5, 5))
 
     ax31 = fig3.add_subplot(211)
-    ax31.plot(M, CD0_linear_vals, color=cols[1], label='Linear')
-    ax31.plot(M, CD0_bspline_vals, color=cols[0], label='Spline')
-    ax31.plot(M_grid_aero, data_CD0, 'kx', label='Table')
+    ax31.plot(M, eta_linear_vals, color=cols[1], label='Linear')
+    ax31.plot(M, eta_bspline_vals, color=cols[0], label='Spline')
+    ax31.plot(M, eta_bspline_expanded_vals, '--', color=cols[0])
+    ax31.plot(M_grid_aero, data_eta, 'kx', label='Table')
+    ax31.plot(M_grid_aero_expanded[expanded_idcs], data_eta_expanded[expanded_idcs], 'ko')
     ax31.grid()
-    ax31.set_ylabel(r'$C_{D,0}$')
+    ax31.set_ylabel(r'$\eta$')
 
     ax32 = fig3.add_subplot(212)
-    ax32.plot(M, dCD0_linear_dM, color=cols[1])
-    ax32.plot(M, dCD0_bspline_dM, color=cols[0])
+    ax32.plot(M, deta_linear_dM, color=cols[1])
+    ax32.plot(M, deta_bspline_dM, color=cols[0])
+    ax32.plot(M, deta_bspline_dM_expanded, '--', color=cols[0])
     ax32.grid()
-    ax32.set_ylabel(r'$\dfrac{dC_{D,0}}{dM}$')
+    ax32.set_ylabel(r'$\dfrac{d\eta}{dM}$')
     ax32.set_xlabel(M_LAB)
 
     fig3.tight_layout()
@@ -244,9 +272,9 @@ if __name__ == "__main__":
 
         extrapolated_idcs = np.where(np.isnan(data_thrust_original[:, idx]))
 
-        ax41.plot(M, thrust_linear_vals / 10_000, color=cols_gradient(idx), label='Linear')
-        ax41.plot(M, thrust_bspline_vals / 10_000, '--', color=cols_gradient(idx), label='Spline')
-        ax41.plot(M_grid_thrust, data_thrust_original[:, idx] / 10_000, 'x', color=cols_gradient(idx), label='Table')
+        ax41.plot(M, thrust_linear_vals / 10_000, color=cols_gradient(idx))
+        ax41.plot(M, thrust_bspline_vals / 10_000, '--', color=cols_gradient(idx))
+        ax41.plot(M_grid_thrust, data_thrust_original[:, idx] / 10_000, 'x', color=cols_gradient(idx))
         ax41.plot(M_grid_thrust[extrapolated_idcs],
                   data_thrust[extrapolated_idcs, idx].flatten() / 10_000,
                   'o', color=cols_gradient(idx))
@@ -254,12 +282,19 @@ if __name__ == "__main__":
         ax42.plot(M, dT_dM_vals_linear / 10_000, color=cols_gradient(idx), label='Linear')
         ax42.plot(M, dT_dM_vals_bspline / 10_000, '--', color=cols_gradient(idx), label='Spline')
 
-        ax43.plot(M, dT_dh_vals_linear, color=cols_gradient(idx), label='Linear')
-        ax43.plot(M, dT_dh_vals_bspline, '--', color=cols_gradient(idx), label='Spline')
+        if alt == h_grid_thrust[0]:
+            ax43.plot(M, dT_dh_vals_linear, color=cols_gradient(idx), label='h = 0 ft')
+
+        elif alt == h_grid_thrust[-1]:
+            ax43.plot(M, dT_dh_vals_linear, color=cols_gradient(idx), label='h = 70,000 ft')
+        else:
+            ax43.plot(M, dT_dh_vals_linear, color=cols_gradient(idx))
+        ax43.plot(M, dT_dh_vals_bspline, '--', color=cols_gradient(idx))
 
     ax41.grid()
     ax42.grid()
     ax43.grid()
+    # ax43.legend(loc='best')
 
     ax41.set_ylabel(r'Thrust ($T$) [10,000 lb]')
     ax42.set_ylabel(r'$\dfrac{dT}{dM}$ [10,000 lb]')
