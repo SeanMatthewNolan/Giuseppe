@@ -44,10 +44,13 @@ a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
 M = v/a
 
 # Look-Up Tables
-thrust = thrust_table_bspline(M)
+thrust = thrust_table_bspline(ca.vertcat(M, h))
 CLalpha = CLalpha_table_bspline_expanded(M)
 CD0 = CD0_table_bspline_expanded(M)
 eta = eta_table_bspline_expanded(M)
+# CLalpha = CLalpha_table_bspline(M)
+# CD0 = CD0_table_bspline(M)
+# eta = 0.54
 
 # Expressions
 d2r = ca.pi / 180
@@ -148,9 +151,12 @@ if __name__ == "__main__":
 
     # Continuations (from guess BCs to desired BCs)
     cont = giuseppe.continuation.ContinuationHandler(sol_set)
-    cont.add_linear_series(100, {'h_f': 0, 'v_f': 500, 'gam_f': 0 * np.pi/180}, bisection=True)
-    cont.add_linear_series(100, {'h_f': 1_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
-    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148, 'gam_f': 0}, bisection=True)
+    cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180})
+    cont.add_linear_series(100, {'h_f': 10_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
+    cont.add_linear_series(100, {'h_f': 36_000})
+    cont.add_linear_series(1, {'h_f': 37_000})
+    cont.add_linear_series(100, {'h_f': 55_000, 'v_f': 1_300, 'gam_f': 35 * np.pi/180}, bisection=True)
+    cont.add_linear_series(100, {'h_f': 65_600, 'v_f': 968.148, 'gam_f': 0}, bisection=True)
     # cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
     # cont.add_linear_series(100, {'gam_f': 0})
     sol_set = cont.run_continuation(num_solver)
