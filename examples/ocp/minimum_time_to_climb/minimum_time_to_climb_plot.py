@@ -7,7 +7,7 @@ from giuseppe.utils.examples import Atmosphere1976
 
 from minimum_time_to_climb import S
 from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
-    CD0_table_bspline_expanded
+    CD0_table_bspline_expanded, temp_table_bspline, dens_table_bspline
 
 MED_FIGSIZE = (6.5, 5)
 LARGE_FIGSIZE = (6.5, 7.5)
@@ -35,8 +35,11 @@ alpha_hat = alpha * r2d
 
 atm = Atmosphere1976(use_metric=False)
 
-T = np.asarray([atm.temperature(alt) for alt in h])
-rho = np.asarray([atm.density(alt) for alt in h])
+# T = np.asarray([atm.temperature(alt) for alt in h])
+# rho = np.asarray([atm.density(alt) for alt in h])
+T = np.asarray(temp_table_bspline(h)).flatten()
+rho = np.asarray(dens_table_bspline(h)).flatten()
+
 a = np.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
 
 M = V/a

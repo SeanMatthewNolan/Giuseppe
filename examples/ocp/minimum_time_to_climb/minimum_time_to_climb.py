@@ -5,7 +5,7 @@ import pickle
 import giuseppe
 
 from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
-    CD0_table_bspline_expanded
+    CD0_table_bspline_expanded, temp_table_bspline, dens_table_bspline
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
 
@@ -32,25 +32,28 @@ v = ca.MX.sym('v', 1)
 gam = ca.MX.sym('gam', 1)
 w = ca.MX.sym('w', 1)
 
+# a = 1125.33  # ft/s
 # M = v / a  # assume Sea level speed of sound (i.e. constant temperature)
 # h_ref = 23800
 # rho_0 = 0.002378
 # rho = rho_0 * ca.exp(-h / h_ref)
 
-atm = Atmosphere1976(use_metric=False)
-T, __, rho = atm.get_ca_atm_expr(h)
-a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
+# atm = Atmosphere1976(use_metric=False)
+# T, __, rho = atm.get_ca_atm_expr(h)
+# a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
+# M = v/a
 
-M = v/a
+atm = Atmosphere1976(use_metric=False)
+T = temp_table_bspline(h)
+rho = dens_table_bspline(h)
+a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
+M = v / a
 
 # Look-Up Tables
 thrust = thrust_table_bspline(ca.vertcat(M, h))
 CLalpha = CLalpha_table_bspline_expanded(M)
 CD0 = CD0_table_bspline_expanded(M)
 eta = eta_table_bspline_expanded(M)
-# CLalpha = CLalpha_table_bspline(M)
-# CD0 = CD0_table_bspline(M)
-# eta = 0.54
 
 # Expressions
 d2r = ca.pi / 180
@@ -153,12 +156,12 @@ if __name__ == "__main__":
     cont = giuseppe.continuation.ContinuationHandler(sol_set)
     cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180})
     cont.add_linear_series(100, {'h_f': 10_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
-    cont.add_linear_series(100, {'h_f': 36_000})
-    cont.add_linear_series(1, {'h_f': 37_000})
-    cont.add_linear_series(100, {'h_f': 55_000, 'v_f': 1_300, 'gam_f': 35 * np.pi/180}, bisection=True)
-    cont.add_linear_series(100, {'h_f': 65_600, 'v_f': 968.148, 'gam_f': 0}, bisection=True)
-    # cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
-    # cont.add_linear_series(100, {'gam_f': 0})
+    # cont.add_linear_series(100, {'h_f': 36_000})
+    # cont.add_linear_series(1, {'h_f': 37_000})
+    # cont.add_linear_series(100, {'h_f': 55_000, 'v_f': 1_300, 'gam_f': 35 * np.pi/180}, bisection=True)
+    # cont.add_linear_series(100, {'h_f': 65_600, 'v_f': 968.148, 'gam_f': 0}, bisection=True)
+    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
+    cont.add_linear_series(100, {'gam_f': 0})
     sol_set = cont.run_continuation(num_solver)
 
     # Save Solution
