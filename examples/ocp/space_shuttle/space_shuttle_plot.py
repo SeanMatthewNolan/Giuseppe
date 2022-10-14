@@ -3,7 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import casadi as ca
-from atmosphere1976 import Atmosphere1976
+from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
 DATA = 0
 

@@ -3,9 +3,11 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-from minimum_time_to_climb import rho_0, h_ref, S
+from giuseppe.utils.examples import Atmosphere1976
+
+from minimum_time_to_climb import S
 from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
-    CD0_table_bspline_expanded, a
+    CD0_table_bspline_expanded
 
 MED_FIGSIZE = (6.5, 5)
 LARGE_FIGSIZE = (6.5, 7.5)
@@ -30,15 +32,20 @@ h = sol.x[0, :]
 V = sol.x[1, :]
 alpha = sol.u[0, :]
 alpha_hat = alpha * r2d
-M = V / a
+
+atm = Atmosphere1976(use_metric=False)
+
+T = np.asarray([atm.temperature(alt) for alt in h])
+rho = np.asarray([atm.density(alt) for alt in h])
+a = np.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
+
+M = V/a
+Qdyn = 0.5 * rho * V**2
 
 thrust = np.asarray(thrust_table_bspline(np.vstack((M.T, h.T)))).flatten()
 eta = np.asarray(eta_table_bspline_expanded(M)).flatten()
 CLalpha = np.asarray(CLalpha_table_bspline_expanded(M)).flatten()
 CD0 = np.asarray(CD0_table_bspline_expanded(M)).flatten()
-
-rho = rho_0 * np.exp(h / h_ref)
-Qdyn = 0.5 * rho * V**2
 
 CD = CD0 + eta * CLalpha * alpha_hat**2
 CL = CLalpha * alpha_hat

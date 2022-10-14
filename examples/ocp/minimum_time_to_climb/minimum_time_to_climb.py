@@ -5,7 +5,9 @@ import pickle
 import giuseppe
 
 from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
-    CD0_table_bspline_expanded, a
+    CD0_table_bspline_expanded
+from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
+
 
 ocp = giuseppe.io.AdiffInputOCP(dtype=ca.MX)
 
@@ -30,12 +32,16 @@ v = ca.MX.sym('v', 1)
 gam = ca.MX.sym('gam', 1)
 w = ca.MX.sym('w', 1)
 
-# TODO add atmosphere model
-M = v / a  # assume Sea level speed of sound (i.e. constant temperature)
+# M = v / a  # assume Sea level speed of sound (i.e. constant temperature)
+# h_ref = 23800
+# rho_0 = 0.002378
+# rho = rho_0 * ca.exp(-h / h_ref)
 
-h_ref = 23800
-rho_0 = 0.002378
-rho = rho_0 * ca.exp(-h / h_ref)
+atm = Atmosphere1976(use_metric=False)
+T, __, rho = atm.get_sx_atm_expr(h)
+a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
+
+M = v/a
 
 # Look-Up Tables
 thrust = thrust_table_bspline(M)

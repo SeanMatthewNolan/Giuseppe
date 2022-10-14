@@ -5,7 +5,7 @@ import casadi as ca
 
 import giuseppe
 
-from atmosphere1976 import Atmosphere1976, CasidiFunction
+from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
 giuseppe.utils.compilation.JIT_COMPILE = True
 
@@ -73,10 +73,6 @@ v = ca.SX.sym('v', 1)
 
 # Atmosphere Func
 atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
-
-
-ca_rho_func = CasidiFunction(eval_func=lambda arg: [atm.density(float(arg))],
-                                           n_in=1, n_out=1, func_name='density')
 _, __, rho = atm.get_sx_atm_expr(h)
 
 # Add Controls

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import casadi as ca
@@ -59,6 +59,7 @@ class Atmosphere1976:
             self.P_layers = self.P_layers * pascal2psf  # Pa * (psf / Pa) = psf = lb/ft**2
             self.rho_layers = self.rho_layers * kg2slug * ft2m ** 3  # kg/m**3 * (slug/kg) * (m/ft)**3
 
+        self.specific_heat_ratio = 1.4
         self.build_layers()
 
     def isothermal_layer(self, altitude, altitude_0, temperature_0, pressure_0, density_0):
@@ -139,13 +140,13 @@ class Atmosphere1976:
 
         return self.layer_names[layer_idx]
 
-    def get_sx_atm_expr(self, altitude_geometric: ca.SX):
+    def get_sx_atm_expr(self, altitude_geometric: Union[ca.SX, ca.MX]):
         altitude_geopotential = self.geometric2geopotential(altitude_geometric)
         layer_idx = ca.sum1(altitude_geopotential >= self.h_layers) - 1
 
-        temperature = ca.SX(0)
-        pressure = ca.SX(0)
-        density = ca.SX(0)
+        temperature = 0
+        pressure = 0
+        density = 0
         for idx, lapse_rate in enumerate(self.lapse_layers):
             if lapse_rate == 0:
                 temperature_i, pressure_i, density_i = self.isothermal_layer(altitude=altitude_geopotential,
