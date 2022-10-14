@@ -46,7 +46,9 @@ eta = eta_table_bspline_expanded(M)
 # Expressions
 d2r = ca.pi / 180
 r2d = 180 / ca.pi
+
 alpha_hat = alpha
+# alpha_hat = alpha * r2d
 
 CD = CD0 + eta * CLalpha * alpha_hat**2
 CL = CLalpha * alpha_hat
@@ -117,33 +119,34 @@ ocp.add_constraint(location='terminal', expr=gam - gam_f)
 # Objective Function
 ocp.set_cost(0, 0, t)
 
-# Compilation
-with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
-    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
-    adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True, use_jac=True)
+if __name__ == "__main__":
+    # Compilation
+    with giuseppe.utils.Timer(prefix='Compilation Time:'):
+        adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
+        adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
+        adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
+        num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=True, use_jac=True)
 
-# Guess Generation (overwrites the terminal conditions in order to converge)
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=6*d2r, t_span=0.1)
+    # Guess Generation (overwrites the terminal conditions in order to converge)
+    guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=6*d2r, t_span=0.1)
 
-with open('guess.data', 'wb') as file:
-    pickle.dump(guess, file)
+    with open('guess.data', 'wb') as file:
+        pickle.dump(guess, file)
 
-seed_sol = num_solver.solve(guess.k, guess)
+    seed_sol = num_solver.solve(guess.k, guess)
 
-with open('seed.data', 'wb') as file:
-    pickle.dump(seed_sol, file)
+    with open('seed.data', 'wb') as file:
+        pickle.dump(seed_sol, file)
 
-sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
+    sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
-# Continuations (from guess BCs to desired BCs)
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'h_f': 0, 'v_f': 500, 'gam_f': 0 * np.pi/180}, bisection=True)
-cont.add_linear_series(100, {'h_f': 1_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
-cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
-cont.add_linear_series(100, {'gam_f': 0})
-sol_set = cont.run_continuation(num_solver)
+    # Continuations (from guess BCs to desired BCs)
+    cont = giuseppe.continuation.ContinuationHandler(sol_set)
+    cont.add_linear_series(100, {'h_f': 0, 'v_f': 500, 'gam_f': 0 * np.pi/180}, bisection=True)
+    cont.add_linear_series(100, {'h_f': 1_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
+    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
+    cont.add_linear_series(100, {'gam_f': 0})
+    sol_set = cont.run_continuation(num_solver)
 
-# Save Solution
-sol_set.save('sol_set.data')
+    # Save Solution
+    sol_set.save('sol_set.data')
