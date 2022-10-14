@@ -38,7 +38,7 @@ w = ca.MX.sym('w', 1)
 # rho = rho_0 * ca.exp(-h / h_ref)
 
 atm = Atmosphere1976(use_metric=False)
-T, __, rho = atm.get_sx_atm_expr(h)
+T, __, rho = atm.get_ca_atm_expr(h)
 a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
 
 M = v/a
@@ -150,8 +150,9 @@ if __name__ == "__main__":
     cont = giuseppe.continuation.ContinuationHandler(sol_set)
     cont.add_linear_series(100, {'h_f': 0, 'v_f': 500, 'gam_f': 0 * np.pi/180}, bisection=True)
     cont.add_linear_series(100, {'h_f': 1_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
-    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
-    cont.add_linear_series(100, {'gam_f': 0})
+    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148, 'gam_f': 0}, bisection=True)
+    # cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
+    # cont.add_linear_series(100, {'gam_f': 0})
     sol_set = cont.run_continuation(num_solver)
 
     # Save Solution

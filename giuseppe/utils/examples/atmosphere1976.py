@@ -132,6 +132,11 @@ class Atmosphere1976:
         _, __, density = self.atm_data(altitude_geometric)
         return density
 
+    def speed_of_sound(self, altitude_geometric):
+        temperature = self.temperature(altitude_geometric)
+        speed_of_sound = np.sqrt(self.specific_heat_ratio * self.gas_constant * temperature)
+        return speed_of_sound
+
     def layer(self, altitude_geometric):
         altitude_geopotential = self.geometric2geopotential(altitude_geometric)
         if altitude_geopotential < self.h_layers[0]:
@@ -140,7 +145,7 @@ class Atmosphere1976:
 
         return self.layer_names[layer_idx]
 
-    def get_sx_atm_expr(self, altitude_geometric: Union[ca.SX, ca.MX]):
+    def get_ca_atm_expr(self, altitude_geometric: Union[ca.SX, ca.MX]):
         altitude_geopotential = self.geometric2geopotential(altitude_geometric)
         layer_idx = ca.sum1(altitude_geopotential >= self.h_layers) - 1
 
@@ -167,8 +172,12 @@ class Atmosphere1976:
 
         return temperature, pressure, density
 
+    def get_ca_speed_of_sound_expr(self, altitude_geometric: Union[ca.SX, ca.MX]):
+        temperature, _, __ = self.get_ca_atm_expr(altitude_geometric)
+        speed_of_sound = np.sqrt(self.specific_heat_ratio * self.gas_constant * temperature)
+        return speed_of_sound
 
-# TODO refactor callback into backend
+
 class CasidiFunction(ca.Callback):
     def __init__(self, eval_func, func_name: str = 'func', n_in: int = 1, n_out: int = 1,
                  options: Optional[dict] = None):
@@ -215,7 +224,7 @@ if __name__ == "__main__":
     layer_1976 = list()
 
     h_sx = ca.SX.sym('h')
-    _, __, rho_expr = atm.get_sx_atm_expr(h_sx)
+    _, __, rho_expr = atm.get_ca_atm_expr(h_sx)
 
     ca_rho_func = ca.Function('rho', (h_sx,), (rho_expr,), ('h',), ('rho',))
     rho_expr_deriv = ca.jacobian(rho_expr, h_sx)

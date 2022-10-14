@@ -73,7 +73,7 @@ v = ca.SX.sym('v', 1)
 
 # Atmosphere Func
 atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
-_, __, rho = atm.get_sx_atm_expr(h)
+_, __, rho = atm.get_ca_atm_expr(h)
 
 # Add Controls
 alpha = ca.SX.sym('α', 1)

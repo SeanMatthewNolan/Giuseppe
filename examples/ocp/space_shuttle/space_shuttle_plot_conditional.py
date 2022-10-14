@@ -98,7 +98,7 @@ dens_exp_25k = rho_0 * np.exp(-sol_25k.x[0, :] / h_ref)
 dens_exp_deriv_25k = -rho_0 / h_ref * np.exp(-sol_25k.x[0, :] / h_ref)
 
 h_sx = ca.SX.sym('h', 1)
-_, __, dens_expr = atm.get_sx_atm_expr(h_sx)
+_, __, dens_expr = atm.get_ca_atm_expr(h_sx)
 dens_deriv_expr = ca.jacobian(dens_expr, h_sx)
 
 dens_ca_func = ca.Function('rho', (h_sx,), (dens_expr,), ('h',), ('rho',))

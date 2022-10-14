@@ -140,7 +140,7 @@ dens_exp = rho_0 * np.exp(-sol.x[0, :] / h_ref)
 dens_exp_deriv = -rho_0 / h_ref * np.exp(-sol.x[0, :] / h_ref)
 
 h_sx = ca.SX.sym('h', 1)
-_, __, dens_expr = atm.get_sx_atm_expr(h_sx)
+_, __, dens_expr = atm.get_ca_atm_expr(h_sx)
 dens_deriv_expr = ca.jacobian(dens_expr, h_sx)
 
 dens_ca_func = ca.Function('rho', (h_sx,), (dens_expr,), ('h',), ('rho',))

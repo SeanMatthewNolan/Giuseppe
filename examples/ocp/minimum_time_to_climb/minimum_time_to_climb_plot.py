@@ -133,14 +133,14 @@ fig2.tight_layout()
 fig3 = plt.figure(figsize=MED_FIGSIZE)
 
 ax31 = fig3.add_subplot(311)
-ax31.plot(sol.t, lift)
+ax31.plot(sol.t, lift / 1_000_000)
 ax31.grid()
-ax31.set_ylabel('Lift [lb]')
+ax31.set_ylabel('Lift [1,000,000 lb]')
 
 ax32 = fig3.add_subplot(312)
-ax32.plot(sol.t, drag)
+ax32.plot(sol.t, drag / 1_000_000)
 ax32.grid()
-ax32.set_ylabel('Drag [lb]')
+ax32.set_ylabel('Drag [1,000,000 lb]')
 
 ax33 = fig3.add_subplot(313)
 ax33.plot(sol.t, LoD)
@@ -149,5 +149,22 @@ ax33.set_ylabel('L/D')
 ax33.set_xlabel(T_LAB)
 
 fig3.tight_layout()
+
+# FIGURE 4 (ATMOSPHERE)
+fig4 = plt.figure(figsize=MED_FIGSIZE)
+ax41 = fig4.add_subplot(311)
+ax41.plot(sol.t, M)
+ax41.grid()
+ax41.set_ylabel('Mach')
+
+ax42 = fig4.add_subplot(312)
+ax42.plot(sol.t, a)
+ax42.grid()
+ax42.set_ylabel(r'$a$ [ft/s]')
+
+ax43 = fig4.add_subplot(313)
+ax43.plot(sol.t, Qdyn)
+ax43.grid()
+ax43.set_ylabel(r'$Q_\infty$ [psf]')
 
 plt.show()
