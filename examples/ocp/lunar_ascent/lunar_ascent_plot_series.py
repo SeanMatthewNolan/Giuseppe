@@ -1,6 +1,4 @@
-import os;
-
-os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os
 
 import pickle
 
@@ -8,6 +6,8 @@ import matplotlib.pyplot as plt
 
 with open('sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
 
 fig = plt.figure()
 fig.suptitle('Lunar Ascent')

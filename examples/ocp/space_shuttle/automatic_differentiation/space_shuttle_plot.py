@@ -1,11 +1,10 @@
-import os;
-
-os.chdir(os.path.dirname(__file__))  # Set diectory to current location
-
+import os
 import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 DATA = 0
 

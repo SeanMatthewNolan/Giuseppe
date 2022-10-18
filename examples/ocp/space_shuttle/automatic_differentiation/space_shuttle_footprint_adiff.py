@@ -1,7 +1,4 @@
-import os;
-
-os.chdir(os.path.dirname(__file__))  # Set diectory to current location
-
+import os
 import pickle
 
 import numpy as np
@@ -17,6 +14,8 @@ from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
 giuseppe.utils.compilation.JIT_COMPILE = True
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 ocp = InputOCP()
 
