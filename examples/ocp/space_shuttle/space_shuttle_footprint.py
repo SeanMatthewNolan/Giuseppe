@@ -1,3 +1,5 @@
+import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+
 import numpy as np
 
 import giuseppe
