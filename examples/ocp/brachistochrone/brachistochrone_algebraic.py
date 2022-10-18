@@ -1,3 +1,5 @@
+import os; os.chdir(os.path.dirname(__file__))  # Set diectory to file location
+
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
 from giuseppe.io import InputOCP, SolutionSet
