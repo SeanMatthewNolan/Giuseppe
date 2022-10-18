@@ -1,3 +1,5 @@
+import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+
 import matplotlib.pyplot as plt
 
 from giuseppe.io import load_sol
