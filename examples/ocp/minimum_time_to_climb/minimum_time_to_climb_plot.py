@@ -170,4 +170,21 @@ ax43.plot(sol.t, Qdyn)
 ax43.grid()
 ax43.set_ylabel(r'$Q_\infty$ [psf]')
 
+# SAVE FIGURES
+fig1.savefig('states.eps',
+             format='eps',
+             bbox_inches='tight')
+
+fig2.savefig('lookup_table.eps',
+             format='eps',
+             bbox_inches='tight')
+
+fig3.savefig('aero.eps',
+             format='eps',
+             bbox_inches='tight')
+
+fig4.savefig('atmosphere.eps',
+             format='eps',
+             bbox_inches='tight')
+
 plt.show()

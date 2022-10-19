@@ -47,6 +47,7 @@ atm = Atmosphere1976(use_metric=False)
 T = temp_table_bspline(h)
 rho = dens_table_bspline(h)
 a = ca.sqrt(atm.specific_heat_ratio * atm.gas_constant * T)
+a_func = ca.Function('a', (h,), (a,), ('h',), ('a',))
 M = v / a
 
 # Look-Up Tables
@@ -156,7 +157,7 @@ if __name__ == "__main__":
     cont = giuseppe.continuation.ContinuationHandler(sol_set)
     cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180})
     cont.add_linear_series(100, {'h_f': 10_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
-    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': 968.148})
+    cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': a_func(65_600)})
     cont.add_linear_series(100, {'gam_f': 0})
     sol_set = cont.run_continuation(num_solver)
 

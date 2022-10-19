@@ -1,6 +1,6 @@
 import casadi as ca
 import numpy as np
-from scipy.optimize import minimize_scalar
+from scipy.interpolate import PchipInterpolator, interp2d
 
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
@@ -24,27 +24,93 @@ data_thrust_original = np.array(((24.2, np.nan, np.nan, np.nan, np.nan, np.nan, 
                                  (np.nan, np.nan, np.nan, 38.7, 35.7, 32.0, 28.1, 19.3, 11.9, 2.9),
                                  (np.nan, np.nan, np.nan, np.nan, np.nan, 34.6, 31.1, 21.7, 13.3, 3.1))) * 1e3
 
-# data_thrust = np.array(((24.2, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-#                         (28.0, 24.6, 21.1, 18.1, 15.2, 12.8, 10.7, 0, 0, 0),
-#                         (28.3, 25.2, 21.9, 18.7, 15.9, 13.4, 11.2, 7.3, 4.4, 0),
-#                         (30.8, 27.2, 23.8, 20.5, 17.3, 14.7, 12.3, 8.1, 4.9, 0),
-#                         (34.5, 30.3, 26.6, 23.2, 19.8, 16.8, 14.1, 9.4, 5.6, 1.1),
-#                         (37.9, 34.3, 30.4, 26.8, 23.3, 19.8, 16.8, 11.2, 6.8, 1.4),
-#                         (36.1, 38.0, 34.9, 31.3, 27.3, 23.6, 20.1, 13.4, 8.3, 1.7),
-#                         (0, 36.6, 38.5, 36.1, 31.6, 28.1, 24.2, 16.2, 10.0, 2.2),
-#                         (0, 0, 0, 38.7, 35.7, 32.0, 28.1, 19.3, 11.9, 2.9),
-#                         (0, 0, 0, 0, 0, 34.6, 31.1, 21.7, 13.3, 3.1))) * 1e3
+M_h_thrust_original = np.array(((0.0, 0, 24.2),
+                                (0.2, 0, 28.0),
+                                (0.4, 0, 28.3),
+                                (0.6, 0, 30.8),
+                                (0.8, 0, 34.5),
+                                (1.0, 0, 37.9),
+                                (1.2, 0, 36.1),
+                                (0.2, 5, 24.6),
+                                (0.4, 5, 25.2),
+                                (0.6, 5, 27.2),
+                                (0.8, 5, 30.3),
+                                (1.0, 5, 34.3),
+                                (1.2, 5, 38.0),
+                                (1.4, 5, 36.6),
+                                (0.2, 10, 21.1),
+                                (0.4, 10, 21.9),
+                                (0.6, 10, 23.8),
+                                (0.8, 10, 26.6),
+                                (1.0, 10, 30.4),
+                                (1.2, 10, 34.9),
+                                (1.4, 10, 38.5),
+                                (0.2, 15, 18.1),
+                                (0.4, 15, 18.7),
+                                (0.6, 15, 20.5),
+                                (0.8, 15, 23.2),
+                                (1.0, 15, 26.8),
+                                (1.2, 15, 31.3),
+                                (1.4, 15, 36.1),
+                                (1.6, 15, 38.7),
+                                (0.2, 20, 15.2),
+                                (0.4, 20, 15.9),
+                                (0.6, 20, 17.3),
+                                (0.8, 20, 19.8),
+                                (1.0, 20, 23.3),
+                                (1.2, 20, 27.3),
+                                (1.4, 20, 31.6),
+                                (1.6, 20, 35.7),
+                                (0.2, 25, 12.8),
+                                (0.4, 25, 13.4),
+                                (0.6, 25, 14.7),
+                                (0.8, 25, 16.8),
+                                (1.0, 25, 19.8),
+                                (1.2, 25, 23.6),
+                                (1.4, 25, 28.1),
+                                (1.6, 25, 32.0),
+                                (1.8, 25, 34.6),
+                                (0.2, 30, 10.7),
+                                (0.4, 30, 11.2),
+                                (0.6, 30, 12.3),
+                                (0.8, 30, 14.1),
+                                (1.0, 30, 16.8),
+                                (1.2, 30, 20.1),
+                                (1.4, 30, 24.2),
+                                (1.6, 30, 28.1),
+                                (1.8, 30, 31.1),
+                                (0.4, 40, 7.3),
+                                (0.6, 40, 8.1),
+                                (0.8, 40, 9.4),
+                                (1.0, 40, 11.2),
+                                (1.2, 40, 13.4),
+                                (1.4, 40, 16.2),
+                                (1.6, 40, 19.3),
+                                (1.8, 40, 21.7),
+                                (0.4, 50, 4.4),
+                                (0.6, 50, 4.9),
+                                (0.8, 50, 5.6),
+                                (1.0, 50, 6.8),
+                                (1.2, 50, 8.3),
+                                (1.4, 50, 10.0),
+                                (1.6, 50, 11.9),
+                                (1.8, 50, 13.3),
+                                (0.8, 70, 1.1),
+                                (1.0, 70, 1.4),
+                                (1.2, 70, 1.7),
+                                (1.4, 70, 2.2),
+                                (1.6, 70, 2.9),
+                                (1.8, 70, 3.1)))
+thrust_table_interp2d = interp2d(x=M_h_thrust_original[:, 0],
+                                 y=M_h_thrust_original[:, 1] * 1e3,
+                                 z=M_h_thrust_original[:, 2] * 1e3,
+                                 kind='linear')
 
-data_thrust = np.array(((24.2, 24.4, 22.75, 20.4, 18.8, 15.8, 13.3, 11.2, 9.0, 7.1),
-                        (28.0, 24.6, 21.1, 18.1, 15.2, 12.8, 10.7, 9.0, 6.7, 5.2),
-                        (28.3, 25.2, 21.9, 18.7, 15.9, 13.4, 11.2, 7.3, 4.4, 3.7),
-                        (30.8, 27.2, 23.8, 20.5, 17.3, 14.7, 12.3, 8.1, 4.9, 3.0),
-                        (34.5, 30.3, 26.6, 23.2, 19.8, 16.8, 14.1, 9.4, 5.6, 1.1),
-                        (37.9, 34.3, 30.4, 26.8, 23.3, 19.8, 16.8, 11.2, 6.8, 1.4),
-                        (36.1, 38.0, 34.9, 31.3, 27.3, 23.6, 20.1, 13.4, 8.3, 1.7),
-                        (36.4, 36.6, 38.5, 36.1, 31.6, 28.1, 24.2, 16.2, 10.0, 2.2),
-                        (37.0, 37.6, 38.6, 38.7, 35.7, 32.0, 28.1, 19.3, 11.9, 2.9),
-                        (37.4, 37.7, 37.8, 37.0, 35.2, 34.6, 31.1, 21.7, 13.3, 3.1))) * 1e3
+data_thrust = data_thrust_original.copy()
+for i, M_val in enumerate(M_grid_thrust):
+    for j, h_val in enumerate(h_grid_thrust):
+        if np.isnan(data_thrust[i, j]):
+            data_thrust[i, j] = thrust_table_interp2d(M_val, h_val)
 
 data_flat_thrust = data_thrust.ravel(order='F')
 thrust_table_bspline = ca.interpolant('thrust_table', 'bspline', (M_grid_thrust, h_grid_thrust), data_flat_thrust)
@@ -94,7 +160,7 @@ diff_eta_fun_linear = ca.Function('deta_dv', (v,), (ca.jacobian(eta_linear, v),)
 # Expand Table for flatter subsonic spline
 # Added Points: 0.2, 0.6, 0.7, 0.79 all flat
 # Optimize intermediate value at M = 0.825 to minimize curvature
-M_grid_aero_expanded = np.array((0, 0.2, 0.4, 0.6, 0.7, 0.79, 0.8, 0.85, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8))
+M_grid_aero_expanded = np.array((0, 0.2, 0.4, 0.6, 0.7, 0.79, 0.8, 0.825, 0.875, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8))
 
 atm = Atmosphere1976(use_metric=False)
 vals_per_layer = 10
@@ -114,76 +180,13 @@ dens_bspline = dens_table_bspline(h)
 diff_temp_fun_bspline = ca.Function('dT_dh', (h,), (ca.jacobian(temp_bspline, h),), ('h',), ('dT_dh',))
 diff_dens_fun_bspline = ca.Function('drho_dh', (h,), (ca.jacobian(dens_bspline, h),), ('h',), ('drho_dh',))
 
+CLalpha_table_pchip = PchipInterpolator(M_grid_aero, data_CLalpha)
+CD0_table_pchip = PchipInterpolator(M_grid_aero, data_CD0)
+eta_table_pchip = PchipInterpolator(M_grid_aero, data_eta)
 
-def curvature_clalpha(table_output):
-    _data_CLalpha_expanded = np.array((3.44, 3.44, 3.44, 3.44, 3.44, 3.44, 3.44,
-                                       table_output,
-                                       3.58, 4.44, 3.44, 3.01, 2.86, 2.44))
-    _CLalpha_table_bspline_expanded = ca.interpolant('CLalpha_table', 'bspline',
-                                                     (M_grid_aero_expanded,), _data_CLalpha_expanded)
-    _CLalpha_bspline_expanded = _CLalpha_table_bspline_expanded(M)
-    _diff_CLalpha_fun_bspline_expanded = ca.Function('dCLalpha_dv', (v,), (ca.jacobian(_CLalpha_bspline_expanded, v),),
-                                                     ('v',), ('dCLalpha_dv',))
-    _curvature = ca.Function('d2CLalpha_dv2', (v,), (ca.jacobian(_diff_CLalpha_fun_bspline_expanded(v), v),),
-                             ('v',), ('d2CLalpha_dv2',))
-    eval_pts = np.array((0.79, 0.8, 0.85, 0.9)) * a
-    eval_out = np.asarray(_curvature(eval_pts)).flatten()
-    sse = sum(eval_out ** 2)
-    return sse
-
-
-def decrease_cd0(table_output):
-    _data_CD0_expanded = np.array((0.013, 0.013, 0.013, 0.013, 0.013, 0.013, 0.013,
-                                   table_output,
-                                   0.014, 0.031, 0.041, 0.039, 0.036, 0.035))
-    _CD0_table_bspline_expanded = ca.interpolant('CD0_table', 'bspline',
-                                                     (M_grid_aero_expanded,), _data_CD0_expanded)
-    _CD0_bspline_expanded = _CD0_table_bspline_expanded(M)
-    _diff_CD0_fun_bspline_expanded = ca.Function('dCD0_dv', (v,), (ca.jacobian(_CD0_bspline_expanded, v),),
-                                                     ('v',), ('dCD0_dv',))
-    _curvature = ca.Function('d2CD0_dv2', (v,), (ca.jacobian(_diff_CD0_fun_bspline_expanded(v), v),),
-                             ('v',), ('d2CD0_dv2',))
-    # eval_pts = np.array((0.79, 0.8, 0.85, 0.9)) * a
-    eval_pts = np.linspace(0.79, 0.9, 1_000) * a
-    # eval_out = np.asarray(_curvature(eval_pts)).flatten()
-    eval_out = np.asarray(_diff_CD0_fun_bspline_expanded(eval_pts)).flatten()
-    eval_out = eval_out[np.where(eval_out < 0)]
-
-    sse = sum(eval_out ** 2)
-    return sse
-
-
-def curvature_eta(table_output):
-    _data_eta_expanded = np.array((0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54,
-                                   table_output,
-                                   0.75, 0.79, 0.78, 0.89, 0.93, 0.93))
-    _eta_table_bspline_expanded = ca.interpolant('eta_table', 'bspline',
-                                                     (M_grid_aero_expanded,), _data_eta_expanded)
-    _eta_bspline_expanded = _eta_table_bspline_expanded(M)
-    _diff_eta_fun_bspline_expanded = ca.Function('deta_dv', (v,), (ca.jacobian(_eta_bspline_expanded, v),),
-                                                     ('v',), ('deta_dv',))
-    _curvature = ca.Function('d2eta_dv2', (v,), (ca.jacobian(_diff_eta_fun_bspline_expanded(v), v),),
-                             ('v',), ('d2eta_dv2',))
-    eval_pts = np.array((0.79, 0.8, 0.85, 0.9)) * a
-    eval_out = np.asarray(_curvature(eval_pts)).flatten()
-    sse = sum(eval_out ** 2)
-    return sse
-
-
-res_CLalpha = minimize_scalar(curvature_clalpha, method='brent')
-res_CD0 = minimize_scalar(decrease_cd0, method='brent')
-res_eta = minimize_scalar(curvature_eta, method='brent')
-
-data_CLalpha_expanded = np.array((3.44, 3.44, 3.44, 3.44, 3.44, 3.44, 3.44,
-                                  res_CLalpha.x,
-                                  3.58, 4.44, 3.44, 3.01, 2.86, 2.44))
-
-data_CD0_expanded = np.array((0.013, data_CD0[0], 0.013, data_CD0[1], data_CD0[1], data_CD0[1], 0.013,
-                              res_CD0.x,
-                              0.014, 0.031, 0.041, 0.039, 0.036, 0.035))
-data_eta_expanded = np.array((0.54, data_eta[0], 0.54, data_eta[1], data_eta[1], data_eta[1], 0.54,
-                              res_eta.x,
-                              0.75, 0.79, 0.78, 0.89, 0.93, 0.93))
+data_CLalpha_expanded = CLalpha_table_pchip(M_grid_aero_expanded)
+data_CD0_expanded = CD0_table_pchip(M_grid_aero_expanded)
+data_eta_expanded = eta_table_pchip(M_grid_aero_expanded)
 
 CLalpha_table_bspline_expanded = ca.interpolant('CLalpha_table', 'bspline',
                                                 (M_grid_aero_expanded,), data_CLalpha_expanded)
@@ -219,6 +222,7 @@ if __name__ == "__main__":
     M_2D = M.reshape(1, -1)
     v = M * a  # Velocity
     h = np.linspace(0, 70_000, N_VALS)  # Altitude
+    h_atm = np.linspace(h_grid_atm[0], h_grid_atm[-1], N_VALS)
 
     expanded_idcs = []
     for idx, m_val in enumerate(M_grid_aero_expanded):
@@ -239,8 +243,8 @@ if __name__ == "__main__":
     CD0_linear_vals = CD0_table_linear(M)
     eta_linear_vals = eta_table_linear(M)
 
-    temp_vals = temp_table_bspline(h)
-    dens_vals = dens_table_bspline(h)
+    temp_vals = temp_table_bspline(h_atm)
+    dens_vals = dens_table_bspline(h_atm)
 
     dv_dM = a
 
@@ -256,8 +260,8 @@ if __name__ == "__main__":
     diff_CD0_linear_vals = diff_CD0_fun_linear(v)
     diff_eta_linear_vals = diff_eta_fun_linear(v)
 
-    dTemp_dh = diff_temp_fun_bspline(h)
-    dDens_dh = diff_dens_fun_bspline(h)
+    dTemp_dh = diff_temp_fun_bspline(h_atm)
+    dDens_dh = diff_dens_fun_bspline(h_atm)
 
     dCLalpha_bspline_dM = diff_CLalpha_bspline_vals * dv_dM
     dCD0_bspline_dM = diff_CD0_bspline_vals * dv_dM
@@ -405,31 +409,52 @@ if __name__ == "__main__":
     fig5 = plt.figure(figsize=(6.5, 5))
 
     ax51 = fig5.add_subplot(221)
-    ax51.plot(h / 1_000, temp_vals, label='Spline')
+    ax51.plot(h_atm / 1_000, temp_vals, label='Spline')
     ax51.plot(h_grid_atm / 1_000, data_temp, 'kx', label='1976 Atm Data')
     ax51.grid()
     ax51.legend()
     ax51.set_ylabel(r'Temp ($T$) [deg R]')
 
     ax52 = fig5.add_subplot(222)
-    ax52.plot(h / 1_000, dens_vals)
+    ax52.plot(h_atm / 1_000, dens_vals)
     ax52.plot(h_grid_atm / 1_000, data_dens, 'kx')
     ax52.grid()
     ax52.set_yscale('log')
     ax52.set_ylabel(r'Dens ($\rho$) [slug/ft$^3$]')
 
     ax53 = fig5.add_subplot(223)
-    ax53.plot(h / 1_000, dTemp_dh)
+    ax53.plot(h_atm / 1_000, dTemp_dh)
     ax53.grid()
     ax53.set_ylabel(r'$\dfrac{dT}{dh}$ [deg R/ft]')
     ax53.set_xlabel('h [1,000 ft]')
 
     ax54 = fig5.add_subplot(224)
-    ax54.plot(h / 1_000, dDens_dh)
+    ax54.plot(h_atm / 1_000, dDens_dh)
     ax54.grid()
     ax54.set_ylabel(r'$\dfrac{d\rho}{dh}$ [slug/ft$^4$]')
     ax54.set_xlabel('h [1,000 ft]')
 
     fig5.tight_layout()
+
+    # SAVE FIGURES
+    fig1.savefig('CLalpha.eps',
+                 format='eps',
+                 bbox_inches='tight')
+
+    fig2.savefig('CD0.eps',
+                 format='eps',
+                 bbox_inches='tight')
+
+    fig3.savefig('eta.eps',
+                 format='eps',
+                 bbox_inches='tight')
+
+    fig4.savefig('thrust.eps',
+                 format='eps',
+                 bbox_inches='tight')
+
+    fig5.savefig('atm_spline.eps',
+                 format='eps',
+                 bbox_inches='tight')
 
     plt.show()
