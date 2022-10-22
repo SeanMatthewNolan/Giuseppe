@@ -73,12 +73,16 @@ class AdiffDual(Picky):
         f = self.adiff_ocp.eom
         H = L + ca.dot(self.costates, f)
         Hxp = ca.jacobian(H, self.states_and_parameters)
+        Hu = ca.jacobian(H, self.controls)
+        Ht = ca.jacobian(H, self.independent)
         phi_0_adj = phi_0 + ca.dot(self.initial_adjoints, psi_0)
         phi_f_adj = phi_f + ca.dot(self.terminal_adjoints, psi_f)
 
         self.ca_hamiltonian = ca.Function('H', self.args['dynamic'], (H,), self.arg_names['dynamic'], ('H',))
         self.ca_costate_dynamics = ca.Function('lam_dot', self.args['dynamic'], (-Hxp.T,),
                                                self.arg_names['dynamic'], ('lam_dot',))
+        self.ca_dH_du = ca.Function('dH_du', self.args['dynamic'], (Hu,), self.arg_names['dynamic'], ('dH_du',))
+        self.ca_dH_dt = ca.Function('dH_dt', self.args['dynamic'], (Ht,), self.arg_names['dynamic'], ('dH_dt',))
 
         initial_aug_cost = ca.Function('Phi_0_adj', self.args['initial'], (phi_0_adj,),
                                        self.arg_names['initial'], ('Phi_0_adj',))

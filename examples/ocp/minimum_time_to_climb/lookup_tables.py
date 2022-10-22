@@ -1,6 +1,6 @@
 import casadi as ca
 import numpy as np
-from scipy.interpolate import PchipInterpolator, interp2d
+from scipy.interpolate import PchipInterpolator, interp2d, bisplrep, bisplev
 
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
@@ -24,93 +24,92 @@ data_thrust_original = np.array(((24.2, np.nan, np.nan, np.nan, np.nan, np.nan, 
                                  (np.nan, np.nan, np.nan, 38.7, 35.7, 32.0, 28.1, 19.3, 11.9, 2.9),
                                  (np.nan, np.nan, np.nan, np.nan, np.nan, 34.6, 31.1, 21.7, 13.3, 3.1))) * 1e3
 
-M_h_thrust_original = np.array(((0.0, 0, 24.2),
-                                (0.2, 0, 28.0),
-                                (0.4, 0, 28.3),
-                                (0.6, 0, 30.8),
-                                (0.8, 0, 34.5),
-                                (1.0, 0, 37.9),
-                                (1.2, 0, 36.1),
-                                (0.2, 5, 24.6),
-                                (0.4, 5, 25.2),
-                                (0.6, 5, 27.2),
-                                (0.8, 5, 30.3),
-                                (1.0, 5, 34.3),
-                                (1.2, 5, 38.0),
-                                (1.4, 5, 36.6),
-                                (0.2, 10, 21.1),
-                                (0.4, 10, 21.9),
-                                (0.6, 10, 23.8),
-                                (0.8, 10, 26.6),
-                                (1.0, 10, 30.4),
-                                (1.2, 10, 34.9),
-                                (1.4, 10, 38.5),
-                                (0.2, 15, 18.1),
-                                (0.4, 15, 18.7),
-                                (0.6, 15, 20.5),
-                                (0.8, 15, 23.2),
-                                (1.0, 15, 26.8),
-                                (1.2, 15, 31.3),
-                                (1.4, 15, 36.1),
-                                (1.6, 15, 38.7),
-                                (0.2, 20, 15.2),
-                                (0.4, 20, 15.9),
-                                (0.6, 20, 17.3),
-                                (0.8, 20, 19.8),
-                                (1.0, 20, 23.3),
-                                (1.2, 20, 27.3),
-                                (1.4, 20, 31.6),
-                                (1.6, 20, 35.7),
-                                (0.2, 25, 12.8),
-                                (0.4, 25, 13.4),
-                                (0.6, 25, 14.7),
-                                (0.8, 25, 16.8),
-                                (1.0, 25, 19.8),
-                                (1.2, 25, 23.6),
-                                (1.4, 25, 28.1),
-                                (1.6, 25, 32.0),
-                                (1.8, 25, 34.6),
-                                (0.2, 30, 10.7),
-                                (0.4, 30, 11.2),
-                                (0.6, 30, 12.3),
-                                (0.8, 30, 14.1),
-                                (1.0, 30, 16.8),
-                                (1.2, 30, 20.1),
-                                (1.4, 30, 24.2),
-                                (1.6, 30, 28.1),
-                                (1.8, 30, 31.1),
-                                (0.4, 40, 7.3),
-                                (0.6, 40, 8.1),
-                                (0.8, 40, 9.4),
-                                (1.0, 40, 11.2),
-                                (1.2, 40, 13.4),
-                                (1.4, 40, 16.2),
-                                (1.6, 40, 19.3),
-                                (1.8, 40, 21.7),
-                                (0.4, 50, 4.4),
-                                (0.6, 50, 4.9),
-                                (0.8, 50, 5.6),
-                                (1.0, 50, 6.8),
-                                (1.2, 50, 8.3),
-                                (1.4, 50, 10.0),
-                                (1.6, 50, 11.9),
-                                (1.8, 50, 13.3),
-                                (0.8, 70, 1.1),
-                                (1.0, 70, 1.4),
-                                (1.2, 70, 1.7),
-                                (1.4, 70, 2.2),
-                                (1.6, 70, 2.9),
-                                (1.8, 70, 3.1)))
-thrust_table_interp2d = interp2d(x=M_h_thrust_original[:, 0],
-                                 y=M_h_thrust_original[:, 1] * 1e3,
-                                 z=M_h_thrust_original[:, 2] * 1e3,
-                                 kind='linear')
+
+def extrapolate_upper_right(x, y, z, x_idx, y_idx, z_min=0.0):
+    x_idx_lower = min(x_idx + 1, len(x) - 1)
+    x_idx_lower2 = min(x_idx + 2, len(x) - 1)
+    y_idx_left = max(y_idx - 1, 0)
+    y_idx_left2 = max(y_idx - 2, 0)
+
+    if x_idx_lower == x_idx_lower2:
+        dz_dx = 0
+    else:
+        dz_dx = (z[x_idx_lower, y_idx] - z[x_idx_lower2, y_idx]) / (x[x_idx_lower] - x[x_idx_lower2])
+
+    if y_idx_left == y_idx_left2:
+        dz_dy = 0
+    else:
+        dz_dy = (z[x_idx, y_idx_left] - z[x_idx, y_idx_left2]) / (y[y_idx_left] - y[y_idx_left2])
+
+    dx = x[x_idx] - x[x_idx_lower]
+    dy = y[y_idx] - y[y_idx_left]
+
+    z_new_upper = z[x_idx_lower, y_idx] + dz_dx * dx
+    z_new_right = z[x_idx, y_idx_left] + dz_dy * dy
+    z_new = max(float(np.mean((z_new_right, z_new_upper))), z_min)
+
+    return z_new
+
+
+def extrapolate_lower_left(x, y, z, x_idx, y_idx, z_min=0.0):
+    x_idx_upper = max(x_idx - 1, 0)
+    x_idx_upper2 = max(x_idx - 2, 0)
+    y_idx_right = min(y_idx + 1, len(y) - 1)
+    y_idx_right2 = min(y_idx + 2, len(y) - 1)
+
+    if x_idx_upper == x_idx_upper2:
+        dz_dx = 0
+    else:
+        dz_dx = (z[x_idx_upper, y_idx] - z[x_idx_upper2, y_idx]) / (x[x_idx_upper] - x[x_idx_upper2])
+
+    if y_idx_right == y_idx_right2:
+        dz_dy = 0
+    else:
+        dz_dy = (z[x_idx, y_idx_right] - z[x_idx, y_idx_right2]) / (y[y_idx_right] - y[y_idx_right2])
+
+    dx = x[x_idx] - x[x_idx_upper]
+    dy = y[y_idx] - y[y_idx_right]
+
+    z_new_lower = z[x_idx_upper, y_idx] + dz_dx * dx
+    z_new_left = z[x_idx, y_idx_right] + dz_dy * dy
+    z_new = max(float(np.mean((z_new_left, z_new_lower))), z_min)
+
+    return z_new
+
 
 data_thrust = data_thrust_original.copy()
-for i, M_val in enumerate(M_grid_thrust):
-    for j, h_val in enumerate(h_grid_thrust):
-        if np.isnan(data_thrust[i, j]):
-            data_thrust[i, j] = thrust_table_interp2d(M_val, h_val)
+x_y_types = ((1, 7, 'ur'),
+           (1, 8, 'ur'),
+           (3, 9, 'ur'),
+           (2, 9, 'ur'),
+           (1, 9, 'ur'),
+           (0, 1, 'ur'),
+           (0, 2, 'ur'),
+           (0, 3, 'ur'),
+           (0, 4, 'ur'),
+           (0, 5, 'ur'),
+           (0, 6, 'ur'),
+           (0, 7, 'ur'),
+           (0, 8, 'ur'),
+           (0, 9, 'ur'),
+           (7, 0, 'll'),
+           (8, 2, 'll'),
+           (8, 1, 'll'),
+           (8, 0, 'll'),
+           (9, 4, 'll'),
+           (9, 3, 'll'),
+           (9, 2, 'll'),
+           (9, 1, 'll'),
+           (9, 0, 'll'))
+
+for x_y_type in x_y_types:
+    x_idx_i, y_idx_i, type_i = x_y_type
+    if type_i == 'ur':
+        data_thrust[x_idx_i, y_idx_i] = extrapolate_upper_right(M_grid_thrust, h_grid_thrust, data_thrust,
+                                                                x_idx_i, y_idx_i)
+    else:
+        data_thrust[x_idx_i, y_idx_i] = extrapolate_lower_left(M_grid_thrust, h_grid_thrust, data_thrust,
+                                                               x_idx_i, y_idx_i)
 
 data_flat_thrust = data_thrust.ravel(order='F')
 thrust_table_bspline = ca.interpolant('thrust_table', 'bspline', (M_grid_thrust, h_grid_thrust), data_flat_thrust)
@@ -211,6 +210,9 @@ if __name__ == "__main__":
     M_LAB = 'Mach'
     N_VALS = 1_000
 
+    MED_FIG_SIZE = (6.5, 5)
+    SML_FIG_SIZE = (6.5, 3)
+
     cols = plt.rcParams['axes.prop_cycle'].by_key()['color']
     gradient = mpl.colormaps['viridis'].colors
     grad_idcs = np.int32(np.ceil(np.linspace(0, 255, len(h_grid_thrust))))
@@ -276,7 +278,7 @@ if __name__ == "__main__":
     deta_linear_dM = diff_eta_linear_vals * dv_dM
 
     # FIGURE 1 (CLalpha)
-    fig1 = plt.figure(figsize=(6.5, 5))
+    fig1 = plt.figure(figsize=SML_FIG_SIZE)
 
     ax11 = fig1.add_subplot(211)
     ax11.plot(M, CLalpha_linear_vals, color=cols[1], label='Linear')
@@ -298,7 +300,7 @@ if __name__ == "__main__":
     fig1.tight_layout()
 
     # FIGURE 2 (CD0)
-    fig2 = plt.figure(figsize=(6.5, 5))
+    fig2 = plt.figure(figsize=SML_FIG_SIZE)
 
     ax21 = fig2.add_subplot(211)
     ax21.plot(M, CD0_linear_vals, color=cols[1], label='Linear')
@@ -320,7 +322,7 @@ if __name__ == "__main__":
     fig2.tight_layout()
 
     # FIGURE 3 (Eta)
-    fig3 = plt.figure(figsize=(6.5, 5))
+    fig3 = plt.figure(figsize=SML_FIG_SIZE)
 
     ax31 = fig3.add_subplot(211)
     ax31.plot(M, eta_linear_vals, color=cols[1], label='Linear')
@@ -342,7 +344,7 @@ if __name__ == "__main__":
     fig3.tight_layout()
 
     # FIGURE 4 (Thrust)
-    fig4 = plt.figure(figsize=(6.5, 5))
+    fig4 = plt.figure(figsize=MED_FIG_SIZE)
     ax41 = fig4.add_subplot(311)
     ax42 = fig4.add_subplot(312)
     ax43 = fig4.add_subplot(313)
@@ -437,23 +439,23 @@ if __name__ == "__main__":
     fig5.tight_layout()
 
     # SAVE FIGURES
-    fig1.savefig('CLalpha.eps',
+    fig1.savefig('lut_CLalpha.eps',
                  format='eps',
                  bbox_inches='tight')
 
-    fig2.savefig('CD0.eps',
+    fig2.savefig('lut_CD0.eps',
                  format='eps',
                  bbox_inches='tight')
 
-    fig3.savefig('eta.eps',
+    fig3.savefig('lut_eta.eps',
                  format='eps',
                  bbox_inches='tight')
 
-    fig4.savefig('thrust.eps',
+    fig4.savefig('lut_thrust.eps',
                  format='eps',
                  bbox_inches='tight')
 
-    fig5.savefig('atm_spline.eps',
+    fig5.savefig('lut_atmosphere.eps',
                  format='eps',
                  bbox_inches='tight')
 

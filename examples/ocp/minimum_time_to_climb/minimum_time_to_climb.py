@@ -132,14 +132,14 @@ ocp.add_constraint(location='terminal', expr=gam - gam_f)
 # Objective Function
 ocp.set_cost(0, 0, t)
 
-if __name__ == "__main__":
-    # Compilation
-    with giuseppe.utils.Timer(prefix='Compilation Time:'):
-        adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
-        adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
-        adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
-        num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False, use_jac=True)
+# Compilation
+with giuseppe.utils.Timer(prefix='Compilation Time:'):
+    adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
+    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
+    adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
+    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False, use_jac=True)
 
+if __name__ == "__main__":
     # Guess Generation (overwrites the terminal conditions in order to converge)
     guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=6*d2r, t_span=0.1)
 
