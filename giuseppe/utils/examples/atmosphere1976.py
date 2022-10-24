@@ -265,23 +265,25 @@ if __name__ == "__main__":
     ax21 = fig2.add_subplot(121)
     ax22 = fig2.add_subplot(122)
 
-    ax21.plot(density_exponential * 100_000, altitudes / 10_000, label='Exponential Atm.')
-    ax22.plot(density_deriv_exponential * 1e9, altitudes / 10_000, label='Exponential Atm.')
+    ax21.plot(density_exponential, altitudes / 10_000, label='Exponential Atm.')
+    ax22.plot(-density_deriv_exponential, altitudes / 10_000, label='Exponential Atm.')
     for layer in atm.layer_names:
         layer_idcs = np.where(layer_1976 == layer)
         if len(layer_idcs[0]) > 0:
-            ax21.plot(density_1976_ca[layer_idcs] * 100_000, altitudes[layer_idcs] / 10_000, '--', label=layer)
-            ax22.plot(density_1976_deriv_ca[layer_idcs] * 1e9, altitudes[layer_idcs] / 10_000, '--', label=layer)
+            ax21.plot(density_1976_ca[layer_idcs], altitudes[layer_idcs] / 10_000, '--', label=layer)
+            ax22.plot(-density_1976_deriv_ca[layer_idcs], altitudes[layer_idcs] / 10_000, '--', label=layer)
     xlim21 = ax21.get_xlim()
     xlim22 = ax22.get_xlim()
     ax21.plot(xlim21, np.array((1, 1)) * 80_000 / 10_000, 'k--', zorder=0)
     ax22.plot(xlim22, np.array((1, 1)) * 80_000 / 10_000, 'k--', zorder=0)
+    ax21.set_xscale('log')
+    ax22.set_xscale('log')
     ax21.grid()
     ax22.grid()
 
     ax21.set_ylabel('Altitude [10,000 ft]')
-    ax21.set_xlabel(r'$\rho$ [slug / 100,000 ft$^3$]')
-    ax22.set_xlabel(r'$-\dfrac{d\rho}{dh}$ [slug / 10$^9$ ft$^4$]')
+    ax21.set_xlabel(r'$\rho$ [slug / ft$^3$]')
+    ax22.set_xlabel(r'$-\dfrac{d\rho}{dh}$ [slug / ft$^4$]')
     # ax21.set_xscale('log')
 
     ax21.legend()
