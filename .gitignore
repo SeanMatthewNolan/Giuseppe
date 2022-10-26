@@ -2,6 +2,7 @@
 sandbox
 *.data
 *.eps
+*.svg
 *.html
 *.json
 *.bson
