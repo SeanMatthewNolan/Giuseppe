@@ -286,7 +286,7 @@ if __name__ == "__main__":
     ax22.set_xlabel(r'$-\dfrac{d\rho}{dh}$ [slug / ft$^4$]')
     # ax21.set_xscale('log')
 
-    ax21.legend()
+    ax21.legend(loc='upper right')
 
     fig2.tight_layout()
 

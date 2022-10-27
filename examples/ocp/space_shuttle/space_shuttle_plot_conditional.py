@@ -178,7 +178,9 @@ fig3.tight_layout()
 
 # FIGURE 4 (VALIDATION)
 ham_map = adiff_bvp.dual.ca_hamiltonian.map(len(sol.t))
-ham_u_map = adiff_bvp.dual.ca_dH_du.map(len(sol.t))
+ham_u_func = adiff_bvp.dual.ca_dH_du
+ham_uT_func = ca.Function('dH_du_T', ham_u_func.sx_in(), (ham_u_func(*ham_u_func.sx_in()).T,))
+ham_u_map = ham_uT_func.map(len(sol.t))
 ham_t_map = adiff_bvp.dual.ca_dH_dt.map(len(sol.t))
 
 ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
@@ -203,20 +205,22 @@ psi_adj_f = np.asarray(adiff_bvp.dual.ca_adj_boundary_conditions.terminal(
 
 fig6 = plt.figure(figsize=SMALL_FIGSIZE)
 ax61 = fig6.add_subplot(211)
-ax61.plot(sol.t, ham_alpha, label=r'$\alpha$')
-ax61.plot(sol.t, ham_beta, zorder=0, label=r'$\beta')
+ax61.plot(sol.t, ham_alpha * 1e9, label=r'$\alpha$')
+ax61.plot(sol.t, ham_beta * 1e9, zorder=0, label=r'$\beta$')
 ax61.grid()
-ax61.set_ylabel(r'$\partial H/\partial u$ [1/s]')
+ax61.set_ylabel(r'$\partial H/\partial u$ [$10^{-9}$ 1/s]')
+ax61.set_ylim((2*ax61.get_ylim()[0], ax61.get_ylim()[1]))
+ax61.legend(loc='lower center')
 
 ax62 = fig6.add_subplot(212)
 ax62.plot(sol.t, ham_t * r2d, label='AD')
-ax62.plot(sol.t[:-1], ham_t_numerical * r2d, zorder=0, label='FD')
+ax62.plot(sol.t[:-1], ham_t_numerical * r2d * 1e10, zorder=0, label='FD')
 ax62.grid()
-ax62.set_ylabel(r'$\partial H/\partial t$ [deg/s$^2$]')
+ax62.set_ylabel(r'$\partial H/\partial t$ [$10^{-10}$ deg/s$^2$]')
 ax62.set_xlabel(T_LAB)
 ax62.legend()
-# ax62.set_ylim((1.5*ax62.get_ylim()[0], -1.5*ax62.get_ylim()[0]))
-# ax62.legend(loc='upper center')
+ax62.set_ylim((2.5*ax62.get_ylim()[0], ax62.get_ylim()[1]))
+ax62.legend(loc='lower center')
 
 fig6.tight_layout()
 
@@ -263,6 +267,10 @@ fig2.savefig('space_shuttle_control_history.eps',
              bbox_inches='tight')
 
 fig3.savefig('space_shuttle_density.eps',
+             format='eps',
+             bbox_inches='tight')
+
+fig6.savefig('space_shuttle_hamiltonian.eps',
              format='eps',
              bbox_inches='tight')
 
