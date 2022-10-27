@@ -2,14 +2,6 @@ import numpy as np
 import casadi as ca
 
 import giuseppe
-# from giuseppe.continuation import ContinuationHandler
-# from giuseppe.guess_generators import auto_propagate_guess
-# from giuseppe.io import InputOCP, SolutionSet
-# from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-# from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
-# from giuseppe.problems.ocp import SymOCP
-# from giuseppe.problems.regularization import PenaltyConstraintHandler
-# from giuseppe.utils import Timer
 
 giuseppe.utils.compilation.JIT_COMPILE = True
 
@@ -150,14 +142,15 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_bvp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
     num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, use_jac=True)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
+if __name__ == '__main__':
+    guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
+    seed_sol = num_solver.solve(guess.k, guess)
+    sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
 
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
-cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
-cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
-sol_set = cont.run_continuation(num_solver)
+    cont = giuseppe.continuation.ContinuationHandler(sol_set)
+    cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+    cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
+    cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
+    sol_set = cont.run_continuation(num_solver)
 
-sol_set.save('sol_set.data')
+    sol_set.save('sol_set.data')

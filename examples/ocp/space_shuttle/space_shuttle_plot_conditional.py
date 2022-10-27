@@ -3,13 +3,19 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import casadi as ca
+
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
+from space_shuttle_footprint_adiffInput import adiff_bvp
+
+
+SMALL_FIGSIZE = (6.5, 3)
 MED_FIG_SIZE = (6.5, 5)
 BIG_FIG_SIZE = (6.5, 6.5)
 T_LAB = 'Time [s]'
 
 r2d = 180 / np.pi
+d2r = np.pi / 180
 
 with open('sol_set.data', 'rb') as file:
     sol = pickle.load(file)[-1]
@@ -169,6 +175,83 @@ ax32.set_title(r'$h_f = 25,000$ ft')
 ax32.legend()
 
 fig3.tight_layout()
+
+# FIGURE 4 (VALIDATION)
+ham_map = adiff_bvp.dual.ca_hamiltonian.map(len(sol.t))
+ham_u_map = adiff_bvp.dual.ca_dH_du.map(len(sol.t))
+ham_t_map = adiff_bvp.dual.ca_dH_dt.map(len(sol.t))
+
+ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
+ham_t_numerical = np.diff(ham) / np.diff(sol.t)
+ham_t_numerical_max = np.max(np.abs(ham_t_numerical))
+ham_t = np.asarray(ham_t_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
+ham_t_max = np.max(np.abs(ham_t))
+ham_u = np.asarray(ham_u_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k))
+ham_alpha = ham_u[0, :]
+ham_beta = ham_u[1, :]
+ham_alpha_max = np.max(np.abs(ham_alpha))
+ham_beta_max = np.max(np.abs(ham_beta))
+
+psi_0 = np.asarray(adiff_bvp.ocp.ca_boundary_conditions.initial(
+    sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)).flatten()
+psi_f = np.asarray(adiff_bvp.ocp.ca_boundary_conditions.terminal(
+    sol.t[-1], sol.x[:, -1], sol.u[:, -1], sol.p, sol.k)).flatten()
+psi_adj_0 = np.asarray(adiff_bvp.dual.ca_adj_boundary_conditions.initial(
+    sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.nu0, sol.k)).flatten()
+psi_adj_f = np.asarray(adiff_bvp.dual.ca_adj_boundary_conditions.terminal(
+    sol.t[-1], sol.x[:, -1], sol.lam[:, -1], sol.u[:, -1], sol.p, sol.nuf, sol.k)).flatten()
+
+fig6 = plt.figure(figsize=SMALL_FIGSIZE)
+ax61 = fig6.add_subplot(211)
+ax61.plot(sol.t, ham_alpha, label=r'$\alpha$')
+ax61.plot(sol.t, ham_beta, zorder=0, label=r'$\beta')
+ax61.grid()
+ax61.set_ylabel(r'$\partial H/\partial u$ [1/s]')
+
+ax62 = fig6.add_subplot(212)
+ax62.plot(sol.t, ham_t * r2d, label='AD')
+ax62.plot(sol.t[:-1], ham_t_numerical * r2d, zorder=0, label='FD')
+ax62.grid()
+ax62.set_ylabel(r'$\partial H/\partial t$ [deg/s$^2$]')
+ax62.set_xlabel(T_LAB)
+ax62.legend()
+# ax62.set_ylim((1.5*ax62.get_ylim()[0], -1.5*ax62.get_ylim()[0]))
+# ax62.legend(loc='upper center')
+
+fig6.tight_layout()
+
+print(f'Max dH/dalpha = {ham_alpha_max:.4} [1/s]')
+print(f'Max dH/dbeta = {ham_beta_max:.4} [1/s]')
+print(f'Max dH/dt (AD) = {ham_t_max * r2d:.4} [deg/s2]')
+print(f'Max dH/dt (Num.) = {ham_t_numerical_max * r2d:.4} [deg/s2]')
+
+print(f'\nt - t0 = {psi_0[0]:.4} [s]')
+print(f'h - h0 = {psi_0[1]:.4} [ft]')
+print(f'phi - phi0 = {psi_0[2] * r2d:.4} [deg]')
+print(f'tha - tha0 = {psi_0[3] * r2d:.4} [deg]')
+print(f'V - V0 = {psi_0[4]:.4} [ft/s]')
+print(f'gam - gam0 = {psi_0[5] * r2d:.4} [deg]')
+print(f'psi - psi0 = {psi_0[6] * r2d:.4} [deg]')
+
+print(f'\nh - hf = {psi_f[0]:.4} [ft]')
+print(f'V - Vf = {psi_f[1]:.4} [ft/s]')
+print(f'gam - gamf = {psi_f[2] * r2d:.4} [deg]')
+
+print(f'\nPhi0_adj_t - H0 = {psi_adj_0[0] * r2d:.4} [deg/s]')
+print(f'Phi0_adj_h + lam0_h = {psi_adj_0[1] * r2d:.4} [deg/ft-s]')
+print(f'Phi0_adj_phi + lam0_phi = {psi_adj_0[2]:.4} [1/s]')
+print(f'Phi0_adj_tha + lam0_tha = {psi_adj_0[3]:.4} [1/s]')
+print(f'Phi0_adj_V + lam0_V = {psi_adj_0[4] * r2d:.4} [deg/ft]')
+print(f'Phi0_adj_gam + lam0_gam = {psi_adj_0[5]:.4} [1/s]')
+print(f'Phi0_adj_psi + lam0_psi = {psi_adj_0[6]:.4} [1/s]')
+
+print(f'\nPhif_adj_t + Hf = {psi_adj_f[0] * r2d:.4} [deg/s]')
+print(f'Phif_adj_h + lamf_h = {psi_adj_f[1] * r2d:.4} [deg/ft-s]')
+print(f'Phif_adj_phi + lamf_phi = {psi_adj_f[2]:.4} [1/s]')
+print(f'Phif_adj_tha + lamf_tha = {psi_adj_f[3]:.4} [1/s]')
+print(f'Phif_adj_V + lamf_V = {psi_adj_f[4] * r2d:.4} [deg/ft]')
+print(f'Phif_adj_gam + lamf_gam = {psi_adj_f[5]:.4} [1/s]')
+print(f'Phif_adj_psi + lamf_psi = {psi_adj_f[6]:.4} [1/lb]')
 
 # SAVE FIGURES
 fig1.savefig('space_shuttle_states.eps',
