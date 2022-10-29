@@ -37,6 +37,11 @@ class AdiffOCP(Picky):
             self.inputConstraints = self.src_ocp.constraints
             self.inputCost = self.src_ocp.cost
 
+            self.unregulated_controls = self.controls
+            self.ca_pseudo2control = ca.Function('u', (self.controls, self.constants),
+                                                 (self.controls,), ('u_reg', 'k'), ('u',))
+            self.ca_control2pseudo = ca.Function('u', (self.unregulated_controls, self.constants),
+                                                 (self.unregulated_controls,), ('u', 'k'), ('u_reg',))
             self.process_inequality_constraints(self.src_ocp.inequality_constraints)
 
             self.num_states = self.states.shape[0]
