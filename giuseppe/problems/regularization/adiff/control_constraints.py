@@ -14,9 +14,10 @@ else:
 
 
 class AdiffControlConstraintHandler(Regularizer):
-    def __init__(self, regulator: ca.MX, method: str = 'atan'):
-        self.regulator: ca.MX = regulator
+    def __init__(self, regulator: Union[ca.SX, ca.MX], method: str = 'atan'):
+        self.regulator: Union[ca.SX, ca.MX] = regulator
         self.method: str = method
+        self.dtype = type(regulator)
 
         if method.lower() in ['atan', 'arctan']:
             self.expr_generator = self._gen_atan_expr
@@ -40,7 +41,7 @@ class AdiffControlConstraintHandler(Regularizer):
             raise ValueError(f'Location of control constraint regularizer should be \'control\' or \'path\'')
 
         bounded_control = control_constraint.expr
-        pseudo_control = ca.MX.sym(bounded_control.str() + '_reg', 1)
+        pseudo_control = self.dtype.sym(bounded_control.str() + '_reg', 1)
 
         # CasADi can't check if sym is in vector, so check if substitution changed vector instead
         pseudo_controls = ca.substitute(prob.controls, bounded_control, pseudo_control)
@@ -69,8 +70,8 @@ class AdiffControlConstraintHandler(Regularizer):
         return prob
 
     @staticmethod
-    def _gen_atan_expr(pseudo_control: ca.MX, lower_limit: Union[ca.MX, float], upper_limit: Union[ca.MX, float],
-                       regulator: ca.MX) -> Tuple[ca.MX, ca.MX]:
+    def _gen_atan_expr(pseudo_control: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float], upper_limit: Union[Union[ca.SX, ca.MX], float],
+                       regulator: Union[ca.SX, ca.MX]) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) / ca.pi * ca.atan(pseudo_control / regulator) \
                        + (upper_limit + lower_limit) / 2

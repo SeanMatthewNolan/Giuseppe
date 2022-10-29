@@ -15,8 +15,8 @@ else:
 
 
 class AdiffPenaltyConstraintHandler(Regularizer):
-    def __init__(self, regulator: ca.MX, method: str = 'sec'):
-        self.regulator: ca.MX = regulator
+    def __init__(self, regulator: Union[ca.SX, ca.MX], method: str = 'sec'):
+        self.regulator: Union[ca.SX, ca.MX] = regulator
         self.method: str = method
 
         if method.lower() in ['utm', 'secant', 'sec']:
@@ -41,8 +41,8 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         return prob
 
     @staticmethod
-    def _gen_sec_expr(expr: ca.MX, lower_limit: Union[ca.MX, float], upper_limit: Union[ca.MX, float],
-                      regulator: ca.MX) -> ca.MX:
+    def _gen_sec_expr(expr: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float], upper_limit: Union[Union[ca.SX, ca.MX], float],
+                      regulator: Union[ca.SX, ca.MX]) -> Union[ca.SX, ca.MX]:
 
         if lower_limit is None or upper_limit is None:
             raise ValueError(f'Path constraints using UTM/secant method must have lower and upper limits')
@@ -52,8 +52,8 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         return penalty_func
 
     @staticmethod
-    def _gen_rat_expr(expr: ca.MX, lower_limit: Union[ca.MX, float], upper_limit: Union[ca.MX, float],
-                      regulator: ca.MX) -> ca.MX:
+    def _gen_rat_expr(expr: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float], upper_limit: Union[Union[ca.SX, ca.MX], float],
+                      regulator: Union[ca.SX, ca.MX]) -> Union[ca.SX, ca.MX]:
 
         if lower_limit is not None and upper_limit is not None:
             penalty_func = regulator * (1 / (expr - lower_limit) + 1 / (upper_limit - expr)
@@ -65,4 +65,4 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         else:
             raise ValueError(f'Lower or upper limit must be specified for inequality path constraint.')
 
-        return ca.MX.sym(penalty_func)
+        return penalty_func
