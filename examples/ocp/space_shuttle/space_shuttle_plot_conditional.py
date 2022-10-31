@@ -6,7 +6,7 @@ import casadi as ca
 
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
-from space_shuttle_footprint_adiffInput import adiff_bvp
+from space_shuttle_footprint_conditional_atm import adiff_bvp
 
 
 SMALL_FIGSIZE = (6.5, 3)
@@ -177,50 +177,50 @@ ax32.legend()
 fig3.tight_layout()
 
 # FIGURE 4 (VALIDATION)
-ham_map = adiff_bvp.dual.ca_hamiltonian.map(len(sol.t))
+ham_map = adiff_bvp.dual.ca_hamiltonian.map(len(sol_cond.t))
 ham_u_func = adiff_bvp.dual.ca_dH_du
 ham_uT_func = ca.Function('dH_du_T', ham_u_func.sx_in(), (ham_u_func(*ham_u_func.sx_in()).T,))
-ham_u_map = ham_uT_func.map(len(sol.t))
-ham_t_map = adiff_bvp.dual.ca_dH_dt.map(len(sol.t))
+ham_u_map = ham_uT_func.map(len(sol_cond.t))
+ham_t_map = adiff_bvp.dual.ca_dH_dt.map(len(sol_cond.t))
 
-ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
-ham_t_numerical = np.diff(ham) / np.diff(sol.t)
+ham = np.asarray(ham_map(sol_cond.t, sol_cond.x, sol_cond.lam, sol_cond.u, sol_cond.p, sol_cond.k)).flatten()
+ham_t_numerical = np.diff(ham) / np.diff(sol_cond.t)
 ham_t_numerical_max = np.max(np.abs(ham_t_numerical))
-ham_t = np.asarray(ham_t_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
+ham_t = np.asarray(ham_t_map(sol_cond.t, sol_cond.x, sol_cond.lam, sol_cond.u, sol_cond.p, sol_cond.k)).flatten()
 ham_t_max = np.max(np.abs(ham_t))
-ham_u = np.asarray(ham_u_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k))
+ham_u = np.asarray(ham_u_map(sol_cond.t, sol_cond.x, sol_cond.lam, sol_cond.u, sol_cond.p, sol_cond.k))
 ham_alpha = ham_u[0, :]
 ham_beta = ham_u[1, :]
 ham_alpha_max = np.max(np.abs(ham_alpha))
 ham_beta_max = np.max(np.abs(ham_beta))
 
 psi_0 = np.asarray(adiff_bvp.ocp.ca_boundary_conditions.initial(
-    sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)).flatten()
+    sol_cond.t[0], sol_cond.x[:, 0], sol_cond.u[:, 0], sol_cond.p, sol_cond.k)).flatten()
 psi_f = np.asarray(adiff_bvp.ocp.ca_boundary_conditions.terminal(
-    sol.t[-1], sol.x[:, -1], sol.u[:, -1], sol.p, sol.k)).flatten()
+    sol_cond.t[-1], sol_cond.x[:, -1], sol_cond.u[:, -1], sol_cond.p, sol_cond.k)).flatten()
 psi_adj_0 = np.asarray(adiff_bvp.dual.ca_adj_boundary_conditions.initial(
-    sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.nu0, sol.k)).flatten()
+    sol_cond.t[0], sol_cond.x[:, 0], sol_cond.lam[:, 0], sol_cond.u[:, 0], sol_cond.p, sol_cond.nu0, sol_cond.k)).flatten()
 psi_adj_f = np.asarray(adiff_bvp.dual.ca_adj_boundary_conditions.terminal(
-    sol.t[-1], sol.x[:, -1], sol.lam[:, -1], sol.u[:, -1], sol.p, sol.nuf, sol.k)).flatten()
+    sol_cond.t[-1], sol_cond.x[:, -1], sol_cond.lam[:, -1], sol_cond.u[:, -1], sol_cond.p, sol_cond.nuf, sol_cond.k)).flatten()
 
 fig6 = plt.figure(figsize=SMALL_FIGSIZE)
 ax61 = fig6.add_subplot(211)
-ax61.plot(sol.t, ham_alpha * 1e9, label=r'$\alpha$')
-ax61.plot(sol.t, ham_beta * 1e9, zorder=0, label=r'$\beta$')
+ax61.plot(sol_cond.t, ham_alpha * 1e9, label=r'$\alpha$')
+ax61.plot(sol_cond.t, ham_beta * 1e9, zorder=0, label=r'$\beta$')
 ax61.grid()
 ax61.set_ylabel(r'$\partial H/\partial u$ [$10^{-9}$ 1/s]')
 ax61.set_ylim((2*ax61.get_ylim()[0], ax61.get_ylim()[1]))
-ax61.legend(loc='lower center')
+ax61.legend(loc='lower right')
 
 ax62 = fig6.add_subplot(212)
-ax62.plot(sol.t, ham_t * r2d, label='AD')
-ax62.plot(sol.t[:-1], ham_t_numerical * r2d * 1e10, zorder=0, label='FD')
+ax62.plot(sol_cond.t, ham_t * r2d * 1e8, label='AD')
+ax62.plot(sol_cond.t[:-1], ham_t_numerical * r2d * 1e8, zorder=0, label='FD')
 ax62.grid()
-ax62.set_ylabel(r'$\partial H/\partial t$ [$10^{-10}$ deg/s$^2$]')
+ax62.set_ylabel(r'$\partial H/\partial t$ [$10^{-8}$ deg/s$^2$]')
 ax62.set_xlabel(T_LAB)
 ax62.legend()
-ax62.set_ylim((2.5*ax62.get_ylim()[0], ax62.get_ylim()[1]))
-ax62.legend(loc='lower center')
+ax62.set_ylim((ax62.get_ylim()[0], 2*ax62.get_ylim()[1]))
+ax62.legend(loc='upper right')
 
 fig6.tight_layout()
 

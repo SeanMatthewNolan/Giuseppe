@@ -154,24 +154,24 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
                                                                  max_nodes=1000, use_jac=True)
     num_solver2000 = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, verbose=True,
                                                                  max_nodes=2000, use_jac=True)
+if __name__ == '__main__':
+    guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
+    guess.k[-3:] = guess.x[(0, 3, 4), -1]  # match h_f, v_f, gam_f
+    seed_sol = num_solver1000.solve(guess.k, guess)
+    sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
-guess.k[-3:] = guess.x[(0, 3, 4), -1]  # match h_f, v_f, gam_f
-seed_sol = num_solver1000.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
+    cont1 = giuseppe.continuation.ContinuationHandler(sol_set)
+    cont1.add_linear_series(100, {'h_f': 200_000, 'v_f': 20_000})
+    cont1.add_linear_series(50, {'h_f': 150_000, 'v_f': 15_000, 'γ_f': -5 * np.pi / 180})
+    cont1.add_linear_series(90, {'ξ': 0.5 * np.pi}, bisection=True)
+    cont1.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 * np.pi / 180})
+    sol_set1 = cont1.run_continuation(num_solver1000)
 
-cont1 = giuseppe.continuation.ContinuationHandler(sol_set)
-cont1.add_linear_series(100, {'h_f': 200_000, 'v_f': 20_000})
-cont1.add_linear_series(50, {'h_f': 150_000, 'v_f': 15_000, 'γ_f': -5 * np.pi / 180})
-cont1.add_linear_series(90, {'ξ': 0.5 * np.pi}, bisection=True)
-cont1.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 * np.pi / 180})
-sol_set1 = cont1.run_continuation(num_solver1000)
+    sol_set1.save('sol_set_conditional.data')
 
-sol_set1.save('sol_set_conditional.data')
+    cont2 = giuseppe.continuation.ContinuationHandler(deepcopy(sol_set1))
+    cont2.add_linear_series(50, {'h_f': 30_000, 'v_f': 1_250}, bisection=True)
+    cont2.add_linear_series(25, {'h_f': 25_000}, bisection=True)
+    sol_set2 = cont2.run_continuation(num_solver2000)
 
-cont2 = giuseppe.continuation.ContinuationHandler(deepcopy(sol_set1))
-cont2.add_linear_series(50, {'h_f': 30_000, 'v_f': 1_250}, bisection=True)
-cont2.add_linear_series(25, {'h_f': 25_000}, bisection=True)
-sol_set2 = cont2.run_continuation(num_solver2000)
-
-sol_set2.save('sol_set_conditional_25_000.data')
+    sol_set2.save('sol_set_conditional_25_000.data')
