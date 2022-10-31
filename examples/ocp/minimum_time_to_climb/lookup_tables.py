@@ -402,9 +402,9 @@ if __name__ == "__main__":
     ax43.grid()
     # ax43.legend(loc='best')
 
-    ax41.set_ylabel(r'Thrust ($T$) [10,000 lb]')
-    ax42.set_ylabel(r'$\dfrac{dT}{dM}$ [10,000 lb]')
-    ax43.set_ylabel(r'$\dfrac{dT}{dh}$ [lb/ft]')
+    ax41.set_ylabel(r'($T_{hrust}$) [10,000 lb]')
+    ax42.set_ylabel(r'$\dfrac{\partial T_{hrust}}{\partial M}$ [10,000 lb]')
+    ax43.set_ylabel(r'$\dfrac{\partial T_{hrust}}{\partial h}$ [lb/ft]')
     ax43.set_xlabel(M_LAB)
 
     # FIGURE 5 (ATMOSPHERE)
