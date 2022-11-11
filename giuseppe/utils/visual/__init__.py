@@ -1,1 +1,1 @@
-from .spline_editor import SplineEditor
+from giuseppe.utils.visual.matplotlib_elements.spline_editor import SplineEditor
