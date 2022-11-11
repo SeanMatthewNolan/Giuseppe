@@ -1,6 +1,5 @@
 from typing import Optional, Callable, Union
 
-import matplotlib.backend_bases
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy import interpolate
@@ -94,7 +93,7 @@ class SplineEditor:
         self.ax.add_line(self._inter_line)
 
         self.click_margin: int = 10
-        self.node_margin: float = 0.01 * (self.x_range[1] - self.x_range[0]) / self.num_nodes
+        self.node_margin: float = 0.1 * (self.x_range[1] - self.x_range[0]) / self.num_nodes
 
         self.tool_tip = Text()
         self.tool_tip.set_visible(False)
@@ -139,15 +138,15 @@ class SplineEditor:
         self.update_inter()
         self.canvas.blit(self.ax.bbox)
 
-    def get_node_under_point(self, event):
+    def get_node_under_point(self, event) -> Union[int, None]:
         node_pixels = self._node_line.get_transform().transform(self.nodes.T).T
         dist = np.hypot(node_pixels[0, :] - event.x, node_pixels[1, :] - event.y)
         node_idx = np.argmin(dist)
 
         if dist[node_idx] > self.click_margin:
-            node_idx = None
+            return None
 
-        return node_idx
+        return int(node_idx)
 
     def set_node(self, idx, x, y):
         if idx == 0:
@@ -161,15 +160,29 @@ class SplineEditor:
             self.nodes[:, idx] = np.clip(x, x_min, x_max), np.clip(y, self.y_range[0], self.y_range[1])
 
     def add_node(self, x: float, y: float):
-        if (x < self.x_range[0] + self.node_margin) or (x > self.x_range[1] - self.node_margin):
+        if (x is None) or (y is None):
+            return
+
+        if (x < (self.x_range[0] + self.node_margin)) or (x > (self.x_range[1] - self.node_margin)):
             return
 
         idx = self.nodes[0, :].searchsorted(x)
+        if (x < (self.nodes[0, idx - 1] + self.node_margin)) or (x > (self.nodes[0, idx] - self.node_margin)):
+            return
 
         self.nodes = np.hstack((self.nodes[:, :idx], np.array([[x], [y]]), self.nodes[:, idx:]))
         self.num_nodes = self.nodes.shape[1]
+        self.node_margin: float = 0.1 * (self.x_range[1] - self.x_range[0]) / self.num_nodes
         self.set_node(idx, x, y)
         self._node_idx = idx
+        self.quick_draw()
+
+    def delete_node(self, idx: int):
+        if not (idx is None or idx == 0 or idx == self.num_nodes):
+            self.nodes = np.delete(self.nodes, idx, axis=1)
+            self.num_nodes = self.nodes.shape[1]
+            self.node_margin: float = 0.1 * (self.x_range[1] - self.x_range[0]) / self.num_nodes
+            self.quick_draw()
 
     def set_tool_tip(self, event):
         self.tool_tip.set_visible(True)
@@ -216,10 +229,8 @@ class SplineEditor:
     def on_key_press(self, event):
         if event.key == 'delete':
             idx = self.get_node_under_point(event)
-            if not (idx is None or idx == 0 or idx == self.num_nodes):
-                self.nodes = np.delete(self.nodes, idx, axis=1)
-                self.num_nodes = self.nodes.shape[1]
-                self.quick_draw()
+            if idx is not None:
+                self.delete_node(idx)
 
     def change_interpolator(self, inter_func: str = 'pchip'):
         self.interpolator = form_interpolator(inter_func)
