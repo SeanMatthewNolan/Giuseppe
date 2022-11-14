@@ -224,7 +224,7 @@ if __name__ == "__main__":
     M_2D = M.reshape(1, -1)
     v = M * a  # Velocity
     h = np.linspace(0, 70_000, N_VALS)  # Altitude
-    h_atm = np.linspace(h_grid_atm[0], h_grid_atm[-1], N_VALS)
+    h_atm = np.linspace(h_grid_atm[0] + 1, h_grid_atm[-1], N_VALS)
 
     expanded_idcs = []
     for idx, m_val in enumerate(M_grid_aero_expanded):
@@ -247,6 +247,21 @@ if __name__ == "__main__":
 
     temp_vals = temp_table_bspline(h_atm)
     dens_vals = dens_table_bspline(h_atm)
+
+    h_sym = ca.SX.sym('h')
+    temp_sx, _, dens_sx = atm.get_ca_atm_expr(h_sym)
+    dtemp_sx = ca.jacobian(temp_sx, h_sym)
+    ddens_sx = ca.jacobian(dens_sx, h_sym)
+
+    temp_cond_func = ca.Function('T', (h_sym,), (temp_sx,), ('h',), ('T',))
+    dens_cond_func = ca.Function('rho', (h_sym,), (dens_sx,), ('h',), ('rho',))
+    dtemp_cond_func = ca.Function('dT', (h_sym,), (dtemp_sx,), ('h',), ('dT',))
+    ddens_cond_func = ca.Function('drho', (h_sym,), (ddens_sx,), ('h',), ('drho',))
+
+    temp_cond_vals = np.asarray(temp_cond_func(h_atm))
+    dens_cond_vals = np.asarray(dens_cond_func(h_atm))
+    dtemp_cond_vals = np.asarray(dtemp_cond_func(h_atm))
+    ddens_cond_vals = np.asarray(ddens_cond_func(h_atm))
 
     dv_dM = a
 
@@ -411,27 +426,31 @@ if __name__ == "__main__":
     fig5 = plt.figure(figsize=(6.5, 5))
 
     ax51 = fig5.add_subplot(221)
-    ax51.plot(h_atm / 1_000, temp_vals, label='Spline')
-    ax51.plot(h_grid_atm / 1_000, data_temp, 'kx', label='1976 Atm Data')
+    ax51.plot(h_atm / 1_000, temp_cond_vals, label='Cond.')
+    ax51.plot(h_atm / 1_000, temp_vals, label='Spline', zorder=0)
+    # ax51.plot(h_grid_atm / 1_000, data_temp, 'kx', label='1976 Atm Data')
     ax51.grid()
     ax51.legend()
     ax51.set_ylabel(r'Temp ($T$) [deg R]')
 
     ax52 = fig5.add_subplot(222)
-    ax52.plot(h_atm / 1_000, dens_vals)
-    ax52.plot(h_grid_atm / 1_000, data_dens, 'kx')
+    ax52.plot(h_atm / 1_000, dens_cond_vals, label='Cond.')
+    ax52.plot(h_atm / 1_000, dens_vals, label='Spline', zorder=0)
+    # ax52.plot(h_grid_atm / 1_000, data_dens, 'kx')
     ax52.grid()
     ax52.set_yscale('log')
     ax52.set_ylabel(r'Dens ($\rho$) [slug/ft$^3$]')
 
     ax53 = fig5.add_subplot(223)
-    ax53.plot(h_atm / 1_000, dTemp_dh)
+    ax53.plot(h_atm / 1_000, dtemp_cond_vals, label='Cond.')
+    ax53.plot(h_atm / 1_000, dTemp_dh, label='Spline', zorder=0)
     ax53.grid()
     ax53.set_ylabel(r'$\dfrac{dT}{dh}$ [deg R/ft]')
     ax53.set_xlabel('h [1,000 ft]')
 
     ax54 = fig5.add_subplot(224)
-    ax54.plot(h_atm / 1_000, dDens_dh)
+    ax54.plot(h_atm / 1_000, ddens_cond_vals, label='Cond.')
+    ax54.plot(h_atm / 1_000, dDens_dh, label='Spline', zorder=0)
     ax54.grid()
     ax54.set_ylabel(r'$\dfrac{d\rho}{dh}$ [slug/ft$^4$]')
     ax54.set_xlabel('h [1,000 ft]')
