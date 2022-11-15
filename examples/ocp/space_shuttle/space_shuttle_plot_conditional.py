@@ -19,12 +19,12 @@ d2r = np.pi / 180
 
 with open('sol_set.data', 'rb') as file:
     sol = pickle.load(file)[-1]
-with open('sol_set_25_000.data', 'rb') as file:
-    sol_25k = pickle.load(file)[-1]
+# with open('sol_set_25_000.data', 'rb') as file:
+#     sol_25k = pickle.load(file)[-1]
 with open('sol_set_conditional.data', 'rb') as file:
     sol_cond = pickle.load(file)[-1]
-with open('sol_set_conditional_25_000.data', 'rb') as file:
-    sol_cond_25k = pickle.load(file)[-1]
+# with open('sol_set_conditional_25_000.data', 'rb') as file:
+#     sol_cond_25k = pickle.load(file)[-1]
 
 # FIGURE 1 (STATES)
 fig1 = plt.figure(figsize=MED_FIG_SIZE)
@@ -134,6 +134,8 @@ for idx, plot_num in enumerate(plot_nums):
     ax4[idx].plot(sol.t, sol.lam[idx, :] * mult[idx], color=colors[0], label='Exp.')
     ax4[idx].plot(sol_cond.t, sol_cond.lam[idx, :] * mult[idx], zorder=0, color=colors[1], label='Cond.')
     ax4[idx].set_ylabel(ylabs[idx])
+    ylim = ax4[idx].get_ylim()
+    ax4[idx].set_ylim(bottom=min(ylim[0], -1e-6), top=max(ylim[-1], 1e-6))
 
 ax4[4].legend()
 ax4[-1].set_xlabel(T_LAB)

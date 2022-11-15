@@ -169,9 +169,9 @@ if __name__ == '__main__':
 
     sol_set1.save('sol_set_conditional.data')
 
-    cont2 = giuseppe.continuation.ContinuationHandler(deepcopy(sol_set1))
-    cont2.add_linear_series(50, {'h_f': 30_000, 'v_f': 1_250}, bisection=True)
-    cont2.add_linear_series(25, {'h_f': 25_000}, bisection=True)
-    sol_set2 = cont2.run_continuation(num_solver2000)
-
-    sol_set2.save('sol_set_conditional_25_000.data')
+    # cont2 = giuseppe.continuation.ContinuationHandler(deepcopy(sol_set1))
+    # cont2.add_linear_series(50, {'h_f': 30_000, 'v_f': 1_250}, bisection=True)
+    # cont2.add_linear_series(25, {'h_f': 25_000}, bisection=True)
+    # sol_set2 = cont2.run_continuation(num_solver2000)
+    #
+    # sol_set2.save('sol_set_conditional_25_000.data')
