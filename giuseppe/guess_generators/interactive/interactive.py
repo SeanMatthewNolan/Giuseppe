@@ -1,6 +1,7 @@
 import copy
 from enum import Enum
 from typing import Optional, Callable
+
 import tkinter as tk
 from tkinter import ttk
 

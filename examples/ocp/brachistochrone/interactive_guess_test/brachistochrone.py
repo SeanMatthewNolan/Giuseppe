@@ -54,5 +54,3 @@ cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
 sol_set = cont.run_continuation(num_solver)
-
-# sol_set.save('sol_set.data')

@@ -66,4 +66,3 @@ class TKControlEditor(SplineEditor):
 
     def _combox_set_inter(self, _):
         self.set_interpolator(inter_func=self.inter_box.get())
-

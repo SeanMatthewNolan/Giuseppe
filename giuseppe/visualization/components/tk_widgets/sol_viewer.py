@@ -105,6 +105,7 @@ class DataSelector:
 
     def get(self) -> np.ndarray:
         _data_array = self._get_data_array(self.comp_type)
+
         if _data_array is None:
             return EMPTY_ARRAY
         elif _data_array.ndim == 1:
