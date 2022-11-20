@@ -4,10 +4,8 @@ from scipy.interpolate import PchipInterpolator, interp2d, bisplrep, bisplev
 
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
-a = 1125.33  # speed of sound [ft/s]
-v = ca.MX.sym('v', 1)
 h = ca.MX.sym('h', 1)
-M = v / a  # assume a = 343 m/s = 1125.33 ft/s
+M = ca.MX.sym('M', 1)
 interp_method = 'bspline'  # either 'bspline' or 'linear'
 
 M_grid_thrust = np.array((0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8))
@@ -119,11 +117,11 @@ thrust_input = ca.vcat((M, h))
 thrust_bspline = thrust_table_bspline(thrust_input)
 thrust_linear = thrust_table_linear(ca.vcat((M, h)))
 
-diff_thrust_fun_bspline = ca.Function('diff_thrust', (v, h),
-                                      (ca.jacobian(thrust_bspline, v), ca.jacobian(thrust_bspline, h)),
+diff_thrust_fun_bspline = ca.Function('diff_thrust', (M, h),
+                                      (ca.jacobian(thrust_bspline, M), ca.jacobian(thrust_bspline, h)),
                                       ('v', 'h'), ('dT_dv', 'dT_dh'))
-diff_thrust_fun_linear = ca.Function('diff_thrust', (v, h),
-                                     (ca.jacobian(thrust_linear, v), ca.jacobian(thrust_linear, h)),
+diff_thrust_fun_linear = ca.Function('diff_thrust', (M, h),
+                                     (ca.jacobian(thrust_linear, M), ca.jacobian(thrust_linear, h)),
                                      ('v', 'h'), ('dT_dv', 'dT_dh'))
 
 M_grid_aero = np.array((0, 0.4, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8))
@@ -148,13 +146,13 @@ CD0_linear = CD0_table_linear(M)
 eta_linear = eta_table_linear(M)
 
 diff_CLalpha_fun_bspline = ca.Function('dCLalpha_dv',
-                                       (v,), (ca.jacobian(CLalpha_bspline, v),), ('v',), ('dCLalpha_dv',))
-diff_CD0_fun_bspline = ca.Function('dCD0_dv', (v,), (ca.jacobian(CD0_bspline, v),), ('v',), ('dCD0_dv',))
-diff_eta_fun_bspline = ca.Function('deta_dv', (v,), (ca.jacobian(eta_bspline, v),), ('v',), ('deta_dv',))
+                                       (M,), (ca.jacobian(CLalpha_bspline, M),), ('v',), ('dCLalpha_dv',))
+diff_CD0_fun_bspline = ca.Function('dCD0_dv', (M,), (ca.jacobian(CD0_bspline, M),), ('v',), ('dCD0_dv',))
+diff_eta_fun_bspline = ca.Function('deta_dv', (M,), (ca.jacobian(eta_bspline, M),), ('v',), ('deta_dv',))
 
-diff_CLalpha_fun_linear = ca.Function('dCLalpha_dv', (v,), (ca.jacobian(CLalpha_linear, v),), ('v',), ('dCLalpha_dv',))
-diff_CD0_fun_linear = ca.Function('dCD0_dv', (v,), (ca.jacobian(CD0_linear, v),), ('v',), ('dCD0_dv',))
-diff_eta_fun_linear = ca.Function('deta_dv', (v,), (ca.jacobian(eta_linear, v),), ('v',), ('deta_dv',))
+diff_CLalpha_fun_linear = ca.Function('dCLalpha_dv', (M,), (ca.jacobian(CLalpha_linear, M),), ('v',), ('dCLalpha_dv',))
+diff_CD0_fun_linear = ca.Function('dCD0_dv', (M,), (ca.jacobian(CD0_linear, M),), ('v',), ('dCD0_dv',))
+diff_eta_fun_linear = ca.Function('deta_dv', (M,), (ca.jacobian(eta_linear, M),), ('v',), ('deta_dv',))
 
 # Expand Table for flatter subsonic spline
 # Added Points: 0.2, 0.6, 0.7, 0.79 all flat
@@ -196,11 +194,11 @@ CLalpha_bspline_expanded = CLalpha_table_bspline_expanded(M)
 CD0_bspline_expanded = CD0_table_bspline_expanded(M)
 eta_bspline_expanded = eta_table_bspline_expanded(M)
 
-diff_CLalpha_fun_bspline_expanded = ca.Function('dCLalpha_dv', (v,), (ca.jacobian(CLalpha_bspline_expanded, v),),
+diff_CLalpha_fun_bspline_expanded = ca.Function('dCLalpha_dv', (M,), (ca.jacobian(CLalpha_bspline_expanded, M),),
                                                 ('v',), ('dCLalpha_dv',))
-diff_CD0_fun_bspline_expanded = ca.Function('dCD0_dv', (v,), (ca.jacobian(CD0_bspline_expanded, v),),
+diff_CD0_fun_bspline_expanded = ca.Function('dCD0_dv', (M,), (ca.jacobian(CD0_bspline_expanded, M),),
                                             ('v',), ('dCD0_dv',))
-diff_eta_fun_bspline_expanded = ca.Function('deta_dv', (v,), (ca.jacobian(eta_bspline_expanded, v),),
+diff_eta_fun_bspline_expanded = ca.Function('deta_dv', (M,), (ca.jacobian(eta_bspline_expanded, M),),
                                             ('v',), ('deta_dv',))
 
 if __name__ == "__main__":
@@ -222,7 +220,6 @@ if __name__ == "__main__":
 
     M = np.linspace(0, 1.8, N_VALS)  # Mach number
     M_2D = M.reshape(1, -1)
-    v = M * a  # Velocity
     h = np.linspace(0, 70_000, N_VALS)  # Altitude
     h_atm = np.linspace(h_grid_atm[0] + 1, h_grid_atm[-1], N_VALS)
 
@@ -263,34 +260,20 @@ if __name__ == "__main__":
     dtemp_cond_vals = np.asarray(dtemp_cond_func(h_atm))
     ddens_cond_vals = np.asarray(ddens_cond_func(h_atm))
 
-    dv_dM = a
+    dCLalpha_bspline_dM = diff_CLalpha_fun_bspline(M)
+    dCD0_bspline_dM = diff_CD0_fun_bspline(M)
+    deta_bspline_dM = diff_eta_fun_bspline(M)
 
-    diff_CLalpha_bspline_vals = diff_CLalpha_fun_bspline(v)
-    diff_CD0_bspline_vals = diff_CD0_fun_bspline(v)
-    diff_eta_bspline_vals = diff_eta_fun_bspline(v)
+    dCLalpha_bspline_dM_expanded = diff_CLalpha_fun_bspline_expanded(M)
+    dCD0_bspline_dM_expanded = diff_CD0_fun_bspline_expanded(M)
+    deta_bspline_dM_expanded = diff_eta_fun_bspline_expanded(M)
 
-    diff_CLalpha_bspline_expanded_vals = diff_CLalpha_fun_bspline_expanded(v)
-    diff_CD0_bspline_expanded_vals = diff_CD0_fun_bspline_expanded(v)
-    diff_eta_bspline_expanded_vals = diff_eta_fun_bspline_expanded(v)
-
-    diff_CLalpha_linear_vals = diff_CLalpha_fun_linear(v)
-    diff_CD0_linear_vals = diff_CD0_fun_linear(v)
-    diff_eta_linear_vals = diff_eta_fun_linear(v)
+    dCLalpha_linear_dM = diff_CLalpha_fun_linear(M)
+    dCD0_linear_dM = diff_CD0_fun_linear(M)
+    deta_linear_dM = diff_eta_fun_linear(M)
 
     dTemp_dh = diff_temp_fun_bspline(h_atm)
     dDens_dh = diff_dens_fun_bspline(h_atm)
-
-    dCLalpha_bspline_dM = diff_CLalpha_bspline_vals * dv_dM
-    dCD0_bspline_dM = diff_CD0_bspline_vals * dv_dM
-    deta_bspline_dM = diff_eta_bspline_vals * dv_dM
-
-    dCLalpha_bspline_dM_expanded = diff_CLalpha_bspline_expanded_vals * dv_dM
-    dCD0_bspline_dM_expanded = diff_CD0_bspline_expanded_vals * dv_dM
-    deta_bspline_dM_expanded = diff_eta_bspline_expanded_vals * dv_dM
-
-    dCLalpha_linear_dM = diff_CLalpha_linear_vals * dv_dM
-    dCD0_linear_dM = diff_CD0_linear_vals * dv_dM
-    deta_linear_dM = diff_eta_linear_vals * dv_dM
 
     # FIGURE 1 (CLalpha)
     fig1 = plt.figure(figsize=SML_FIG_SIZE)
@@ -376,12 +359,12 @@ if __name__ == "__main__":
             thrust_bspline_vals.append(thrust_table_bspline(np.vstack((M_val, alt))))
             thrust_linear_vals.append(thrust_table_linear(np.vstack((M_val, alt))))
 
-            dT_dv_bspline, dT_dh_bspline = diff_thrust_fun_bspline(M_val * a, alt)
-            dT_dv_linear, dT_dh_linear = diff_thrust_fun_linear(M_val * a, alt)
+            dT_dM_bspline, dT_dh_bspline = diff_thrust_fun_bspline(M_val, alt)
+            dT_dM_linear, dT_dh_linear = diff_thrust_fun_linear(M_val, alt)
 
-            dT_dM_vals_bspline.append(dT_dv_bspline * dv_dM)
+            dT_dM_vals_bspline.append(dT_dM_bspline)
             dT_dh_vals_bspline.append(dT_dh_bspline)
-            dT_dM_vals_linear.append(dT_dv_linear * dv_dM)
+            dT_dM_vals_linear.append(dT_dM_linear)
             dT_dh_vals_linear.append(dT_dh_linear)
 
         thrust_bspline_vals = np.asarray(thrust_bspline_vals).flatten()
