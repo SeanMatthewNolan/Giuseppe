@@ -1,6 +1,7 @@
 import numpy as np
 import casadi as ca
 
+import giuseppe.guess_generators
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import generate_constant_guess
 from giuseppe.io import AdiffInputOCP, SolutionSet
@@ -38,7 +39,7 @@ y_0 = ca.SX.sym('y_0', 1)
 v_0 = ca.SX.sym('v_0', 1)
 input_ocp.add_constant(x_0, 0)
 input_ocp.add_constant(y_0, 0)
-input_ocp.add_constant(v_0, 1)
+input_ocp.add_constant(v_0, 0)
 
 x_f = ca.SX.sym('x_f', 1)
 y_f = ca.SX.sym('y_f', 1)
@@ -61,14 +62,15 @@ with Timer(prefix='Compilation Time:'):
     adiff_bvp = AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
     num_solver = AdiffScipySolveBVP(adiff_bvp)
 
-guess = generate_constant_guess(
-        adiff_bvp, t_span=0.25, x=np.array([0., 0., 1.]), lam=-0.1, u=-0.5, nu_0=-0.1, nu_f=-0.1)
+if __name__ == '__main__':
+    guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, t_span=0.25, control=(-np.pi/4,))
 
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = SolutionSet(adiff_bvp, seed_sol)
-cont = ContinuationHandler(sol_set)
-cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
+    seed_sol = num_solver.solve(guess.k, guess)
+    sol_set = SolutionSet(adiff_bvp, seed_sol)
+    cont = ContinuationHandler(sol_set)
+    cont.add_linear_series(10, {'x_f': guess.x[0, -1] + 10, 'y_f': guess.x[1, -1] - 10})
+    cont.add_linear_series(10, {'x_f': 100, 'y_f': -25})
 
-sol_set = cont.run_continuation(num_solver)
+    sol_set = cont.run_continuation(num_solver)
 
-sol_set.save('sol_set.data')
+    sol_set.save('sol_set.data')
