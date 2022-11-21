@@ -39,3 +39,4 @@ class TKDataViewer:
         self._data_line.set_ydata(y)
         self.ax.relim()
         self.ax.autoscale(tight=True)
+        self.canvas.draw()
