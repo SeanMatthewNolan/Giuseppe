@@ -44,10 +44,10 @@ class InteractiveGuessGenerator:
             self.data_viewers.append(TKSolViewer(self.root, self.guess))
             self.data_viewers[-1].frame.grid(row=1, column=state, sticky=NSEW, padx=self._padx, pady=self._pady)
 
-        self.root.bind('<Return>', self.propagate)
+        self.root.bind('<Return>', self.propagate, add='+')
 
-    def propagate(self):
-        pass
+    def propagate(self, event):
+        print('PROPAGATE')
 
     def run(self):
         self.root.mainloop()
