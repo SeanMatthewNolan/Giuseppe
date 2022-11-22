@@ -26,7 +26,6 @@ class DataSelector:
             bindings: Optional[Union[Callable, Iterable[Callable]]] = None,
             comp_type: SolutionComponentType = SolutionComponentType.INDEPENDENT,
             idx: int = 0,
-            num_elements: int = 1,
             label: Optional[str] = None
     ):
         self.sol: Solution = sol
@@ -46,21 +45,21 @@ class DataSelector:
             'Control': SolutionComponentType.CONTROLS,
             'Costates': SolutionComponentType.COSTATES
         }
-        self.tk_comp_type.set(list(self.comp_type_mapping.keys())[0])
+        self.tk_comp_type.set(self._get_type_key_from_val(self.comp_type))
         self.type_box = ttk.Combobox(self.frame, textvariable=self.tk_comp_type)
         self.type_box['values'] = list(self.comp_type_mapping.keys())
         self.type_box['state'] = 'readonly'
         # self.type_box.grid(row=0, column=0, sticky=NSEW)
         self.type_box.bind('<<ComboboxSelected>>', self._type_selected, add='+')
-        self.type_box.pack()
+        self.type_box.pack(side=tk.LEFT)
 
         self.tk_idx = tk.IntVar()
-        self.tk_idx.set(1)
-        self.num_elements: int = num_elements
+        self.tk_idx.set(self.idx + 1)
+        self.num_elements: int = self._get_num_elements(self.comp_type)
         self.idx_spinbox = ttk.Spinbox(
                 self.frame, from_=1, to=self.num_elements, increment=1, textvariable=self.tk_idx,
                 command=self._idx_selected)
-        self.idx_spinbox.pack(pady=5)
+        self.idx_spinbox.pack(side=tk.RIGHT, pady=5)
 
         if bindings is None:
             bindings = []
@@ -123,6 +122,15 @@ class DataSelector:
             self.frame.bind('<FocusIn>', binding, add='+')
             self.frame.bind('<FocusOut>', binding, add='+')
 
+    def _get_type_key_from_val(self, comp_type: Union[SolutionComponentType]) -> str:
+        if isinstance(comp_type, str):
+            comp_type = comp_type.lower()
+        for key, val in self.comp_type_mapping.items():
+            if val == comp_type:
+                return key
+        else:
+            return list(self.comp_type_mapping.keys())[0]
+
 
 class TKSolViewer(TKDataViewer):
     def __init__(
@@ -136,16 +144,18 @@ class TKSolViewer(TKDataViewer):
     ):
         super().__init__(master, include_navbar=False)
         self.sol: Solution = sol
-        self.types: tuple[SolutionComponentType, SolutionComponentType] = (hor_type, vert_type)
-        self.indices: tuple[int, int] = (hor_idx, vert_idx)
 
         self.control_panel = ttk.Frame(self.frame)
 
-        self.hor_data_selector = DataSelector(self.control_panel, self.sol, bindings=self._update_event, label='X-Axis Data')
+        self.hor_data_selector = DataSelector(
+                self.control_panel, self.sol, bindings=self._update_event, label='X-Axis Data',
+                comp_type=hor_type, idx=hor_idx)
         # self.hor_data_selector.pack(side=tk.LEFT, padx=3, pady=3)
         self.hor_data_selector.grid(row=1, column=0, padx=6, pady=6)
 
-        self.vert_data_selector = DataSelector(self.control_panel, self.sol, bindings=self._update_event, label='Y-Axis Data')
+        self.vert_data_selector = DataSelector(
+                self.control_panel, self.sol, bindings=self._update_event, label='Y-Axis Data',
+                comp_type=vert_type, idx=vert_idx)
         # self.vert_data_selector.pack(side=tk.RIGHT, padx=3, pady=3)
         self.vert_data_selector.grid(row=1, column=1, padx=6, pady=6)
 
