@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, RIDGE
+from tkinter import ttk
 
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -11,7 +11,7 @@ from matplotlib.lines import Line2D
 class TKDataViewer:
     def __init__(self, master: tk.Tk, include_navbar: bool = True):
 
-        self.frame = ttk.Frame(master, padding='3 3 12 12', relief=RIDGE)
+        self.frame = ttk.Frame(master, padding='3 3 12 12', relief=tk.RIDGE)
         # self.frame.columnconfigure(1, weight=1)
         # self.frame.rowconfigure(1, weight=1)
 

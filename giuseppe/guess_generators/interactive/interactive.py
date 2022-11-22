@@ -1,7 +1,7 @@
+import copy
 from typing import Optional
 import tkinter as tk
 from tkinter import ttk
-from tkinter.constants import NSEW
 
 from giuseppe.io import Solution
 from giuseppe.problems.dual import CompDualOCP
@@ -9,6 +9,7 @@ from giuseppe.problems.dual import CompDualOCP
 from ..constant import initialize_guess_for_auto
 from giuseppe.visualization.components.tk_widgets.control_editor import TKControlEditor
 from giuseppe.visualization.components.tk_widgets.sol_viewer import TKSolViewer, SolutionComponentType
+from giuseppe.visualization.components.tk_widgets.constant_editor import TKConstantEditor
 
 
 class InteractiveGuessGenerator(tk.Tk):
@@ -31,14 +32,15 @@ class InteractiveGuessGenerator(tk.Tk):
         self.title('Guess Generator')
         self.wm_title('Guess Generator')
 
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
+        self.columnconfigure(0, weight=2)
+        self.columnconfigure(1, weight=2)
+        self.columnconfigure(2, weight=1)
         self.rowconfigure(0, weight=1)
 
         if init_guess is None:
             self.guess: Solution = initialize_guess_for_auto(prob)
         else:
-            self.guess: Solution = init_guess
+            self.guess: Solution = copy.copy(init_guess)
 
         self.control_editors = []
         self.control_notebook = ttk.Notebook(self)
@@ -58,10 +60,14 @@ class InteractiveGuessGenerator(tk.Tk):
             self.data_viewers.append(_data_viewer)
             self.data_notebook.add(_data_viewer.frame, text=f'Data Viewer {idx + 1}')
 
+        self.constant_editor = TKConstantEditor(self, self.guess, label='Constants')
+        self.constant_editor.frame.grid(row=0, column=2, sticky=tk.N)
+
         self.bind('<Return>', self.propagate, add='+')
 
     def propagate(self, event):
         print('PROPAGATE')
 
-    def run(self):
+    def run(self) -> Solution:
         self.mainloop()
+        return self.guess
