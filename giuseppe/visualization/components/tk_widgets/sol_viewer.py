@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import numpy as np
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 from giuseppe.io import Solution
 from giuseppe.visualization.components.tk_widgets.data_viewer import TKDataViewer
@@ -20,7 +21,7 @@ class SolutionComponentType(enum.Enum):
 class DataSelector:
     def __init__(
             self,
-            master: tk.Tk,
+            master: tk.Widget,
             sol: Solution,
             bindings: Optional[Union[Callable, Iterable[Callable]]] = None,
             comp_type: SolutionComponentType = SolutionComponentType.INDEPENDENT,
@@ -133,18 +134,27 @@ class TKSolViewer(TKDataViewer):
             vert_type: SolutionComponentType = SolutionComponentType.STATES,
             vert_idx: int = 0,
     ):
-        super().__init__(master)
+        super().__init__(master, include_navbar=False)
         self.sol: Solution = sol
         self.types: tuple[SolutionComponentType, SolutionComponentType] = (hor_type, vert_type)
         self.indices: tuple[int, int] = (hor_idx, vert_idx)
 
-        self.hor_data_selector = DataSelector(self.frame, self.sol, bindings=self._update_event, label='X-Axis Data')
-        self.hor_data_selector.pack(side=tk.LEFT, padx=3, pady=3)
-        # self.hor_data_selector.grid(row=2, column=1, sticky=NSEW)
+        self.control_panel = ttk.Frame(self.frame)
 
-        self.vert_data_selector = DataSelector(self.frame, self.sol, bindings=self._update_event, label='Y-Axis Data')
-        self.vert_data_selector.pack(side=tk.RIGHT, padx=3, pady=3)
-        # self.vert_data_selector.grid(row=1, column=0, sticky=NSEW)
+        self.hor_data_selector = DataSelector(self.control_panel, self.sol, bindings=self._update_event, label='X-Axis Data')
+        # self.hor_data_selector.pack(side=tk.LEFT, padx=3, pady=3)
+        self.hor_data_selector.grid(row=1, column=0, padx=6, pady=6)
+
+        self.vert_data_selector = DataSelector(self.control_panel, self.sol, bindings=self._update_event, label='Y-Axis Data')
+        # self.vert_data_selector.pack(side=tk.RIGHT, padx=3, pady=3)
+        self.vert_data_selector.grid(row=1, column=1, padx=6, pady=6)
+
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.control_panel, pack_toolbar=False)
+        self.toolbar.update()
+        # self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.toolbar.grid(row=0, column=0, columnspan=3, sticky=tk.NSEW)
+
+        self.control_panel.pack(fill=tk.X)
 
         self.update()
 
