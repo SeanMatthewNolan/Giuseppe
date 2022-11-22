@@ -113,6 +113,26 @@ class SplineEditor:
         # noinspection PyTypeChecker
         self.ax.set_ylim(self.y_range)
 
+    def set_x_range(self, lower: Optional[float] = None, upper: Optional[float] = None):
+        _x_range = list(self.x_range)
+        if lower is not None:
+            _x_range[0] = float(lower)
+        if upper is not None:
+            _x_range[1] = float(upper)
+        self.x_range = tuple(_x_range)
+        # noinspection PyTypeChecker
+        self.ax.set_xlim(self.x_range)
+
+    def set_y_range(self, lower: Optional[float] = None, upper: Optional[float] = None):
+        _y_range = list(self.y_range)
+        if lower is not None:
+            _y_range[0] = float(lower)
+        if upper is not None:
+            _y_range[1] = float(upper)
+        self.y_range = tuple(_y_range)
+        # noinspection PyTypeChecker
+        self.ax.set_ylim(self.y_range)
+
     def update_nodes(self):
         self._node_line.set_xdata(self.nodes[0, :])
         self._node_line.set_ydata(self.nodes[1, :])
