@@ -69,7 +69,7 @@ class RangeSector:
 
 class TKControlEditor(SplineEditor):
     def __init__(self,
-                 master: tk.Tk,
+                 master: tk.Widget,
                  t_range: tuple[float, float] = (0., 1.),
                  u_range: tuple[float, float] = (-1., 1.),
                  inter_func: str = 'pchip',
