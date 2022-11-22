@@ -96,7 +96,7 @@ class TKControlEditor(SplineEditor):
                 self.control_panel, lower=self.y_range[0], upper=self.y_range[1], label='Control Range',
                 bindings=self._set_u_range_from_selector)
         # self.range_selector.pack(side=tk.LEFT)
-        self.range_selector.grid(row=0, column=0, padx=5)
+        self.range_selector.grid(row=1, column=0, padx=6, pady=6)
 
         self.inter_options = ['PCHIP', 'Linear', 'Spline', 'Akima', 'Krogh', 'Quadratic', 'Nearest', 'Previous', 'Next']
         self.tk_inter_options = tk.StringVar()
@@ -105,17 +105,17 @@ class TKControlEditor(SplineEditor):
         self.inter_box['values'] = self.inter_options
         self.inter_box['state'] = 'readonly'
         self.inter_box.bind('<<ComboboxSelected>>', self._combox_set_inter, add='+')
-        self.inter_box.grid(row=0, column=1, padx=5)
+        self.inter_box.grid(row=1, column=1, padx=6, pady=6)
 
         self.reset_button = ttk.Button(self.control_panel, text='Reset', command=self.reset)
-        self.reset_button.grid(row=0, column=2)
+        self.reset_button.grid(row=1, column=2, padx=6, pady=6)
 
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.control_panel, pack_toolbar=False)
         self.toolbar.update()
         # self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.toolbar.grid(row=1, column=0, columnspan=3, sticky=NSEW)
+        self.toolbar.grid(row=0, column=0, columnspan=3, sticky=NSEW)
 
-        self.control_panel.pack()
+        self.control_panel.pack(fill=tk.X)
 
     def _set_u_range_from_selector(self, _):
         self.set_u_range(lower=self.range_selector.lower, upper=self.range_selector.upper)
