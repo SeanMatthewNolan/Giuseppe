@@ -21,7 +21,7 @@ class SolutionComponentType(enum.Enum):
 class DataSelector:
     def __init__(
             self,
-            master: tk.Widget,
+            master,
             sol: Solution,
             bindings: Optional[Union[Callable, Iterable[Callable]]] = None,
             comp_type: SolutionComponentType = SolutionComponentType.INDEPENDENT,

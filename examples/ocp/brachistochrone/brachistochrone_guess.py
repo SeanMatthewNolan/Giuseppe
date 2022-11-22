@@ -59,6 +59,7 @@ cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
 sol_set = cont.run_continuation(num_solver)
 
-guess = InteractiveGuessGenerator(comp_dual_ocp, init_guess=sol_set[-1]).run()
+generator = InteractiveGuessGenerator(comp_dual_ocp, init_guess=sol_set[-1])
+guess = generator.run()
 
 # sol_set.save('sol_set.data')
