@@ -90,16 +90,37 @@ class TKControlEditor(SplineEditor):
         self.fig.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         # self.fig.canvas.get_tk_widget().grid(row=0, column=1, sticky=NSEW, columnspan=True)
 
-        self.range_selector = RangeSector(
-                self.frame, lower=self.y_range[0], upper=self.y_range[1], label='Control Range',
-                bindings=self._set_u_range_from_selector)
-        self.range_selector.pack()
+        self.control_panel = ttk.Frame(self.frame)
 
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.frame, pack_toolbar=False)
+        self.range_selector = RangeSector(
+                self.control_panel, lower=self.y_range[0], upper=self.y_range[1], label='Control Range',
+                bindings=self._set_u_range_from_selector)
+        # self.range_selector.pack(side=tk.LEFT)
+        self.range_selector.grid(row=0, column=0, padx=5)
+
+        self.inter_options = ['PCHIP', 'Linear', 'Spline', 'Akima', 'Krogh', 'Quadratic', 'Nearest', 'Previous', 'Next']
+        self.tk_inter_options = tk.StringVar()
+        self.tk_inter_options.set(self.inter_options[0])
+        self.inter_box = ttk.Combobox(self.control_panel, textvariable=self.tk_inter_options)
+        self.inter_box['values'] = self.inter_options
+        self.inter_box['state'] = 'readonly'
+        self.inter_box.bind('<<ComboboxSelected>>', self._combox_set_inter, add='+')
+        self.inter_box.grid(row=0, column=1, padx=5)
+
+        self.reset_button = ttk.Button(self.control_panel, text='Reset', command=self.reset)
+        self.reset_button.grid(row=0, column=2)
+
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.control_panel, pack_toolbar=False)
         self.toolbar.update()
-        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        # self.toolbar.grid(row=1, column=1, sticky=EW)
+        # self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.toolbar.grid(row=1, column=0, columnspan=3, sticky=NSEW)
+
+        self.control_panel.pack()
 
     def _set_u_range_from_selector(self, _):
         self.set_u_range(lower=self.range_selector.lower, upper=self.range_selector.upper)
         self.nodes[1, :] = np.clip(self.nodes[1, :], min(self.y_range), max(self.y_range))
+
+    def _combox_set_inter(self, _):
+        self.set_interpolator(inter_func=self.inter_box.get())
+

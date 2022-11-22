@@ -1,5 +1,6 @@
 from typing import Optional
 import tkinter as tk
+from tkinter import ttk
 from tkinter.constants import NSEW
 
 from giuseppe.io import Solution
@@ -18,6 +19,11 @@ class InteractiveGuessGenerator:
         self._pady = 12
 
         self.root = tk.Tk()
+        self.style = ttk.Style(self.root)
+        # self.style.theme_use('alt')
+        self.style.theme_use('clam')
+        # self.style.theme_use('default')
+        # self.style.theme_use('classic')
         self.root.title('Guess Generator')
         self.root.wm_title('Guess Generator')
 

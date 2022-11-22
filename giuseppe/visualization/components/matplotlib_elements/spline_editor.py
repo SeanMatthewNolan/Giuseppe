@@ -252,8 +252,16 @@ class SplineEditor:
             if idx is not None:
                 self.delete_node(idx)
 
-    def change_interpolator(self, inter_func: str = 'pchip'):
+    def set_interpolator(self, inter_func: str = 'pchip'):
         self.interpolator = form_interpolator(inter_func)
+        self.canvas.draw()
+
+    def reset(self):
+        _x_values = np.linspace(self.x_range[0], self.x_range[1], self.num_nodes)
+        _y_values = np.mean(self.y_range) * np.ones_like(_x_values)
+        self.nodes = np.vstack((_x_values, _y_values))
+
+        self.canvas.draw()
 
 
 if __name__ == '__main__':
