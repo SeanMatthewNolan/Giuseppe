@@ -199,7 +199,7 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
     comp_prob : Solution
         problem whose BCs are to be matched
     guess : DualOCPSol
-        guess from which to match the states (and costates)
+        guess from which to match the costates
     location : 'initial' or 'terminal', default='initial'
         specifies which BC to match
     states : np.ndarray, optional

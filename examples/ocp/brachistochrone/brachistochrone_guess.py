@@ -49,17 +49,13 @@ with Timer(prefix='Compilation Time:'):
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp)
 
-guess = generate_constant_guess(
-        comp_dual_ocp, t_span=0.25, x=np.array([0., 0., 1.]), lam=-0.1, u=-0.5, nu_0=-0.1, nu_f=-0.1)
+generator = InteractiveGuessGenerator(comp_dual_ocp, num_solver=num_solver)
+seed_sol = generator.run()
 
-seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 
 sol_set = cont.run_continuation(num_solver)
-
-generator = InteractiveGuessGenerator(comp_dual_ocp, init_guess=sol_set[-1])
-guess = generator.run()
 
 # sol_set.save('sol_set.data')
