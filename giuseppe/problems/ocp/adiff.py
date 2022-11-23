@@ -24,7 +24,7 @@ class AdiffOCP(Picky):
                 self.comp_ocp: CompOCP = CompOCP(self.src_ocp.src_ocp, use_jit_compile=False)
             else:
                 self.comp_ocp: CompOCP = deepcopy(self.src_ocp)
-            self.constants: SymMatrix = self.src_ocp.src_ocp.constants
+            self.constants: SymMatrix = self.src_ocp.src_ocp.values
         else:
             self.comp_ocp: CompOCP = CompOCP(self.src_ocp, use_jit_compile=False)
             self.constants: SymMatrix = self.src_ocp.constants
