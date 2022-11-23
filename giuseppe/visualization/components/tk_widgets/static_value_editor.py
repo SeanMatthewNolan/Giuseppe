@@ -1,24 +1,22 @@
-from typing import Optional
+from typing import Optional, Iterable
 import tkinter as tk
 from tkinter import ttk
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io import Solution
-
 
 class TKStaticValueEditor:
     def __init__(
             self,
             master,
-            constants: ArrayLike = np.array([]),
+            values: ArrayLike = np.array([]),
             label: Optional[str] = None
     ):
         self._master = master
         self._label = label
 
-        self._values = np.asarray(constants)
+        self._values = np.asarray(values)
         self._form_entry_fields()
 
     @property
@@ -27,6 +25,9 @@ class TKStaticValueEditor:
 
     @values.setter
     def values(self, _values: ArrayLike):
+        if not isinstance(_values, Iterable):
+            _values = [_values]
+
         self._values = np.asarray(_values)
         if len(self._values) != len(_values):
             self._form_entry_fields()
@@ -46,9 +47,10 @@ class TKStaticValueEditor:
         self.tk_constant_vars = []
         self.constant_editors = []
         for idx, constant in enumerate(self._values):
-            _label = ttk.Label(self.frame, text=f'Value {idx + 1}')
-            self.constant_labels.append(_label)
-            _label.grid(row=idx, column=0)
+            # TODO Add labels based off annotations
+            # _label = ttk.Label(self.frame, text=f'Value {idx + 1}')
+            # self.constant_labels.append(_label)
+            # _label.grid(row=idx, column=0)
 
             _tk_var = tk.StringVar()
             _tk_var.set(str(constant))

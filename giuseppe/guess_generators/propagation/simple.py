@@ -21,6 +21,7 @@ def propagate_guess(
         t_span: Union[float, ArrayLike] = 0.1, initial_states: Optional[ArrayLike] = None,
         initial_costates: Optional[ArrayLike] = None, control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
         p: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None,
+        nu0: Optional[ArrayLike] = None, nuf: Optional[ArrayLike] = None,
         use_project_dual: bool = True, use_match_constants: bool = True, reverse: bool = False,
         abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
     """
@@ -54,6 +55,10 @@ def propagate_guess(
     k : ArrayLike, optional
         constant values
         updated at end if use_match_constants=True
+    nu0 : ArrayLike, optional
+        initial adjoints
+    nuf : ArrayLike, optional
+        terminal adjoints
     use_match_constants : bool, default=True
         if True, match_constants will be called to update the constants to most closely match the formed guess
     use_project_dual : bool, default=True
@@ -75,6 +80,12 @@ def propagate_guess(
 
     if p is not None:
         update_constant_value(guess, 'p', p)
+
+    if nu0 is not None:
+        update_constant_value(guess, 'nu0', nu0)
+
+    if nuf is not None:
+        update_constant_value(guess, 'nuf', nuf)
 
     if initial_states is None:
         if not reverse:
