@@ -269,11 +269,13 @@ class InteractiveGuessGenerator(tk.Tk):
 
     def solve(self):
         if self.num_solver is not None:
+            self.num_solver.verbose = True
             _sol = self.num_solver.solve(self._guess.k, self._guess)
             if _sol.converged:
                 self.guess = _sol
                 self.solve_status_label['text'] = StatusLabels.CONVERGED.value
             else:
+                print(f'Guess did not converge with error')
                 self.solve_status_label['text'] = StatusLabels.NOT_CONVERGED.value
 
     def save(self):
