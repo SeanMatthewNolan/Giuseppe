@@ -1,4 +1,4 @@
-import enum
+from enum import Enum
 from typing import Optional, Union, Callable, Iterable
 import tkinter as tk
 from tkinter import ttk
@@ -11,7 +11,7 @@ from giuseppe.visualization.components.tk_widgets.data_viewer import TKDataViewe
 from giuseppe.utils.typing import EMPTY_ARRAY
 
 
-class SolutionComponentType(enum.Enum):
+class SolutionComponentType(Enum):
     INDEPENDENT = 'independent'
     STATES = 'states'
     COSTATES = 'costates'
@@ -172,6 +172,9 @@ class TKSolViewer(TKDataViewer):
         self.update()
 
     def update(self):
+        self.hor_data_selector.sol = self.sol
+        self.vert_data_selector.sol = self.sol
+
         h_data = self.hor_data_selector.get()
         v_data = self.vert_data_selector.get()
 
