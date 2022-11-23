@@ -43,7 +43,7 @@ def propagate_guess(
         state values to start propagation
     initial_costates : ArrayLike, optional
         costate values to start propagation, might change with use_project_dual=True
-    control : float, Arraylike, or Callable[[float, ArrayLike, ArrayLike, Arraylike], ArrayLike]
+    control : float, Arraylike, or Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
         control used in propagation
         if float, all control values are set to that value
         if ArrayLike, control is set to constant specified array

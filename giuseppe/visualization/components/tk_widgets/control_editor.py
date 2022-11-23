@@ -1,70 +1,12 @@
 import tkinter as tk
-from tkinter import ttk, RIDGE
-from tkinter.constants import NSEW, EW, LEFT
-from typing import Optional, Callable, Union, Iterable
+from tkinter import ttk
 
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
+from .range_selector import TKRangeSelector
 from ..matplotlib_elements import SplineEditor
-
-
-class RangeSector:
-    def __init__(self, master, lower: float = -1., upper: float = 1.,
-                 bindings: Optional[Union[Callable, Iterable[Callable]]] = None, label: Optional[str] = None):
-
-        self.upper: float = upper
-        self.lower: float = lower
-
-        if label is None:
-            self.frame = ttk.Frame(master)
-        else:
-            self.frame = ttk.LabelFrame(master, text=label)
-
-        self.tk_lower = tk.StringVar()
-        self.tk_lower.set(str(self.lower))
-        self.lower_entry = ttk.Entry(self.frame, textvariable=self.tk_lower)
-        self.lower_entry.bind('<FocusOut>', self.set_lower, add='+')
-        self.lower_entry.bind('<Return>', self.set_lower, add='+')
-        self.lower_entry.pack(side=tk.LEFT)
-
-        self.tk_upper = tk.StringVar()
-        self.tk_upper.set(str(self.upper))
-        self.upper_entry = ttk.Entry(self.frame, textvariable=self.tk_upper)
-        self.upper_entry.bind('<FocusOut>', self.set_upper, add='+')
-        self.upper_entry.bind('<Return>', self.set_upper, add='+')
-        self.upper_entry.pack(side=tk.RIGHT)
-
-        if bindings is None:
-            bindings = []
-        elif not isinstance(bindings, Iterable):
-            bindings = [bindings]
-        self.bindings = list(bindings)
-        self._set_bindings()
-
-        self.pack = self.frame.pack
-        self.grid = self.frame.grid
-
-    def set_upper(self, _):
-        try:
-            self.upper = float(self.tk_upper.get())
-            self.tk_upper.set(f'{self.upper:g}')
-        except ValueError:
-            self.tk_upper.set(f'{self.upper:g}')
-
-    def set_lower(self, _):
-        try:
-            self.lower = float(self.tk_lower.get())
-            self.tk_lower.set(f'{self.lower:g}')
-        except ValueError:
-            self.tk_lower.set(f'{self.lower:g}')
-
-    def _set_bindings(self):
-        for binding in self.bindings:
-            self.frame.bind('<FocusOut>', binding, add='+')
-            self.upper_entry.bind('<Return>', binding, add='+')
-            self.lower_entry.bind('<Return>', binding, add='+')
 
 
 class TKControlEditor(SplineEditor):
@@ -75,7 +17,7 @@ class TKControlEditor(SplineEditor):
                  inter_func: str = 'pchip',
                  ):
 
-        self.frame = ttk.Frame(master, padding='3 3 12 12', relief=RIDGE)
+        self.frame = ttk.Frame(master, padding='3 3 12 12', relief=tk.RIDGE)
         # self.frame.columnconfigure(0, weight=1)
         # self.frame.rowconfigure(0, weight=1)
 
@@ -92,7 +34,7 @@ class TKControlEditor(SplineEditor):
 
         self.control_panel = ttk.Frame(self.frame)
 
-        self.range_selector = RangeSector(
+        self.range_selector = TKRangeSelector(
                 self.control_panel, lower=self.y_range[0], upper=self.y_range[1], label='Control Range',
                 bindings=self._set_u_range_from_selector)
         # self.range_selector.pack(side=tk.LEFT)
@@ -113,7 +55,7 @@ class TKControlEditor(SplineEditor):
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.control_panel, pack_toolbar=False)
         self.toolbar.update()
         # self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.toolbar.grid(row=0, column=0, columnspan=3, sticky=NSEW)
+        self.toolbar.grid(row=0, column=0, columnspan=3, sticky=tk.NSEW)
 
         self.control_panel.pack(fill=tk.X)
 

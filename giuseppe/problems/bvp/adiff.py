@@ -25,7 +25,7 @@ class AdiffBVP(Picky):
                 self.comp_bvp: CompBVP = CompBVP(self.src_bvp.src_bvp, use_jit_compile=False)
             else:
                 self.comp_bvp: CompBVP = deepcopy(self.src_bvp)
-            self.constants: SymMatrix = self.src_bvp.src_bvp.constants
+            self.constants: SymMatrix = self.src_bvp.src_bvp.values
         else:
             self.comp_bvp: CompBVP = CompBVP(self.src_bvp, use_jit_compile=False)
             self.constants: SymMatrix = self.src_bvp.constants

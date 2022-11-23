@@ -24,8 +24,8 @@ def initialize_guess_for_auto(
         guess = initialize_guess_w_default_value(comp_prob, default_value=default, t_span=t_span)
 
     if constants is not None:
-        if constants.shape != comp_prob.default_values.shape:
-            warn(f'Inconsistant constants shape! Expected {comp_prob.default_values.shape}')
+        # if constants.shape != comp_prob.default_values.shape:
+        #     warn(f'Inconsistant constants shape! Expected {comp_prob.default_values.shape}')
         guess.k = constants
 
     return guess
