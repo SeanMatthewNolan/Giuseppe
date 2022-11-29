@@ -275,6 +275,7 @@ class InteractiveGuessGenerator(tk.Tk):
                 self.solve_status_label['text'] = StatusLabels.CONVERGED.value
             else:
                 self.solve_status_label['text'] = StatusLabels.NOT_CONVERGED.value
+            self.num_solver.verbose = False
 
     def save(self):
         pass
