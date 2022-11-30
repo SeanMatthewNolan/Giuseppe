@@ -6,7 +6,7 @@ import casadi as ca
 from giuseppe.utils.conversion import ca_vec2arr
 from giuseppe.io.solution import Solution
 from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP
-from .project_to_nullspace import project_to_nullspace
+from .minimization_schemes import project_to_nullspace
 
 SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 

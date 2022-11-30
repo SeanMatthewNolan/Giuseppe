@@ -9,7 +9,7 @@ from giuseppe.io.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, \
     AdiffBVP, AdiffOCP, AdiffDual, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
-from .project_to_nullspace import project_to_nullspace
+from .minimization_schemes import project_to_nullspace
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 
