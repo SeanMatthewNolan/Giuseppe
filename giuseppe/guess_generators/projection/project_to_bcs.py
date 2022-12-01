@@ -15,7 +15,8 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, Ad
 
 
 def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
-                           rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection') -> Solution:
+                           rel_tol: float = 1e-3, abs_tol: float = 1e-3, backtrack: bool = True,
+                           method: str = 'projection') -> Solution:
     """
     Projects the constant array of a guess to the problem's boundary conditions to get the closest match
 
@@ -29,6 +30,8 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
     method : str, default='projection'
         Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
@@ -99,11 +102,11 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
 
     guess = deepcopy(guess)
     if method == 'projection':
-        guess.k = project_to_nullspace(bc_func, guess.k, rel_tol=rel_tol, abs_tol=abs_tol)
+        guess.k = project_to_nullspace(bc_func, guess.k, rel_tol=rel_tol, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'gradient':
-        guess.k = gradient_descent(bc_func, guess.k, abs_tol=abs_tol)
+        guess.k = gradient_descent(bc_func, guess.k, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'newton':
-        guess.k = newtons_method(bc_func, guess.k, abs_tol=abs_tol)
+        guess.k = newtons_method(bc_func, guess.k, abs_tol=abs_tol, backtrack=backtrack)
     else:
         raise(RuntimeError, f'Optimization Method invalid!'
                             f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
@@ -112,7 +115,7 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
 
 def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location: str = 'initial',
                        project_costates: bool = False,
-                       rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection'
+                       rel_tol: float = 1e-3, abs_tol: float = 1e-3, backtrack: bool = True, method: str = 'projection'
                        ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
     Projects the state (and costates) of a guess to the problem's boundary conditions to get the closest match
@@ -131,6 +134,8 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
     method : str, default='projection'
         Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
@@ -196,17 +201,18 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
         raise ValueError(f'Problem type {type(prob)} not supported')
 
     if method == 'projection':
-        x = project_to_nullspace(bc_func, x_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        x = project_to_nullspace(bc_func, x_guess, rel_tol=rel_tol, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'gradient':
-        x = gradient_descent(bc_func, x_guess, abs_tol=abs_tol)
+        x = gradient_descent(bc_func, x_guess, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'newton':
-        x = newtons_method(bc_func, x_guess, abs_tol=abs_tol)
+        x = newtons_method(bc_func, x_guess, abs_tol=abs_tol, backtrack=backtrack)
     else:
         raise(RuntimeError, f'Optimization Method invalid!'
                             f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
 
     if dual is not None and project_costates:
-        lam = match_costates_to_bc(comp_prob, guess, location=location, states=x, rel_tol=rel_tol, abs_tol=abs_tol)
+        lam = match_costates_to_bc(comp_prob, guess, location=location, states=x,
+                                   rel_tol=rel_tol, abs_tol=abs_tol, backtrack=backtrack)
         return x, lam
     else:
         return x
@@ -214,7 +220,8 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
 
 def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solution, location: str = 'initial',
                          states: Optional[np.ndarray] = None,
-                         rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection') -> np.ndarray:
+                         rel_tol: float = 1e-3, abs_tol: float = 1e-3, backtrack: bool = True,
+                         method: str = 'projection') -> np.ndarray:
     """
     Projects the costates of a guess to the problem's boundary conditions to get the closest match
 
@@ -232,6 +239,8 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
     method : str, default='projection'
         Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
@@ -280,11 +289,11 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
         raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
 
     if method == 'projection':
-        lam = project_to_nullspace(adj_bc_func, lam_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        lam = project_to_nullspace(adj_bc_func, lam_guess, rel_tol=rel_tol, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'gradient':
-        lam = gradient_descent(adj_bc_func, lam_guess, abs_tol=abs_tol)
+        lam = gradient_descent(adj_bc_func, lam_guess, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'newton':
-        lam = newtons_method(adj_bc_func, lam_guess, abs_tol=abs_tol)
+        lam = newtons_method(adj_bc_func, lam_guess, abs_tol=abs_tol, backtrack=backtrack)
     else:
         raise(RuntimeError, f'Optimization Method invalid!'
                             f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')

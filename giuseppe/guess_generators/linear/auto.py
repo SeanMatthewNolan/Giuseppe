@@ -17,7 +17,8 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, Ad
 def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
                       constants: Optional[ArrayLike] = None, default: Union[float, Solution] = 0.1,
                       use_dynamics: bool = False, propagation_method: bool = 'rk',
-                      abs_tol: float = 1e-3, rel_tol: float = 1e-3, method: str = 'projection') -> Solution:
+                      abs_tol: float = 1e-3, rel_tol: float = 1e-3, backtrack: bool = True,
+                      method: str = 'projection') -> Solution:
     """
     Automatically generate guess where variables (excluding the indenpendent) with initial and terminal values fitted
     to the boundary conditions and dynamics
@@ -42,6 +43,8 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
         absolute tolerance
     rel_tol : float, default=1e-3
         relative tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
     method : str, default='projection'
         Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
@@ -59,13 +62,13 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
     if method == 'projection':
         def optimize(func, arr):
-            return project_to_nullspace(func, arr, abs_tol=abs_tol, rel_tol=rel_tol)
+            return project_to_nullspace(func, arr, abs_tol=abs_tol, rel_tol=rel_tol, backtrack=backtrack)
     elif method == 'gradient':
         def optimize(func, arr):
-            return gradient_descent(func, arr, abs_tol=abs_tol)
+            return gradient_descent(func, arr, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'newton':
         def optimize(func, arr):
-            return newtons_method(func, arr, abs_tol=abs_tol)
+            return newtons_method(func, arr, abs_tol=abs_tol, backtrack=backtrack)
     else:
         raise(RuntimeError, f'Optimization Method invalid!'
                             f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')

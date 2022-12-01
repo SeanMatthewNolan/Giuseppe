@@ -12,7 +12,7 @@ SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 
 
 def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, propagation_method: str = 'rk',
-                 rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection'):
+                 rel_tol: float = 1e-3, abs_tol: float = 1e-3, backtrack: bool = True, method: str = 'projection'):
 
     t = guess.t
     x = guess.x
@@ -92,11 +92,12 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, propagation_metho
 
     adj_vars_guess = np.concatenate((guess.nu0, guess.lam.T.flatten(), guess.nuf))
     if method == 'projection':
-        adj_vars_optimized = project_to_nullspace(residual, adj_vars_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        adj_vars_optimized = project_to_nullspace(residual, adj_vars_guess,
+                                                  rel_tol=rel_tol, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'gradient':
-        adj_vars_optimized = gradient_descent(residual, adj_vars_guess, abs_tol=abs_tol)
+        adj_vars_optimized = gradient_descent(residual, adj_vars_guess, abs_tol=abs_tol, backtrack=backtrack)
     elif method == 'newton':
-        adj_vars_optimized = gradient_descent(residual, adj_vars_guess, abs_tol=abs_tol)
+        adj_vars_optimized = gradient_descent(residual, adj_vars_guess, abs_tol=abs_tol, backtrack=backtrack)
     else:
         raise(RuntimeError, f'Optimization Method invalid!'
                             f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
