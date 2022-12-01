@@ -26,10 +26,10 @@ class AdiffOCP(Picky):
         if isinstance(self.src_ocp, AdiffInputOCP):
             self.dtype = self.src_ocp.dtype
             self.comp_ocp = None
-            self.independent = self.src_ocp.independent
+            self.independent = self.src_ocp.independent.values
             self.states = self.src_ocp.states.states
-            self.controls = self.src_ocp.controls
-            self.parameters = self.src_ocp.parameters
+            self.controls = self.src_ocp.controls.values
+            self.parameters = self.src_ocp.parameters.values
             self.constants = self.src_ocp.constants.constants
 
             self.default_values = self.src_ocp.constants.default_values

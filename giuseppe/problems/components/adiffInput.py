@@ -10,7 +10,9 @@ from giuseppe.problems.regularization import Regularizer
 class InputAdiffState:
     def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
                  states: Optional[Union[ca.SX, ca.MX]] = None,
-                 eoms: Optional[Union[ca.SX, ca.MX]] = None):
+                 eoms: Optional[Union[ca.SX, ca.MX]] = None,
+                 upper_bound: Optional[Union[ca.SX, ca.MX]] = None,
+                 lower_bound: Optional[Union[ca.SX, ca.MX]] = None):
         if states is not None:
             self.states = states
         else:
@@ -20,6 +22,37 @@ class InputAdiffState:
             self.eoms = eoms
         else:
             self.eoms: Union[ca.SX, ca.MX] = dtype()
+
+        if upper_bound is not None:
+            self.upper_bound = upper_bound
+        else:
+            self.upper_bound = dtype()
+
+        if lower_bound is not None:
+            self.lower_bound = lower_bound
+        else:
+            self.lower_bound = dtype()
+
+
+class InputAdiffBoundedVal:
+    def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
+                 values: Optional[Union[ca.SX, ca.MX]] = None,
+                 upper_bound: Optional[Union[ca.SX, ca.MX]] = None,
+                 lower_bound: Optional[Union[ca.SX, ca.MX]] = None):
+        if values is not None:
+            self.values = values
+        else:
+            self.values: Union[ca.SX, ca.MX] = dtype()
+
+        if upper_bound is not None:
+            self.upper_bound = upper_bound
+        else:
+            self.upper_bound = dtype()
+
+        if lower_bound is not None:
+            self.lower_bound = lower_bound
+        else:
+            self.lower_bound = dtype()
 
 
 class InputAdiffConstant:

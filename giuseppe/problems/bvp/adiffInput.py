@@ -3,7 +3,7 @@ from typing import Optional, Union
 import casadi as ca
 import numpy as np
 
-from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffConstant, \
+from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffBoundedVal, InputAdiffConstant, \
     InputAdiffConstraints, InputAdiffInequalityConstraint, InputAdiffInequalityConstraints
 from giuseppe.problems.regularization import Regularizer
 
@@ -18,14 +18,16 @@ class AdiffInputBVP:
         Initialize AdiffInputBVP
         """
         self.dtype = dtype
-        self.independent = None
+        self.independent = InputAdiffBoundedVal(dtype=dtype)
         self.states: InputAdiffState = InputAdiffState(dtype=dtype)
-        self.parameters: Optional[ca.SX, ca.MX] = dtype()
+        self.parameters: Optional[ca.SX, ca.MX] = InputAdiffBoundedVal(dtype=dtype)
         self.constants: InputAdiffConstant = InputAdiffConstant(dtype=dtype)
         self.constraints: InputAdiffConstraints = InputAdiffConstraints(dtype=dtype)
         self.inequality_constraints: InputAdiffInequalityConstraints = InputAdiffInequalityConstraints()
 
-    def set_independent(self, var: Union[ca.SX, ca.MX]):
+    def set_independent(self, var: Union[ca.SX, ca.MX],
+                        lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
+                        upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
         """
         Set the name of the independent variable (usually time, t)
 
@@ -33,6 +35,10 @@ class AdiffInputBVP:
         ----------
         var : Union[ca.SX, ca.MX]
             the independent variable (CasADi symbolic var)
+        lower_bound : Union[ca.SX, ca.MX, float], default=-ca.inf
+            Minimum value of independent variable
+        upper_bound : Union[ca.SX, ca.MX, float], default=ca.inf
+            Maximum value of independent variable
 
         Returns
         -------
@@ -41,18 +47,46 @@ class AdiffInputBVP:
 
         """
         assert(type(var) == self.dtype)
-        self.independent = var
+        self.independent.values = var
+        self.independent.upper_bound = upper_bound
+        self.independent.lower_bound = lower_bound
         return self
 
-    def add_state(self, state: Union[ca.SX, ca.MX], state_eom: Union[ca.SX, ca.MX, float]):
+    def add_state(self, state: Union[ca.SX, ca.MX], state_eom: Union[ca.SX, ca.MX, float],
+                  lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
+                  upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
         assert(type(state) == self.dtype)
         self.states.states = ca.vcat((self.states.states, state))
         self.states.eoms = ca.vcat((self.states.eoms, state_eom))
+        self.states.lower_bound = ca.vcat((self.states.lower_bound, lower_bound))
+        self.states.upper_bound = ca.vcat((self.states.upper_bound, upper_bound))
         return self
 
-    def add_parameter(self, var: Union[ca.SX, ca.MX]):
+    def add_parameter(self, var: Union[ca.SX, ca.MX],
+                      lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
+                      upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
+        """
+        Add a free parameter
+
+        Parameters
+        ----------
+        var : Union[ca.SX, ca.MX]
+            the independent variable (CasADi symbolic var)
+        lower_bound : Union[ca.SX, ca.MX, float], default=-ca.inf
+            Minimum value of independent variable
+        upper_bound : Union[ca.SX, ca.MX, float], default=ca.inf
+            Maximum value of independent variable
+
+        Returns
+        -------
+        self : AdiffInputBVP
+            returns the problem object
+
+        """
         assert(type(var) == self.dtype)
-        self.parameters = ca.vcat((self.parameters, var))
+        self.parameters.values = ca.vcat((self.parameters.values, var))
+        self.parameters.lower_bound = ca.vcat((self.parameters.lower_bound, lower_bound))
+        self.parameters.upper_bound = ca.vcat((self.parameters.upper_bound, upper_bound))
         return self
 
     def add_constant(self, constant: Union[ca.SX, ca.MX], default_value: Union[np.ndarray, float] = 0.0):

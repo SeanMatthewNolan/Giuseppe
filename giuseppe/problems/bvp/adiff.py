@@ -25,9 +25,9 @@ class AdiffBVP(Picky):
         if isinstance(self.src_bvp, AdiffInputBVP):
             self.comp_bvp = None
 
-            self.independent = self.src_bvp.independent
+            self.independent = self.src_bvp.independent.values
             self.states = self.src_bvp.states.states
-            self.parameters = self.src_bvp.parameters
+            self.parameters = self.src_bvp.parameters.values
             self.constants = self.src_bvp.constants.constants
             self.default_values = self.src_bvp.constants.default_values
             self.eom = self.src_bvp.states.eoms
