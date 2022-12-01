@@ -21,7 +21,7 @@ def auto_propagate_guess(
         initial_states: Optional[ArrayLike] = None, initial_costates: Optional[ArrayLike] = None,
         control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None, p: Optional[Union[float, ArrayLike]] = None,
         k: Optional[Union[float, ArrayLike]] = None, use_project_dual: bool = True, use_match_constants: bool = True,
-        reverse: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
+        reverse: bool = False, abs_tol: float = 1e-3, rel_tol: float = 1e-3, method: str = 'projection') -> Solution:
 
     """
     Propagate a guess with a constant control value or control function.
@@ -62,6 +62,8 @@ def auto_propagate_guess(
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    method : str, default='projection'
+        Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
     Returns
     -------
@@ -91,7 +93,7 @@ def auto_propagate_guess(
     guess = propagate_guess(
             comp_prob, default=guess, t_span=t_span, initial_states=initial_states, initial_costates=initial_costates,
             control=control, p=p, k=k, use_project_dual=use_project_dual, use_match_constants=use_match_constants,
-            reverse=reverse, abs_tol=abs_tol, rel_tol=rel_tol
+            reverse=reverse, abs_tol=abs_tol, rel_tol=rel_tol, method=method
     )
 
     return guess

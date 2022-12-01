@@ -22,7 +22,7 @@ def propagate_guess(
         initial_costates: Optional[ArrayLike] = None, control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
         p: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None,
         use_project_dual: bool = True, use_match_constants: bool = True, reverse: bool = False,
-        abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> Solution:
+        abs_tol: float = 1e-3, rel_tol: float = 1e-3, method: str = 'projection') -> Solution:
     """
     Propagate a guess with a constant control value or control function.
 
@@ -64,6 +64,8 @@ def propagate_guess(
        absolute tolerance for propagation
     rel_tol : float, default=1e-3
        relative tolerance for propagation
+    method : str, default='projection'
+        Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
     Returns
     -------
@@ -257,9 +259,9 @@ def propagate_guess(
             guess.u = np.vstack([guess.u[:, 0] for _ in guess.t]).T
 
     if (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, AdiffDualOCP)) and use_project_dual:
-        guess = project_dual(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        guess = project_dual(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol, method=method)
 
     if use_match_constants:
-        guess = match_constants_to_bcs(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        guess = match_constants_to_bcs(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol, method=method)
 
     return guess

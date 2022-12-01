@@ -6,12 +6,13 @@ import casadi as ca
 from giuseppe.utils.conversion import ca_vec2arr
 from giuseppe.io.solution import Solution
 from giuseppe.problems.dual import CompDualOCP, AdiffDualOCP
-from .minimization_schemes import project_to_nullspace
+from .minimization_schemes import project_to_nullspace, gradient_descent, newtons_method
 
 SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 
 
-def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, rel_tol: float = 1e-3, abs_tol: float = 1e-3):
+def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution,
+                 rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection'):
 
     t = guess.t
     x = guess.x
@@ -77,7 +78,15 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, rel_tol: float = 
         return np.concatenate((bc_0, np.array(dyn_res).flatten(), bc_f))
 
     adj_vars_guess = np.concatenate((guess.nu0, guess.lam.T.flatten(), guess.nuf))
-    guess.nu0, guess.lam, guess.nuf = unpack_values(
-            project_to_nullspace(residual, adj_vars_guess, rel_tol=rel_tol, abs_tol=abs_tol))
+    if method == 'projection':
+        adj_vars_optimized = project_to_nullspace(residual, adj_vars_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    elif method == 'gradient':
+        adj_vars_optimized = gradient_descent(residual, adj_vars_guess, abs_tol=abs_tol)
+    elif method == 'newton':
+        adj_vars_optimized = gradient_descent(residual, adj_vars_guess, abs_tol=abs_tol)
+    else:
+        raise(RuntimeError, f'Optimization Method invalid!'
+                            f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
+    guess.nu0, guess.lam, guess.nuf = unpack_values(adj_vars_optimized)
 
     return guess

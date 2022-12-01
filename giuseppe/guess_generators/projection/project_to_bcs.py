@@ -9,13 +9,13 @@ from giuseppe.io.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, CompDual, \
     AdiffBVP, AdiffOCP, AdiffDual, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
-from .minimization_schemes import project_to_nullspace
+from .minimization_schemes import project_to_nullspace, gradient_descent, newtons_method
 
 SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
 
 
 def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
-                           rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> Solution:
+                           rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection') -> Solution:
     """
     Projects the constant array of a guess to the problem's boundary conditions to get the closest match
 
@@ -29,6 +29,8 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    method : str, default='projection'
+        Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
     Returns
     -------
@@ -96,7 +98,15 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
         raise ValueError(f'Problem type {type(prob)} not supported')
 
     guess = deepcopy(guess)
-    guess.k = project_to_nullspace(bc_func, guess.k, rel_tol=rel_tol, abs_tol=abs_tol)
+    if method == 'projection':
+        guess.k = project_to_nullspace(bc_func, guess.k, rel_tol=rel_tol, abs_tol=abs_tol)
+    elif method == 'gradient':
+        guess.k = gradient_descent(bc_func, guess.k, abs_tol=abs_tol)
+    elif method == 'newton':
+        guess.k = newtons_method(bc_func, guess.k, abs_tol=abs_tol)
+    else:
+        raise(RuntimeError, f'Optimization Method invalid!'
+                            f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
     return guess
 
 
@@ -181,7 +191,15 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
     else:
         raise ValueError(f'Problem type {type(prob)} not supported')
 
-    x = project_to_nullspace(bc_func, x_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    if method == 'projection':
+        x = project_to_nullspace(bc_func, x_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    elif method == 'gradient':
+        x = gradient_descent(bc_func, x_guess, abs_tol=abs_tol)
+    elif method == 'newton':
+        x = newtons_method(bc_func, x_guess, abs_tol=abs_tol)
+    else:
+        raise(RuntimeError, f'Optimization Method invalid!'
+                            f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
 
     if dual is not None and project_costates:
         lam = match_costates_to_bc(comp_prob, guess, location=location, states=x, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -255,6 +273,14 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
     else:
         raise ValueError(f'Location should be \'initial\' or \'terminal\', not {location}')
 
-    lam = project_to_nullspace(adj_bc_func, lam_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    if method == 'projection':
+        lam = project_to_nullspace(adj_bc_func, lam_guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    elif method == 'gradient':
+        lam = gradient_descent(adj_bc_func, lam_guess, abs_tol=abs_tol)
+    elif method == 'newton':
+        lam = newtons_method(adj_bc_func, lam_guess, abs_tol=abs_tol)
+    else:
+        raise(RuntimeError, f'Optimization Method invalid!'
+                            f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
 
     return lam
