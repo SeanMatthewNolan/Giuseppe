@@ -11,7 +11,7 @@ from .minimization_schemes import project_to_nullspace, gradient_descent, newton
 SUPPORTED_INPUTS = Union[CompDualOCP, AdiffDualOCP]
 
 
-def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution,
+def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution, propagation_method: str = 'rk',
                  rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection'):
 
     t = guess.t
@@ -20,6 +20,16 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution,
     p = guess.p
     k = guess.k
     num_t = len(t)
+
+    if propagation_method == 'euler':
+        def difference_func(dyn_func, step_size, args_right, args_left, args_middle):
+            return step_size * dyn_func(*args_middle)
+    elif propagation_method == 'rk':
+        def difference_func(dyn_func, step_size, args_right, args_left, args_middle):
+            return step_size / 6.0 * (dyn_func(*args_left) + 4 * dyn_func(*args_middle) + dyn_func(*args_right))
+    else:
+        raise(RuntimeError, f'Propogation method invalid!'
+                            f'Should be:\neuler\nrk\nYou used:\n{propagation_method}')
 
     if isinstance(comp_prob, CompDualOCP):
         adjoined_bc_0 = comp_prob.comp_dual.adjoined_boundary_conditions.initial
@@ -67,13 +77,16 @@ def project_dual(comp_prob: SUPPORTED_INPUTS, guess: Solution,
             lam_bar = (lam_right + lam_left) / 2
             u_bar = (u_right + u_left) / 2
 
-            d_lam = costate_dynamics(t_bar, x_bar, lam_bar, u_bar, p, k)
+            d_lam = difference_func(costate_dynamics, dt,
+                                    (t_right, x_right, lam_right, u_right, p, k),
+                                    (t_left, x_left, lam_left, u_left, p, k),
+                                    (t_bar, x_bar, lam_bar, u_bar, p, k))
             if isinstance(d_lam, Union[ca.SX, ca.DM]):
                 d_lam = ca_vec2arr(d_lam)
             else:
                 d_lam = np.asarray(d_lam).flatten()
             dyn_res.append(
-                lam_right - lam_left - dt * d_lam)
+                lam_right - lam_left - d_lam)
 
         return np.concatenate((bc_0, np.array(dyn_res).flatten(), bc_f))
 

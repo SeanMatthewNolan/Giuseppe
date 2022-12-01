@@ -111,7 +111,8 @@ def match_constants_to_bcs(prob: SUPPORTED_PROBLEMS, guess: Solution,
 
 
 def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location: str = 'initial',
-                       project_costates: bool = False, rel_tol: float = 1e-3, abs_tol: float = 1e-3
+                       project_costates: bool = False,
+                       rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection'
                        ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
     Projects the state (and costates) of a guess to the problem's boundary conditions to get the closest match
@@ -130,6 +131,9 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    method : str, default='projection'
+        Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
+
 
     Returns
     -------
@@ -210,7 +214,7 @@ def match_states_to_bc(comp_prob: SUPPORTED_PROBLEMS, guess: Solution, location:
 
 def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solution, location: str = 'initial',
                          states: Optional[np.ndarray] = None,
-                         rel_tol: float = 1e-3, abs_tol: float = 1e-3) -> np.ndarray:
+                         rel_tol: float = 1e-3, abs_tol: float = 1e-3, method: str = 'projection') -> np.ndarray:
     """
     Projects the costates of a guess to the problem's boundary conditions to get the closest match
 
@@ -228,6 +232,8 @@ def match_costates_to_bc(comp_prob: Union[CompDualOCP, CompDual], guess: Solutio
        absolute tolerance
     rel_tol : float, default=1e-3
        relative tolerance
+    method : str, default='projection'
+        Optimization method to minimize residual. Supported inputs are: projection, gradient, newton
 
     Returns
     -------

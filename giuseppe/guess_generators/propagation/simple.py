@@ -21,7 +21,8 @@ def propagate_guess(
         t_span: Union[float, ArrayLike] = 0.1, initial_states: Optional[ArrayLike] = None,
         initial_costates: Optional[ArrayLike] = None, control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
         p: Optional[Union[float, ArrayLike]] = None, k: Optional[Union[float, ArrayLike]] = None,
-        use_project_dual: bool = True, use_match_constants: bool = True, reverse: bool = False,
+        use_project_dual: bool = True, propagation_method: str = 'rk',
+        use_match_constants: bool = True, reverse: bool = False,
         abs_tol: float = 1e-3, rel_tol: float = 1e-3, method: str = 'projection') -> Solution:
     """
     Propagate a guess with a constant control value or control function.
@@ -58,6 +59,8 @@ def propagate_guess(
         if True, match_constants will be called to update the constants to most closely match the formed guess
     use_project_dual : bool, default=True
         if True and comp_prob is an instance CompDualOCP, project_dual will be called to estimate dual values from guess
+    propagation_method : str, default='rk'
+        Propagation method to fit to dynamics. Supported inputs are: euler, rk
     reverse : bool, default=False
         if True, will propagate solution from the terminal location
     abs_tol : float, default=1e-3
@@ -259,7 +262,8 @@ def propagate_guess(
             guess.u = np.vstack([guess.u[:, 0] for _ in guess.t]).T
 
     if (isinstance(comp_prob, CompDualOCP) or isinstance(comp_prob, AdiffDualOCP)) and use_project_dual:
-        guess = project_dual(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol, method=method)
+        guess = project_dual(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol, method=method,
+                             propagation_method=propagation_method)
 
     if use_match_constants:
         guess = match_constants_to_bcs(comp_prob, guess, rel_tol=rel_tol, abs_tol=abs_tol, method=method)
