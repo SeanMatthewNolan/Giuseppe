@@ -103,6 +103,11 @@ class AdiffOCP(Picky):
                         ,), self.arg_names, ('t_bnd',)),
             }
 
+            self.bounded = self.src_ocp.independent.bounded \
+                           or self.src_ocp.states.bounded \
+                           or self.src_ocp.controls.bounded \
+                           or self.src_ocp.parameters.bounded
+
         else:
             self.dtype = ca.SX
             if isinstance(self.src_ocp, CompOCP):
@@ -159,6 +164,8 @@ class AdiffOCP(Picky):
                 'u': None,
                 'p': None
             }
+
+            self.bounded = False
 
     def sym2ca_sym(self, sympy_sym):
         """

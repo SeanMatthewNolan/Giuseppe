@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import casadi as ca
 
@@ -18,8 +18,8 @@ class AdiffInputOCP(AdiffInputBVP):
         self.cost: InputAdiffCost = InputAdiffCost()
 
     def add_control(self, var: Union[ca.SX, ca.MX],
-                    lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
-                    upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
+                    lower_bound: Optional[Union[ca.SX, ca.MX, float]] = None,
+                    upper_bound: Optional[Union[ca.SX, ca.MX, float]] = None):
         """
         Add a control input
 
@@ -27,9 +27,9 @@ class AdiffInputOCP(AdiffInputBVP):
         ----------
         var : Union[ca.SX, ca.MX]
             the independent variable (CasADi symbolic var)
-        lower_bound : Union[ca.SX, ca.MX, float], default=-ca.inf
+        lower_bound : Optional[Union[ca.SX, ca.MX, float]]
             Minimum value of independent variable
-        upper_bound : Union[ca.SX, ca.MX, float], default=ca.inf
+        upper_bound : Optional[Union[ca.SX, ca.MX, float]]
             Maximum value of independent variable
 
         Returns
@@ -40,8 +40,19 @@ class AdiffInputOCP(AdiffInputBVP):
         """
         assert(type(var) == self.dtype)
         self.controls.values = ca.vcat((self.controls.values, var))
-        self.controls.lower_bound = ca.vcat((self.controls.lower_bound, lower_bound))
-        self.controls.upper_bound = ca.vcat((self.controls.upper_bound, upper_bound))
+
+        if lower_bound is not None:
+            self.controls.lower_bound = ca.vcat((self.controls.lower_bound, lower_bound))
+            self.controls.bounded = True
+        else:
+            self.controls.lower_bound = ca.vcat((self.controls.lower_bound, -ca.inf))
+
+        if upper_bound is not None:
+            self.controls.upper_bound = ca.vcat((self.controls.upper_bound, upper_bound))
+            self.controls.bounded = True
+        else:
+            self.controls.upper_bound = ca.vcat((self.controls.upper_bound, ca.inf))
+
         return self
 
     def set_cost(self,

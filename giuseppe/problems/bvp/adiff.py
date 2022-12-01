@@ -80,6 +80,11 @@ class AdiffBVP(Picky):
                         ,), self.arg_names, ('t_bnd',)),
             }
 
+            self.bounded = self.src_ocp.independent.bounded \
+                           or self.src_ocp.states.bounded \
+                           or self.src_ocp.controls.bounded \
+                           or self.src_ocp.parameters.bounded
+
         else:
             if isinstance(self.src_bvp, CompBVP):
                 if self.src_bvp.use_jit_compile:
@@ -127,6 +132,8 @@ class AdiffBVP(Picky):
                 'x': None,
                 'p': None
             }
+
+            self.bounded = None
 
     def wrap_dynamics(self):
         dynamics = ca_wrap('f', self.args, self.comp_bvp.dynamics, self.iter_args,

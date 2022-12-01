@@ -26,8 +26,8 @@ class AdiffInputBVP:
         self.inequality_constraints: InputAdiffInequalityConstraints = InputAdiffInequalityConstraints()
 
     def set_independent(self, var: Union[ca.SX, ca.MX],
-                        lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
-                        upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
+                        lower_bound: Optional[Union[ca.SX, ca.MX, float]] = None,
+                        upper_bound: Optional[Union[ca.SX, ca.MX, float]] = None):
         """
         Set the name of the independent variable (usually time, t)
 
@@ -35,9 +35,9 @@ class AdiffInputBVP:
         ----------
         var : Union[ca.SX, ca.MX]
             the independent variable (CasADi symbolic var)
-        lower_bound : Union[ca.SX, ca.MX, float], default=-ca.inf
+        lower_bound : Union[ca.SX, ca.MX, float], default=None
             Minimum value of independent variable
-        upper_bound : Union[ca.SX, ca.MX, float], default=ca.inf
+        upper_bound : Union[ca.SX, ca.MX, float], default=None
             Maximum value of independent variable
 
         Returns
@@ -47,24 +47,46 @@ class AdiffInputBVP:
 
         """
         assert(type(var) == self.dtype)
+        self.independent.bounded = False
         self.independent.values = var
-        self.independent.upper_bound = upper_bound
-        self.independent.lower_bound = lower_bound
+
+        if upper_bound is not None:
+            self.independent.upper_bound = upper_bound
+            self.independent.bounded = True
+        else:
+            self.independent.upper_bound = ca.inf
+
+        if lower_bound is not None:
+            self.independent.lower_bound = lower_bound
+            self.independent.bounded = True
+        else:
+            self.independent.lower_bound = -ca.inf
+
         return self
 
     def add_state(self, state: Union[ca.SX, ca.MX], state_eom: Union[ca.SX, ca.MX, float],
-                  lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
-                  upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
+                  lower_bound: Optional[Union[ca.SX, ca.MX, float]] = None,
+                  upper_bound: Optional[Union[ca.SX, ca.MX, float]] = None):
         assert(type(state) == self.dtype)
         self.states.states = ca.vcat((self.states.states, state))
         self.states.eoms = ca.vcat((self.states.eoms, state_eom))
-        self.states.lower_bound = ca.vcat((self.states.lower_bound, lower_bound))
-        self.states.upper_bound = ca.vcat((self.states.upper_bound, upper_bound))
+
+        if lower_bound is not None:
+            self.states.lower_bound = ca.vcat((self.states.lower_bound, lower_bound))
+            self.states.bounded = True
+        else:
+            self.states.lower_bound = ca.vcat((self.states.lower_bound, -ca.inf))
+
+        if upper_bound is not None:
+            self.states.upper_bound = ca.vcat((self.states.upper_bound, upper_bound))
+            self.states.bounded = True
+        else:
+            self.states.upper_bound = ca.vcat((self.states.upper_bound, ca.inf))
         return self
 
     def add_parameter(self, var: Union[ca.SX, ca.MX],
-                      lower_bound: Union[ca.SX, ca.MX, float] = -ca.inf,
-                      upper_bound: Union[ca.SX, ca.MX, float] = ca.inf):
+                      lower_bound: Optional[Union[ca.SX, ca.MX, float]] = None,
+                      upper_bound: Optional[Union[ca.SX, ca.MX, float]] = None):
         """
         Add a free parameter
 
@@ -72,9 +94,9 @@ class AdiffInputBVP:
         ----------
         var : Union[ca.SX, ca.MX]
             the independent variable (CasADi symbolic var)
-        lower_bound : Union[ca.SX, ca.MX, float], default=-ca.inf
+        lower_bound : Optional[Union[ca.SX, ca.MX, float]]
             Minimum value of independent variable
-        upper_bound : Union[ca.SX, ca.MX, float], default=ca.inf
+        upper_bound : Optional[Union[ca.SX, ca.MX, float]]
             Maximum value of independent variable
 
         Returns
@@ -85,8 +107,19 @@ class AdiffInputBVP:
         """
         assert(type(var) == self.dtype)
         self.parameters.values = ca.vcat((self.parameters.values, var))
-        self.parameters.lower_bound = ca.vcat((self.parameters.lower_bound, lower_bound))
-        self.parameters.upper_bound = ca.vcat((self.parameters.upper_bound, upper_bound))
+
+        if lower_bound is not None:
+            self.parameters.lower_bound = ca.vcat((self.parameters.lower_bound, lower_bound))
+            self.parameters.bounded = True
+        else:
+            self.parameters.lower_bound = ca.vcat((self.parameters.lower_bound, -ca.inf))
+
+        if upper_bound is not None:
+            self.parameters.upper_bound = ca.vcat((self.parameters.upper_bound, upper_bound))
+            self.parameters.bounded = True
+        else:
+            self.parameters.upper_bound = ca.vcat((self.parameters.upper_bound, ca.inf))
+
         return self
 
     def add_constant(self, constant: Union[ca.SX, ca.MX], default_value: Union[np.ndarray, float] = 0.0):

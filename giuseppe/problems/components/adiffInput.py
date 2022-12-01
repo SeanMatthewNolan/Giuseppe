@@ -13,6 +13,9 @@ class InputAdiffState:
                  eoms: Optional[Union[ca.SX, ca.MX]] = None,
                  upper_bound: Optional[Union[ca.SX, ca.MX]] = None,
                  lower_bound: Optional[Union[ca.SX, ca.MX]] = None):
+
+        self.bounded = False
+
         if states is not None:
             self.states = states
         else:
@@ -25,11 +28,13 @@ class InputAdiffState:
 
         if upper_bound is not None:
             self.upper_bound = upper_bound
+            self.bounded = True
         else:
             self.upper_bound = dtype()
 
         if lower_bound is not None:
             self.lower_bound = lower_bound
+            self.bounded = True
         else:
             self.lower_bound = dtype()
 
@@ -39,6 +44,9 @@ class InputAdiffBoundedVal:
                  values: Optional[Union[ca.SX, ca.MX]] = None,
                  upper_bound: Optional[Union[ca.SX, ca.MX]] = None,
                  lower_bound: Optional[Union[ca.SX, ca.MX]] = None):
+
+        self.bounded = False
+
         if values is not None:
             self.values = values
         else:
@@ -46,11 +54,13 @@ class InputAdiffBoundedVal:
 
         if upper_bound is not None:
             self.upper_bound = upper_bound
+            self.bounded = True
         else:
             self.upper_bound = dtype()
 
         if lower_bound is not None:
             self.lower_bound = lower_bound
+            self.bounded = True
         else:
             self.lower_bound = dtype()
 
