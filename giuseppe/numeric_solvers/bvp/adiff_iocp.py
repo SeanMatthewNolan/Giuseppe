@@ -3,7 +3,7 @@ from typing import Union, Callable, TypeVar
 import casadi as ca
 import numpy as np
 from numpy import ndarray
-from scipy.integrate import solve_bvp
+from .python_solver import solve_bvp
 
 from giuseppe.io import Solution
 from ...problems.bvp import AdiffBVP
