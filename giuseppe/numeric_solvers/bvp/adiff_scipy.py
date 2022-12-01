@@ -50,6 +50,8 @@ class AdiffScipySolveBVP(Picky):
             sets `max_nodes` kwarg for `scipy.integrate.solve_bvp`
         verbose : bool, default=False
             sets `verbose` kwarg for `scipy.integrate.solve_bvp`
+        use_jac : bool, default=False
+            Whether to use CasADi-generated AD jac functions in BVP solver
         """
 
         Picky.__init__(self, bvp)
