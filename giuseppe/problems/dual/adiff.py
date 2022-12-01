@@ -266,3 +266,26 @@ class AdiffDualOCP:
         self.dbc_dya = ca.Function('dbc_dya', self.bc_jac_args, (_dbc_dya,), self.bc_jac_arg_names, ('dbc_dya',))
         self.dbc_dyb = ca.Function('dbc_dyb', self.bc_jac_args, (_dbc_dyb,), self.bc_jac_arg_names, ('dbc_dya',))
         self.dbc_dp = ca.Function('dbc_dp_nu_t', self.bc_jac_args, (_dbc_dp,), self.bc_jac_arg_names, ('dbc_dp_nu_t',))
+
+        self.bounded = self.ocp.bounded
+        self.bnd_func_args = (self.tau, self.dependent, self.bvp_parameters, self.constants)
+        self.bnd_func_arg_names = ('τ', 'y', 'p_nu_t', 'k')
+
+        if self.bounded:
+            _t_bnd = self.ocp.bounding_funcs['t'](*self.ocp.args)
+            _x_bnd = self.ocp.bounding_funcs['x'](*self.ocp.args)
+            _u_bnd = self.ocp.bounding_funcs['u'](*self.ocp.args)
+            _p_bnd = self.ocp.bounding_funcs['p'](*self.ocp.args)
+
+            _y_bnd_expr = ca.vcat((_x_bnd, self.costates, _u_bnd))
+            _p_bnd_expr = ca.vcat((_p_bnd, self.initial_adjoints, self.terminal_adjoints, _t_bnd, _t_bnd))
+            _y_bnd_transformed = ca.substitute(_y_bnd_expr, self.independent, _independent)
+            _p_bnd_transformed = ca.substitute(_p_bnd_expr, self.independent, _independent)
+
+            self.y_bnd_func = ca.Function('y_bnd', self.bnd_func_args, (_y_bnd_transformed,),
+                                          self.bnd_func_arg_names, ('y_bnd',))
+            self.p_bnd_func = ca.Function('p_bnd', self.bnd_func_args, (_p_bnd_transformed,),
+                                          self.bnd_func_arg_names, ('p_bnd',))
+        else:
+            self.y_bnd_func = None
+            self.p_bnd_func = None
