@@ -314,7 +314,7 @@ def collocation_fun(fun, y, p, x, h):
     return col_res, y_middle, f, f_middle
 
 
-def prepare_sys(n, m, k, fun, bc, fun_jac, bc_jac, x, h):
+def prepare_sys(n, m, k, fun, bc, fun_jac, bc_jac, bounding_fun, x, h):
     """Create the function and the Jacobian for the collocation system."""
     x_middle = x[:-1] + 0.5 * h
     i_jac, j_jac = compute_jac_indices(n, m, k)
@@ -341,10 +341,16 @@ def prepare_sys(n, m, k, fun, bc, fun_jac, bc_jac, x, h):
                                     df_dy_middle, df_dp, df_dp_middle, dbc_dya,
                                     dbc_dyb, dbc_dp)
 
-    return col_fun, sys_jac
+    if bounding_fun is not None:
+        def sys_bound(y, p):
+            return bounding_fun(x, y, p)
+    else:
+        sys_bound = None
+
+    return col_fun, sys_jac, sys_bound
 
 
-def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, y_bound, p_bound, bvp_tol, bc_tol):
+def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, sys_bound, bvp_tol, bc_tol):
     """Solve the nonlinear collocation system by a Newton method.
 
     This is a simple Newton method with a backtracking line search. As
@@ -384,6 +390,9 @@ def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, y_bound, p_bound, bvp_tol, 
     B : ndarray with shape (n, n) or None
         Matrix to force the S y(a) = 0 condition for a problems with the
         singular term. If None, the singular term is assumed to be absent.
+    sys_bound : callable, optional
+        Function bounding y, p during each iteration. The calling signature is ``sys_bound(y, p)``
+        The inputs must be of shape (n, m), (k,). The output is the bounded y and p, of shape (n, m), (k,).
     bvp_tol : float
         Tolerance to which we want to solve a BVP.
     bc_tol : float
@@ -465,10 +474,8 @@ def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, y_bound, p_bound, bvp_tol, 
                 y_new[:, 0] = np.dot(B, y_new[:, 0])
             p_new = p - alpha * p_step
 
-            if y_bound is not None:
-                y_new = y_bound(y_new)
-            if p_bound is not None:
-                p_new = p_bound(p_new)
+            if sys_bound is not None:
+                y_new, p_new = sys_bound(y_new, p_new)
 
             col_res, y_middle, f, f_middle = col_fun(y_new, p_new)
             bc_res = bc(y_new[:, 0], y_new[:, -1], p_new)
@@ -712,7 +719,7 @@ def wrap_functions(fun, bc, fun_jac, bc_jac, k, a, S, D, dtype):
     return fun_wrapped, bc_wrapped, fun_jac_wrapped, bc_jac_wrapped
 
 
-def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, y_bound=None, p_bound=None,
+def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding_fun=None,
               tol=1e-3, max_nodes=1000, verbose=0, bc_tol=None):
     """Solve a boundary value problem for a system of ODEs.
 
@@ -805,10 +812,9 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, y_bound=
 
         If `bc_jac` is None (default), the derivatives will be estimated by
         the forward finite differences.
-    y_bound : callable, optional
-        Function bounding the vectorized y during each iteration. The input and output must be shape (n, m)
-    p_bound : callable, optional
-        Function bounding free parameters p. The input and output must be shape (k,)
+    bounding_fun : callable, optional
+        Function bounding y, p during each iteration. The calling signature is ``bounding_fun(x, y, p)``
+        The inputs must be of shape (m,), (n, m), (k,). The output is the bounded y and p, of shape (n, m), (k,).
     tol : float, optional
         Desired tolerance of the solution. If we define ``r = y' - f(x, y)``,
         where y is the found solution, then the solver tries to achieve on each
@@ -1086,10 +1092,10 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, y_bound=
     while True:
         m = x.shape[0]
 
-        col_fun, jac_sys = prepare_sys(n, m, k, fun_wrapped, bc_wrapped,
-                                       fun_jac_wrapped, bc_jac_wrapped, x, h)
+        col_fun, jac_sys, sys_bound = prepare_sys(n, m, k, fun_wrapped, bc_wrapped,
+                                                  fun_jac_wrapped, bc_jac_wrapped, bounding_fun, x, h)
         y, p, singular = solve_newton(n, m, h, col_fun, bc_wrapped, jac_sys,
-                                      y, p, B, y_bound, p_bound, tol, bc_tol)
+                                      y, p, B, sys_bound, tol, bc_tol)
         iteration += 1
 
         col_res, y_middle, f, f_middle = collocation_fun(fun_wrapped, y,
