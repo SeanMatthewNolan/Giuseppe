@@ -12,7 +12,7 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP]
 # TODO Use Armijo step etc. to make more stable
 # TODO Explore options based on stability (linear vs. nonlinear)
 def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int] = 8,
-                         abs_tol: float = 1e-3, rel_tol: float = 1e-3) -> np.ndarray:
+                         abs_tol: float = 1e-3, rel_tol: float = 1e-3, backtrack: bool = True) -> np.ndarray:
     """
     Function which projects an array onto the nullspace of a function
 
@@ -29,6 +29,8 @@ def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Option
         absolute tolerance
     rel_tol : float, default=1e-3
         relative tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
 
     Returns
     -------
@@ -36,15 +38,35 @@ def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Option
 
     """
 
+    # Backtracking constants (Same as SciPy's SolveBVP)
+    min_improvement = 0.2  # Min. relative improvement (Armijo constant)
+    backtrack_decrease_factor = 0.25  # Step size decrease factor
+    max_backtrack_steps = 4
+
     arr = np.array(arr)
+    residual = func(arr)
+    cost = np.dot(residual, residual)
 
     converged, step_num = False, 1
     while not converged:
         arr_last = copy(arr)
+        cost_last = copy(cost)
 
-        residual = func(arr)
         sensitivity = jac(func, arr)
         p_inv_sensitivity = np.linalg.pinv(sensitivity)
+
+        del_arr = -p_inv_sensitivity @ residual
+        step_size = 1
+
+        for step in range(max_backtrack_steps):
+            arr = arr_last + step_size * del_arr
+            residual = func(arr)
+            cost = np.dot(residual, residual)
+
+            if cost < (1 - 2 * min_improvement * step_size) * cost_last or not backtrack:
+                break
+
+            step_size = backtrack_decrease_factor * step_size
 
         arr -= p_inv_sensitivity @ residual
 
@@ -60,7 +82,7 @@ def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Option
 
 
 def gradient_descent(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int] = 8,
-                     abs_tol: float = 1e-3) -> np.ndarray:
+                     abs_tol: float = 1e-3, backtrack: bool = True) -> np.ndarray:
     """
     Function which minimizes the squared norm of the residuals via gradient descent method
 
@@ -74,6 +96,8 @@ def gradient_descent(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[i
         maximum number of steps the iterative solver will take
     abs_tol : float, default=1e-3
         absolute tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
 
     Returns
     -------
@@ -86,9 +110,6 @@ def gradient_descent(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[i
 
     def grad_func(_arr):
         return 2 * jac(func, _arr).T @ func(_arr)
-
-    # def hess_func(_arr):
-    #     return jac(grad_func, _arr)
 
     arr = np.array(arr)
     obj = obj_func(arr)
@@ -112,7 +133,7 @@ def gradient_descent(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[i
             arr = arr_last + step_size * del_arr
             obj = obj_func(arr)
 
-            if obj < obj_last + min_improvement * step_size * grad_last.T @ del_arr:
+            if obj < obj_last + min_improvement * step_size * grad_last.T @ del_arr or not backtrack:
                 break
 
             step_size = backtrack_decrease_factor * step_size
@@ -129,7 +150,7 @@ def gradient_descent(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[i
 
 
 def newtons_method(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int] = 8,
-                   abs_tol: float = 1e-3) -> np.ndarray:
+                   abs_tol: float = 1e-3, backtrack: bool = True) -> np.ndarray:
     """
     Function which minimizes the squared norm of the residuals via gradient descent method
 
@@ -143,6 +164,8 @@ def newtons_method(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int
         maximum number of steps the iterative solver will take
     abs_tol : float, default=1e-3
         absolute tolerance
+    backtrack : bool, default=True
+        Whether to use backtracking line search during minimization
 
     Returns
     -------
@@ -164,7 +187,7 @@ def newtons_method(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int
     grad = grad_func(arr)
     inv_hess = np.linalg.pinv(hess_func(arr))
 
-    min_improvement = 0.01  # Min. relative improvement (Armijo constant)
+    min_improvement = 0.2  # Min. relative improvement (Armijo constant)
     backtrack_decrease_factor = 0.25  # Step size decrease factor
     max_backtrack_steps = 4
 
@@ -187,7 +210,7 @@ def newtons_method(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int
             arr = arr_last + step_size * del_arr
             obj = obj_func(arr)
 
-            if obj < obj_last - min_improvement * step_size * lam2:
+            if obj < obj_last - min_improvement * step_size * lam2 or not backtrack:
                 break
 
             step_size = backtrack_decrease_factor * step_size
