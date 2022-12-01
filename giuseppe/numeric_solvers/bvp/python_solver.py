@@ -344,7 +344,7 @@ def prepare_sys(n, m, k, fun, bc, fun_jac, bc_jac, x, h):
     return col_fun, sys_jac
 
 
-def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, bvp_tol, bc_tol):
+def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, y_bound, p_bound, bvp_tol, bc_tol):
     """Solve the nonlinear collocation system by a Newton method.
 
     This is a simple Newton method with a backtracking line search. As
@@ -464,6 +464,11 @@ def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, bvp_tol, bc_tol):
             if B is not None:
                 y_new[:, 0] = np.dot(B, y_new[:, 0])
             p_new = p - alpha * p_step
+
+            if y_bound is not None:
+                y_new = y_bound(y_new)
+            if p_bound is not None:
+                p_new = p_bound(p_new)
 
             col_res, y_middle, f, f_middle = col_fun(y_new, p_new)
             bc_res = bc(y_new[:, 0], y_new[:, -1], p_new)
@@ -707,7 +712,7 @@ def wrap_functions(fun, bc, fun_jac, bc_jac, k, a, S, D, dtype):
     return fun_wrapped, bc_wrapped, fun_jac_wrapped, bc_jac_wrapped
 
 
-def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None,
+def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, y_bound=None, p_bound=None,
               tol=1e-3, max_nodes=1000, verbose=0, bc_tol=None):
     """Solve a boundary value problem for a system of ODEs.
 
@@ -800,6 +805,10 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None,
 
         If `bc_jac` is None (default), the derivatives will be estimated by
         the forward finite differences.
+    y_bound : callable, optional
+        Function bounding the vectorized y during each iteration. The input and output must be shape (n, m)
+    p_bound : callable, optional
+        Function bounding free parameters p. The input and output must be shape (k,)
     tol : float, optional
         Desired tolerance of the solution. If we define ``r = y' - f(x, y)``,
         where y is the found solution, then the solver tries to achieve on each
@@ -1080,7 +1089,7 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None,
         col_fun, jac_sys = prepare_sys(n, m, k, fun_wrapped, bc_wrapped,
                                        fun_jac_wrapped, bc_jac_wrapped, x, h)
         y, p, singular = solve_newton(n, m, h, col_fun, bc_wrapped, jac_sys,
-                                      y, p, B, tol, bc_tol)
+                                      y, p, B, y_bound, p_bound, tol, bc_tol)
         iteration += 1
 
         col_res, y_middle, f, f_middle = collocation_fun(fun_wrapped, y,
