@@ -55,11 +55,6 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(adiff_dualocp, seed_sol)
 cont = ContinuationHandler(sol_set)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
-
-with Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
+sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
