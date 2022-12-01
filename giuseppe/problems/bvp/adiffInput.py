@@ -18,9 +18,9 @@ class AdiffInputBVP:
         Initialize AdiffInputBVP
         """
         self.dtype = dtype
-        self.independent = InputAdiffBoundedVal(dtype=dtype)
+        self.independent: InputAdiffBoundedVal = InputAdiffBoundedVal(dtype=dtype)
         self.states: InputAdiffState = InputAdiffState(dtype=dtype)
-        self.parameters: Optional[ca.SX, ca.MX] = InputAdiffBoundedVal(dtype=dtype)
+        self.parameters: InputAdiffBoundedVal = InputAdiffBoundedVal(dtype=dtype)
         self.constants: InputAdiffConstant = InputAdiffConstant(dtype=dtype)
         self.constraints: InputAdiffConstraints = InputAdiffConstraints(dtype=dtype)
         self.inequality_constraints: InputAdiffInequalityConstraints = InputAdiffInequalityConstraints()

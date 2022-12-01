@@ -54,6 +54,55 @@ class AdiffOCP(Picky):
             self.ca_boundary_conditions = self.create_boundary_conditions()
             self.ca_cost = self.create_cost()
 
+            self.upper_bounds = {
+                't': self.src_ocp.independent.upper_bound,
+                'x': self.src_ocp.states.upper_bound,
+                'u': self.src_ocp.controls.upper_bound,
+                'p': self.src_ocp.parameters.upper_bound
+            }
+
+            self.lower_bounds = {
+                't': self.src_ocp.independent.lower_bound,
+                'x': self.src_ocp.states.lower_bound,
+                'u': self.src_ocp.controls.lower_bound,
+                'p': self.src_ocp.parameters.lower_bound
+            }
+
+            self.bounding_funcs = {
+                't':
+                    ca.Function('t_bnd', self.args, (
+                        ca.if_else(
+                            self.independent < self.lower_bounds['t'], self.lower_bounds['t'],
+                            ca.if_else(self.independent > self.upper_bounds['t'], self.upper_bounds['t'],
+                                       self.independent)
+                        )
+                        ,), self.arg_names, ('t_bnd',)),
+                'x':
+                    ca.Function('t_bnd', self.args, (
+                        ca.if_else(
+                            self.independent < self.lower_bounds['x'], self.lower_bounds['x'],
+                            ca.if_else(self.independent > self.upper_bounds['x'], self.upper_bounds['x'],
+                                       self.independent)
+                        )
+                        ,), self.arg_names, ('t_bnd',)),
+                'u':
+                    ca.Function('t_bnd', self.args, (
+                        ca.if_else(
+                            self.independent < self.lower_bounds['u'], self.lower_bounds['u'],
+                            ca.if_else(self.independent > self.upper_bounds['u'], self.upper_bounds['u'],
+                                       self.independent)
+                        )
+                        ,), self.arg_names, ('t_bnd',)),
+                'p':
+                    ca.Function('t_bnd', self.args, (
+                        ca.if_else(
+                            self.independent < self.lower_bounds['p'], self.lower_bounds['p'],
+                            ca.if_else(self.independent > self.upper_bounds['p'], self.upper_bounds['p'],
+                                       self.independent)
+                        )
+                        ,), self.arg_names, ('t_bnd',)),
+            }
+
         else:
             self.dtype = ca.SX
             if isinstance(self.src_ocp, CompOCP):
@@ -88,6 +137,28 @@ class AdiffOCP(Picky):
             self.ca_dynamics, self.eom = self.wrap_dynamics()
             self.ca_boundary_conditions, self.inputConstraints = self.wrap_boundary_conditions()
             self.ca_cost, self.inputCost = self.wrap_cost()
+
+            # TODO Implement bounding for symbolic input
+            self.upper_bounds = {
+                't': None,
+                'x': None,
+                'u': None,
+                'p': None
+            }
+
+            self.lower_bounds = {
+                't': None,
+                'x': None,
+                'u': None,
+                'p': None
+            }
+
+            self.bounding_funcs = {
+                't': None,
+                'x': None,
+                'u': None,
+                'p': None
+            }
 
     def sym2ca_sym(self, sympy_sym):
         """

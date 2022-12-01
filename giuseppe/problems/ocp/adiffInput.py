@@ -14,7 +14,7 @@ class AdiffInputOCP(AdiffInputBVP):
     def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX):
         super().__init__(dtype=dtype)
 
-        self.controls = InputAdiffBoundedVal(dtype=dtype)
+        self.controls: InputAdiffBoundedVal = InputAdiffBoundedVal(dtype=dtype)
         self.cost: InputAdiffCost = InputAdiffCost()
 
     def add_control(self, var: Union[ca.SX, ca.MX],
