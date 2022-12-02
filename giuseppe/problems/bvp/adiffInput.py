@@ -4,7 +4,7 @@ import casadi as ca
 import numpy as np
 
 from giuseppe.problems.components.adiffInput import InputAdiffState, InputAdiffBoundedVal, InputAdiffConstant, \
-    InputAdiffConstraints, InputAdiffInequalityConstraint, InputAdiffInequalityConstraints
+    InputAdiffConstraints, InputAdiffInequalityConstraint, InputAdiffInequalityConstraints, InputAdiffIndependent
 from giuseppe.problems.regularization import Regularizer
 
 
@@ -18,7 +18,7 @@ class AdiffInputBVP:
         Initialize AdiffInputBVP
         """
         self.dtype = dtype
-        self.independent: InputAdiffBoundedVal = InputAdiffBoundedVal(dtype=dtype)
+        self.independent: InputAdiffBoundedVal = InputAdiffIndependent(dtype=dtype)
         self.states: InputAdiffState = InputAdiffState(dtype=dtype)
         self.parameters: InputAdiffBoundedVal = InputAdiffBoundedVal(dtype=dtype)
         self.constants: InputAdiffConstant = InputAdiffConstant(dtype=dtype)
@@ -27,7 +27,8 @@ class AdiffInputBVP:
 
     def set_independent(self, var: Union[ca.SX, ca.MX],
                         lower_bound: Optional[Union[ca.SX, ca.MX, float]] = None,
-                        upper_bound: Optional[Union[ca.SX, ca.MX, float]] = None):
+                        upper_bound: Optional[Union[ca.SX, ca.MX, float]] = None,
+                        increasing: Optional[bool] = None):
         """
         Set the name of the independent variable (usually time, t)
 
@@ -39,6 +40,10 @@ class AdiffInputBVP:
             Minimum value of independent variable
         upper_bound : Union[ca.SX, ca.MX, float], default=None
             Maximum value of independent variable
+        increasing : Optional[bool], default=None
+            Whether the independent variable is increasing or decreasing.
+            True -> tf > t0 is enforced in BVP solver
+            False -> tf < t0 is enforced in BVP solver
 
         Returns
         -------
@@ -49,6 +54,7 @@ class AdiffInputBVP:
         assert(type(var) == self.dtype)
         self.independent.bounded = False
         self.independent.values = var
+        self.independent.increasing = increasing
 
         if upper_bound is not None:
             self.independent.upper_bound = upper_bound

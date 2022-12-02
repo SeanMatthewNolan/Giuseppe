@@ -34,6 +34,7 @@ class AdiffOCP(Picky):
 
             self.default_values = self.src_ocp.constants.default_values
             self.eom = self.src_ocp.states.eoms
+            self.increasing_independent = self.src_ocp.independent.increasing
             self.inputConstraints = self.src_ocp.constraints
             self.inputCost = self.src_ocp.cost
 
@@ -144,6 +145,8 @@ class AdiffOCP(Picky):
             self.ca_cost, self.inputCost = self.wrap_cost()
 
             # TODO Implement bounding for symbolic input
+            self.increasing_independent = None
+
             self.upper_bounds = {
                 't': None,
                 'x': None,

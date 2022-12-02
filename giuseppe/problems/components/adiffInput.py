@@ -65,6 +65,16 @@ class InputAdiffBoundedVal:
             self.lower_bound = dtype()
 
 
+class InputAdiffIndependent(InputAdiffBoundedVal):
+    def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
+                 values: Optional[Union[ca.SX, ca.MX]] = None,
+                 upper_bound: Optional[Union[ca.SX, ca.MX]] = None,
+                 lower_bound: Optional[Union[ca.SX, ca.MX]] = None,
+                 increasing: Optional[bool] = None):
+        super().__init__(dtype, values, upper_bound, lower_bound)
+        self.increasing = increasing
+
+
 class InputAdiffConstant:
     def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX,
                  constants: Optional[Union[ca.SX, ca.MX]] = None,

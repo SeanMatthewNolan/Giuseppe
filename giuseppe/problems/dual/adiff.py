@@ -268,6 +268,7 @@ class AdiffDualOCP:
         self.dbc_dp = ca.Function('dbc_dp_nu_t', self.bc_jac_args, (_dbc_dp,), self.bc_jac_arg_names, ('dbc_dp_nu_t',))
 
         self.bounded = self.ocp.bounded
+        self.increasing_independent = self.ocp.increasing_independent
         self.bnd_func_args = (self.tau, self.dependent, self.bvp_parameters, self.constants)
         self.bnd_func_arg_names = ('τ', 'y', 'p_nu_t', 'k')
 
@@ -276,9 +277,22 @@ class AdiffDualOCP:
             _x_bnd = self.ocp.bounding_funcs['x'](*self.ocp.args)
             _u_bnd = self.ocp.bounding_funcs['u'](*self.ocp.args)
             _p_bnd = self.ocp.bounding_funcs['p'](*self.ocp.args)
+            _t0_bnd = self.ocp.bounding_funcs['t'](self.initial_independent, *self.ocp.args[1:])
+
+            if self.increasing_independent is not None:
+                if self.increasing_independent:  # Enforce tf > t0
+                    _tf_bnd = ca.if_else(self.terminal_independent < _t0_bnd,
+                                         _t0_bnd,  # tf < t0_bnd case: tf = t0
+                                         self.ocp.bounding_funcs['t'](self.terminal_independent, *self.ocp.args[1:]))
+                else:  # Enforce tf < t0
+                    _tf_bnd = ca.if_else(self.terminal_independent > _t0_bnd,
+                                         _t0_bnd,  # tf > t0_bnd case: tf = t0
+                                         self.ocp.bounding_funcs['t'](self.terminal_independent, *self.ocp.args[1:]))
+            else:
+                _tf_bnd = _t_bnd
 
             _y_bnd_expr = ca.vcat((_x_bnd, self.costates, _u_bnd))
-            _p_bnd_expr = ca.vcat((_p_bnd, self.initial_adjoints, self.terminal_adjoints, _t_bnd, _t_bnd))
+            _p_bnd_expr = ca.vcat((_p_bnd, self.initial_adjoints, self.terminal_adjoints, _t0_bnd, _tf_bnd))
             _y_bnd_transformed = ca.substitute(_y_bnd_expr, self.independent, _independent)
             _p_bnd_transformed = ca.substitute(_p_bnd_expr, self.independent, _independent)
 

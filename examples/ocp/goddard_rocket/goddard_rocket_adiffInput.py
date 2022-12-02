@@ -18,7 +18,7 @@ goddard.add_constant(h_ref, 23_800)
 
 # Independent variable
 t = ca.SX.sym('t', 1)
-goddard.set_independent(t)
+goddard.set_independent(t, increasing=True, lower_bound=0, upper_bound=100)
 
 # Control
 thrust = ca.SX.sym('thrust', 1)
