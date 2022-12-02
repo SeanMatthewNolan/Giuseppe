@@ -18,11 +18,11 @@ goddard.add_constant(h_ref, 23_800)
 
 # Independent variable
 t = ca.SX.sym('t', 1)
-goddard.set_independent(t, increasing=True, lower_bound=0, upper_bound=100)
+goddard.set_independent(t, increasing=True, lower_bound=0)
 
 # Control
 thrust = ca.SX.sym('thrust', 1)
-goddard.add_control(thrust)
+goddard.add_control(thrust, lower_bound=0, upper_bound=max_thrust)
 
 # States
 h = ca.SX.sym('h', 1)
@@ -65,7 +65,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
     comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-    num_solver = giuseppe.numeric_solvers.AdiffPythonSolveBVP(adiff_dualocp, verbose=False)
+    num_solver = giuseppe.numeric_solvers.AdiffPythonSolveBVP(adiff_dualocp, verbose=2)
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
 # guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=80/180*3.14159)
@@ -74,8 +74,8 @@ seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(10, {'m_f': 1})
-cont.add_logarithmic_series(10, {'eps_thrust': 1e-4})
+cont.add_linear_series(2, {'m_f': 1})
+cont.add_logarithmic_series(2, {'eps_thrust': 1e-4})
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')

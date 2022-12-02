@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Union
+from typing import Union, Optional
 from warnings import warn
 
 import casadi as ca
@@ -263,12 +263,12 @@ class AdiffDualOCP:
         _dbc_dyb = ca.jacobian(_bc, self.terminal_dependent)
         _dbc_dp = ca.jacobian(_bc, self.bvp_parameters)
 
-        self.dbc_dya = ca.Function('dbc_dya', self.bc_jac_args, (_dbc_dya,), self.bc_jac_arg_names, ('dbc_dya',))
-        self.dbc_dyb = ca.Function('dbc_dyb', self.bc_jac_args, (_dbc_dyb,), self.bc_jac_arg_names, ('dbc_dya',))
-        self.dbc_dp = ca.Function('dbc_dp_nu_t', self.bc_jac_args, (_dbc_dp,), self.bc_jac_arg_names, ('dbc_dp_nu_t',))
+        self.dbc_dya: ca.Function = ca.Function('dbc_dya', self.bc_jac_args, (_dbc_dya,), self.bc_jac_arg_names, ('dbc_dya',))
+        self.dbc_dyb: ca.Function = ca.Function('dbc_dyb', self.bc_jac_args, (_dbc_dyb,), self.bc_jac_arg_names, ('dbc_dya',))
+        self.dbc_dp: ca.Function = ca.Function('dbc_dp_nu_t', self.bc_jac_args, (_dbc_dp,), self.bc_jac_arg_names, ('dbc_dp_nu_t',))
 
-        self.bounded = self.ocp.bounded
-        self.increasing_independent = self.ocp.increasing_independent
+        self.bounded: bool = self.ocp.bounded
+        self.increasing_independent: Optional[bool] = self.ocp.increasing_independent
         self.bnd_func_args = (self.tau, self.dependent, self.bvp_parameters, self.constants)
         self.bnd_func_arg_names = ('τ', 'y', 'p_nu_t', 'k')
 
@@ -296,10 +296,10 @@ class AdiffDualOCP:
             _y_bnd_transformed = ca.substitute(_y_bnd_expr, self.independent, _independent)
             _p_bnd_transformed = ca.substitute(_p_bnd_expr, self.independent, _independent)
 
-            self.y_bnd_func = ca.Function('y_bnd', self.bnd_func_args, (_y_bnd_transformed,),
-                                          self.bnd_func_arg_names, ('y_bnd',))
-            self.p_bnd_func = ca.Function('p_bnd', self.bnd_func_args, (_p_bnd_transformed,),
-                                          self.bnd_func_arg_names, ('p_bnd',))
+            self.y_bnd_func: ca.Function = ca.Function('y_bnd', self.bnd_func_args, (_y_bnd_transformed,),
+                                                       self.bnd_func_arg_names, ('y_bnd',))
+            self.p_bnd_func: ca.Function = ca.Function('p_bnd', self.bnd_func_args, (_p_bnd_transformed,),
+                                                       self.bnd_func_arg_names, ('p_bnd',))
         else:
             self.y_bnd_func = None
             self.p_bnd_func = None
