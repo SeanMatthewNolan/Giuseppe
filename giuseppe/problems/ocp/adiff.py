@@ -78,27 +78,27 @@ class AdiffOCP(Picky):
                         )
                         ,), self.arg_names, ('t_bnd',)),
                 'x':
-                    ca.Function('t_bnd', self.args, (
+                    ca.Function('x_bnd', self.args, (
                         ca.if_else(
-                            self.independent < self.lower_bounds['x'], self.lower_bounds['x'],
-                            ca.if_else(self.independent > self.upper_bounds['x'], self.upper_bounds['x'],
-                                       self.independent)
+                            self.states < self.lower_bounds['x'], self.lower_bounds['x'],
+                            ca.if_else(self.states > self.upper_bounds['x'], self.upper_bounds['x'],
+                                       self.states)
                         )
                         ,), self.arg_names, ('t_bnd',)),
                 'u':
-                    ca.Function('t_bnd', self.args, (
+                    ca.Function('u_bnd', self.args, (
                         ca.if_else(
-                            self.independent < self.lower_bounds['u'], self.lower_bounds['u'],
-                            ca.if_else(self.independent > self.upper_bounds['u'], self.upper_bounds['u'],
-                                       self.independent)
+                            self.controls < self.lower_bounds['u'], self.lower_bounds['u'],
+                            ca.if_else(self.controls > self.upper_bounds['u'], self.upper_bounds['u'],
+                                       self.controls)
                         )
                         ,), self.arg_names, ('t_bnd',)),
                 'p':
-                    ca.Function('t_bnd', self.args, (
+                    ca.Function('p_bnd', self.args, (
                         ca.if_else(
-                            self.independent < self.lower_bounds['p'], self.lower_bounds['p'],
-                            ca.if_else(self.independent > self.upper_bounds['p'], self.upper_bounds['p'],
-                                       self.independent)
+                            self.parameters < self.lower_bounds['p'], self.lower_bounds['p'],
+                            ca.if_else(self.parameters > self.upper_bounds['p'], self.upper_bounds['p'],
+                                       self.parameters)
                         )
                         ,), self.arg_names, ('t_bnd',)),
             }

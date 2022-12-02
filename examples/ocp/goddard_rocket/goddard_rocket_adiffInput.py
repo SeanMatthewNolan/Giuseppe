@@ -28,9 +28,6 @@ goddard.add_control(thrust)
 h = ca.SX.sym('h', 1)
 v = ca.SX.sym('v', 1)
 m = ca.SX.sym('m', 1)
-goddard.add_state(h, v)
-goddard.add_state(v, (thrust - sigma * v**2 * ca.exp(-h / h_ref))/m - g)
-goddard.add_state(m, -thrust / c)
 
 # Boundary Values
 h_0 = ca.SX.sym('h_0', 1)
@@ -44,6 +41,11 @@ goddard.add_constant(v_0, 0)
 goddard.add_constant(m_0, 3)
 goddard.add_constant(m_f, 2.95)
 goddard.add_constant(eps_thrust, 0.01)
+
+# Equations of Motion
+goddard.add_state(h, v)
+goddard.add_state(v, (thrust - sigma * v**2 * ca.exp(-h / h_ref))/m - g)
+goddard.add_state(m, -thrust / c, lower_bound=1e-3, upper_bound=m_0)
 
 goddard.set_cost(0, 0, -h)
 
