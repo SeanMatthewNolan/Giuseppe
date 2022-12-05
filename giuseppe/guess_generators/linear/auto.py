@@ -1,6 +1,7 @@
 from typing import Union, Optional
 
 import numpy as np
+import casadi as ca
 from numpy.typing import ArrayLike
 
 from giuseppe.io.solution import Solution
@@ -92,8 +93,10 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
         if isinstance(prob, CompBVP):
             boundary_conditions = prob.boundary_conditions
+            dynamics = prob.dynamics
         else:
             boundary_conditions = prob.ca_boundary_conditions
+            dynamics = prob.ca_dynamics
 
         if use_dynamics:
             def bc_func(values):
@@ -102,7 +105,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                 dt = t_right - t_left
                 t_bar = 0.5 * (t_left + t_right)
                 x_bar = 0.5 * (x_left + x_right)
-                dx = difference_func(prob.dynamics, dt,
+                dx = difference_func(dynamics, dt,
                                      (t_right, x_right, _p, guess.k),
                                      (t_left, x_left, _p, guess.k),
                                      (t_bar, x_bar, _p, guess.k))
@@ -115,14 +118,14 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                 psi_0 = boundary_conditions.initial(t_left, x_left, _p, guess.k)
                 dyn_res = _xf - _x0 - dx
                 psi_f = boundary_conditions.terminal(t_right, x_right, _p, guess.k)
-                return np.concatenate((np.asarray(psi_0), dyn_res, np.asarray(psi_f)))
+                return np.concatenate((np.asarray(psi_0).flatten(), dyn_res, np.asarray(psi_f).flatten()))
 
         else:
             def bc_func(values):
                 _x0, _xf, _p = map_values(values)
                 psi_0 = boundary_conditions.initial(guess.t[0], _x0, _p, guess.k)
                 psi_f = boundary_conditions.terminal(guess.t[-1], _xf, _p, guess.k)
-                return np.concatenate((np.asarray(psi_0), np.asarray(psi_f)))
+                return np.concatenate((np.asarray(psi_0).flatten(), np.asarray(psi_f).flatten()))
 
         values_guess = np.concatenate(guess.x[:, 0], guess.x[:, -1], guess.p)
         out_x0, out_xf, out_p = map_values(optimize(bc_func, values_guess))
@@ -132,6 +135,11 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
     elif isinstance(prob, CompOCP) or isinstance(prob, AdiffOCP):
 
         num_u = prob.num_controls
+
+        if isinstance(prob, CompOCP):
+            dynamics = prob.dynamics
+        else:
+            dynamics = prob.ca_dynamics
 
         def map_values(values: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
             _x0 = values[:num_x]
@@ -156,7 +164,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                 u_bar = 0.5 * (u_left + u_right)
 
                 psi_0 = boundary_conditions.initial(t_left, x_left, u_left, _p, guess.k)
-                dx = difference_func(prob.dynamics, dt,
+                dx = difference_func(dynamics, dt,
                                      (t_right, x_right, u_right, _p, guess.k),
                                      (t_left, x_left, u_left, _p, guess.k),
                                      (t_bar, x_bar, u_bar, _p, guess.k))
@@ -167,7 +175,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
                 dyn_res = x_right - x_left - dx
                 psi_f = boundary_conditions.terminal(t_right, x_right, u_right, _p, guess.k)
-                return np.concatenate((np.asarray(psi_0), dyn_res, np.asarray(psi_f)))
+                return np.concatenate((np.asarray(psi_0).flatten(), dyn_res, np.asarray(psi_f).flatten()))
 
         else:
             def bc_func(values):
@@ -222,7 +230,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
                     psi_0 = ocp_bc.initial(t_left, x_left, u_left, _p, guess.k)
 
-                    dx = difference_func(prob.dynamics, dt,
+                    dx = difference_func(dynamics, dt,
                                          (t_right, x_right, u_right, _p, guess.k),
                                          (t_left, x_left, u_left, _p, guess.k),
                                          (t_bar, x_bar, u_bar, _p, guess.k))
