@@ -1,4 +1,5 @@
 import casadi as ca
+import numpy as np
 import giuseppe
 
 goddard = giuseppe.io.AdiffInputOCP()
@@ -10,19 +11,22 @@ sigma = ca.SX.sym('sigma', 1)
 c = ca.SX.sym('c', 1)
 h_ref = ca.SX.sym('h_ref', 1)
 
-goddard.add_constant(max_thrust, 193.044)  # TODO can this field be removed?
+goddard.add_constant(max_thrust, 193.044)
 goddard.add_constant(g, 32.174)
 goddard.add_constant(sigma, 5.49153484923381010e-5)
 goddard.add_constant(c, 1580.9425279876559)
 goddard.add_constant(h_ref, 23_800)
 
 # Independent variable
+max_time = 1_000
 t = ca.SX.sym('t', 1)
-goddard.set_independent(t, increasing=True, lower_bound=0)
+# goddard.set_independent(t, increasing=True, lower_bound=0)
+goddard.set_independent(t, increasing=True, lower_bound=0, upper_bound=max_time)
 
 # Control
 thrust = ca.SX.sym('thrust', 1)
-goddard.add_control(thrust, lower_bound=0, upper_bound=max_thrust)
+goddard.add_control(thrust)
+# goddard.add_control(thrust, lower_bound=0, upper_bound=max_thrust)
 
 # States
 h = ca.SX.sym('h', 1)
@@ -45,7 +49,7 @@ goddard.add_constant(eps_thrust, 0.01)
 # Equations of Motion
 goddard.add_state(h, v)
 goddard.add_state(v, (thrust - sigma * v**2 * ca.exp(-h / h_ref))/m - g)
-goddard.add_state(m, -thrust / c, lower_bound=1e-3, upper_bound=m_0)
+goddard.add_state(m, -thrust / c, lower_bound=m_f, upper_bound=m_0)
 
 goddard.set_cost(0, 0, -h)
 
@@ -65,11 +69,14 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
     comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-    num_solver = giuseppe.numeric_solvers.AdiffPythonSolveBVP(adiff_dualocp, verbose=2)
+    num_solver = giuseppe.numeric_solvers.AdiffPythonSolveBVP(adiff_dualocp, verbose=False)
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
-# guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=80/180*3.14159)
-guess = giuseppe.guess_generators.auto_linear_guess(adiff_dualocp)
+# Initialize guess with max thrust
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp,
+                                                       control=np.asarray(adiff_ocp.ca_control2pseudo(
+                                                           193, adiff_ocp.default_values)), t_span=10)
+# guess = giuseppe.guess_generators.auto_linear_guess(adiff_dualocp)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 

@@ -38,6 +38,20 @@ class AdiffOCP(Picky):
             self.inputConstraints = self.src_ocp.constraints
             self.inputCost = self.src_ocp.cost
 
+            self.input_upper_bounds: dict = {
+                't': self.src_ocp.independent.upper_bound,
+                'x': self.src_ocp.states.upper_bound,
+                'u': self.src_ocp.controls.upper_bound,
+                'p': self.src_ocp.parameters.upper_bound
+            }
+
+            self.input_lower_bounds: dict = {
+                't': self.src_ocp.independent.lower_bound,
+                'x': self.src_ocp.states.lower_bound,
+                'u': self.src_ocp.controls.lower_bound,
+                'p': self.src_ocp.parameters.lower_bound
+            }
+
             self.unregulated_controls = self.controls
             self.ca_pseudo2control = ca.Function('u', (self.controls, self.constants),
                                                  (self.controls,), ('u_reg', 'k'), ('u',))
@@ -55,50 +69,36 @@ class AdiffOCP(Picky):
             self.ca_boundary_conditions = self.create_boundary_conditions()
             self.ca_cost = self.create_cost()
 
-            self.upper_bounds = {
-                't': self.src_ocp.independent.upper_bound,
-                'x': self.src_ocp.states.upper_bound,
-                'u': self.src_ocp.controls.upper_bound,
-                'p': self.src_ocp.parameters.upper_bound
-            }
-
-            self.lower_bounds = {
-                't': self.src_ocp.independent.lower_bound,
-                'x': self.src_ocp.states.lower_bound,
-                'u': self.src_ocp.controls.lower_bound,
-                'p': self.src_ocp.parameters.lower_bound
-            }
-
             self.bounding_funcs = {
                 't':
                     ca.Function('t_bnd', self.args, (
                         ca.if_else(
-                            self.independent < self.lower_bounds['t'], self.lower_bounds['t'],
-                            ca.if_else(self.independent > self.upper_bounds['t'], self.upper_bounds['t'],
+                            self.independent < self.input_lower_bounds['t'], self.input_lower_bounds['t'],
+                            ca.if_else(self.independent > self.input_upper_bounds['t'], self.input_upper_bounds['t'],
                                        self.independent)
                         )
                         ,), self.arg_names, ('t_bnd',)),
                 'x':
                     ca.Function('x_bnd', self.args, (
                         ca.if_else(
-                            self.states < self.lower_bounds['x'], self.lower_bounds['x'],
-                            ca.if_else(self.states > self.upper_bounds['x'], self.upper_bounds['x'],
+                            self.states < self.input_lower_bounds['x'], self.input_lower_bounds['x'],
+                            ca.if_else(self.states > self.input_upper_bounds['x'], self.input_upper_bounds['x'],
                                        self.states)
                         )
                         ,), self.arg_names, ('t_bnd',)),
                 'u':
                     ca.Function('u_bnd', self.args, (
                         ca.if_else(
-                            self.controls < self.lower_bounds['u'], self.lower_bounds['u'],
-                            ca.if_else(self.controls > self.upper_bounds['u'], self.upper_bounds['u'],
+                            self.controls < self.input_lower_bounds['u'], self.input_lower_bounds['u'],
+                            ca.if_else(self.controls > self.input_upper_bounds['u'], self.input_upper_bounds['u'],
                                        self.controls)
                         )
                         ,), self.arg_names, ('t_bnd',)),
                 'p':
                     ca.Function('p_bnd', self.args, (
                         ca.if_else(
-                            self.parameters < self.lower_bounds['p'], self.lower_bounds['p'],
-                            ca.if_else(self.parameters > self.upper_bounds['p'], self.upper_bounds['p'],
+                            self.parameters < self.input_lower_bounds['p'], self.input_lower_bounds['p'],
+                            ca.if_else(self.parameters > self.input_upper_bounds['p'], self.input_upper_bounds['p'],
                                        self.parameters)
                         )
                         ,), self.arg_names, ('t_bnd',)),
@@ -147,14 +147,14 @@ class AdiffOCP(Picky):
             # TODO Implement bounding for symbolic input
             self.increasing_independent = None
 
-            self.upper_bounds = {
+            self.input_upper_bounds = {
                 't': None,
                 'x': None,
                 'u': None,
                 'p': None
             }
 
-            self.lower_bounds = {
+            self.input_lower_bounds = {
                 't': None,
                 'x': None,
                 'u': None,

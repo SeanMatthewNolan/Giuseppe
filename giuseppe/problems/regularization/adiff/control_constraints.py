@@ -1,4 +1,5 @@
 from typing import Union, Tuple, TYPE_CHECKING, TypeVar
+from warnings import warn
 
 import casadi as ca
 
@@ -47,25 +48,29 @@ class AdiffControlConstraintHandler(Regularizer):
         pseudo_controls = ca.substitute(prob.controls, bounded_control, pseudo_control)
         if ca.is_equal(prob.controls, pseudo_controls):
             raise ValueError(f'Control {bounded_control} not found to add constraint')
-        else:
-            if control_constraint.lower_limit is None or control_constraint.upper_limit is None:
-                raise ValueError('Control constraints must have lower and upper limits')
+        if control_constraint.lower_limit is None or control_constraint.upper_limit is None:
+            raise ValueError('Control constraints must have lower and upper limits')
 
-            control_expr, pseudo_expr, error_expr = self.expr_generator(pseudo_control, bounded_control,
-                                                                        control_constraint.lower_limit,
-                                                                        control_constraint.upper_limit,
-                                                                        self.regulator)
-            pseudo_control_expression = ca.substitute(prob.ca_pseudo2control(prob.controls, prob.constants),
-                                                      bounded_control, control_expr)
-            real_control_expression = ca.substitute(prob.ca_control2pseudo(prob.unregulated_controls, prob.constants),
-                                                    bounded_control, pseudo_expr)
+        control_idx = None
+        for control_idx, control in enumerate(ca.vertsplit(prob.controls)):
+            if ca.is_equal(control, bounded_control):
+                break
 
-            prob.controls = pseudo_controls
-            prob.ca_pseudo2control = ca.Function('u', (prob.controls, prob.constants), (pseudo_control_expression,),
-                                                 ('u_reg', 'k'), ('u',))
-            prob.ca_control2pseudo = ca.Function('u_reg', (prob.unregulated_controls, prob.constants),
-                                                 (real_control_expression,),
-                                                 ('u', 'k'), ('u_reg',))
+        control_expr, pseudo_expr, error_expr = self.expr_generator(pseudo_control, bounded_control,
+                                                                    control_constraint.lower_limit,
+                                                                    control_constraint.upper_limit,
+                                                                    self.regulator)
+        pseudo_control_expression = ca.substitute(prob.ca_pseudo2control(prob.controls, prob.constants),
+                                                  bounded_control, control_expr)
+        real_control_expression = ca.substitute(prob.ca_control2pseudo(prob.unregulated_controls, prob.constants),
+                                                bounded_control, pseudo_expr)
+
+        prob.controls = pseudo_controls
+        prob.ca_pseudo2control = ca.Function('u', (prob.controls, prob.constants), (pseudo_control_expression,),
+                                             ('u_reg', 'k'), ('u',))
+        prob.ca_control2pseudo = ca.Function('u_reg', (prob.unregulated_controls, prob.constants),
+                                             (real_control_expression,),
+                                             ('u', 'k'), ('u_reg',))
 
         prob.eom = ca.substitute(prob.eom, bounded_control, control_expr)
 
@@ -76,6 +81,19 @@ class AdiffControlConstraintHandler(Regularizer):
         prob.inputCost.terminal = ca.substitute(prob.inputCost.terminal, bounded_control, control_expr)
 
         prob.inputCost.path = ca.substitute(prob.inputCost.path, bounded_control, control_expr) + error_expr
+
+        if not ca.is_equal(prob.input_lower_bounds['u'][control_idx], -ca.inf)\
+                or not ca.is_equal(prob.input_upper_bounds['u'][control_idx], ca.inf):
+            warn(f'It is not recommended to put bounds on a regularized control! '
+                 f'Consider leaving \'{bounded_control.name()}\' unbounded.')
+            prob.input_lower_bounds['u'][control_idx] = prob.ca_control2pseudo(prob.input_lower_bounds['u'],
+                                                                               prob.constants)[control_idx]
+            prob.input_upper_bounds['u'][control_idx] = prob.ca_control2pseudo(prob.input_upper_bounds['u'],
+                                                                               prob.constants)[control_idx]
+
+        for key in prob.input_lower_bounds.keys():
+            prob.input_lower_bounds[key] = ca.substitute(prob.input_lower_bounds[key], bounded_control, control_expr)
+            prob.input_upper_bounds[key] = ca.substitute(prob.input_upper_bounds[key], bounded_control, control_expr)
 
         return prob
 
@@ -147,8 +165,8 @@ class AdiffControlConstraintHandler(Regularizer):
         control_expr = (upper_limit - lower_limit) / 2 * (pseudo_control / regulator) \
             * (1 + (pseudo_control ** 2 / regulator ** 2)) + (upper_limit + lower_limit) / 2
         pseudo_expr = ca.poly_roots(ca.poly_coeff(pseudo_control**3 + regulator**2 * pseudo_control
-                                                  -regulator**3 * ((2 * control - upper_limit - lower_limit)
-                                                                   / (upper_limit - lower_limit)), pseudo_control))
+                                                  - regulator**3 * ((2 * control - upper_limit - lower_limit)
+                                                                    / (upper_limit - lower_limit)), pseudo_control))
         error_expr = regulator * (1 - (1 + (pseudo_control ** 2 / regulator ** 2)) ** (-1/2))
 
         return control_expr, pseudo_expr, error_expr
