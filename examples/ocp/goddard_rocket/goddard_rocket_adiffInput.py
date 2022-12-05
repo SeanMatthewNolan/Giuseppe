@@ -1,6 +1,9 @@
 import casadi as ca
 import numpy as np
+import pickle
 import giuseppe
+
+ENFORCE_CONSTRAINTS = True
 
 goddard = giuseppe.io.AdiffInputOCP()
 
@@ -18,15 +21,19 @@ goddard.add_constant(c, 1580.9425279876559)
 goddard.add_constant(h_ref, 23_800)
 
 # Independent variable
-max_time = 1_000
 t = ca.SX.sym('t', 1)
-# goddard.set_independent(t, increasing=True, lower_bound=0)
-goddard.set_independent(t, increasing=True, lower_bound=0, upper_bound=max_time)
+if ENFORCE_CONSTRAINTS:
+    goddard.set_independent(t, increasing=True, lower_bound=0)
+else:
+    goddard.set_independent(t)
 
 # Control
 thrust = ca.SX.sym('thrust', 1)
-goddard.add_control(thrust)
-# goddard.add_control(thrust, lower_bound=0, upper_bound=max_thrust)
+if ENFORCE_CONSTRAINTS:
+    # goddard.add_control(thrust)
+    goddard.add_control(thrust, lower_bound=0, upper_bound=max_thrust)
+else:
+    goddard.add_control(thrust)
 
 # States
 h = ca.SX.sym('h', 1)
@@ -43,13 +50,18 @@ eps_thrust = ca.SX.sym('eps_thrust')
 goddard.add_constant(h_0, 0)
 goddard.add_constant(v_0, 0)
 goddard.add_constant(m_0, 3)
-goddard.add_constant(m_f, 2.95)
+goddard.add_constant(m_f, 1)
+# goddard.add_constant(m_f, 2.95)
 goddard.add_constant(eps_thrust, 0.01)
+# goddard.add_constant(eps_h, 1e-3)
 
 # Equations of Motion
 goddard.add_state(h, v)
 goddard.add_state(v, (thrust - sigma * v**2 * ca.exp(-h / h_ref))/m - g)
-goddard.add_state(m, -thrust / c, lower_bound=m_f, upper_bound=m_0)
+if ENFORCE_CONSTRAINTS:
+    goddard.add_state(m, -thrust / c, lower_bound=m_f, upper_bound=m_0)
+else:
+    goddard.add_state(m, -thrust / c)
 
 goddard.set_cost(0, 0, -h)
 
@@ -60,16 +72,25 @@ goddard.add_constraint('initial', m - m_0)
 
 goddard.add_constraint('terminal', m - m_f)
 
+# goddard.add_inequality_constraint(
+#         'control', thrust, lower_limit=0, upper_limit=max_thrust,
+#         regularizer=giuseppe.regularization.AdiffControlConstraintHandler(eps_thrust * h_ref, method='sin'))
+
 goddard.add_inequality_constraint(
-        'control', thrust, lower_limit=0, upper_limit=max_thrust,
-        regularizer=giuseppe.regularization.AdiffControlConstraintHandler(eps_thrust * h_ref, method='sin'))
+        'path', thrust, lower_limit=0, upper_limit=max_thrust,
+        regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(eps_thrust * h_ref, method='utm'))
+
+# goddard.add_inequality_constraint(
+#     'path', h, lower_limit=-10, upper_limit=1_000_000,
+#     regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(eps_h, method='utm')
+# )
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.AdiffOCP(goddard)
     adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
     adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
     comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
-    num_solver = giuseppe.numeric_solvers.AdiffPythonSolveBVP(adiff_dualocp, verbose=False)
+    num_solver = giuseppe.numeric_solvers.AdiffPythonSolveBVP(adiff_dualocp, verbose=2)
     # num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
 # Initialize guess with max thrust
@@ -77,12 +98,16 @@ guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp,
                                                        control=np.asarray(adiff_ocp.ca_control2pseudo(
                                                            193, adiff_ocp.default_values)), t_span=10)
 # guess = giuseppe.guess_generators.auto_linear_guess(adiff_dualocp)
+# guess = giuseppe.guess_generators.generate_constant_guess(adiff_dualocp)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
-cont.add_linear_series(2, {'m_f': 1})
-cont.add_logarithmic_series(2, {'eps_thrust': 1e-4})
+# cont.add_linear_series(1, {'m_f': 1})
+cont.add_logarithmic_series(1, {'eps_thrust': 1e-4})
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
+
+with open('bvp_sols.data', 'wb') as file:
+    pickle.dump(num_solver.solution_sets, file)
