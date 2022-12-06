@@ -56,6 +56,7 @@ class AdiffPythonSolveBVP(AdiffScipySolveBVP):
         """
         super().__init__(bvp, tol, bc_tol, max_nodes, verbose, use_jac)
         self.bounding_function = self.load_additional_features(bvp)
+        self.solution_sets: list[list[Solution]] = []
 
     def load_additional_features(self, bvp: SUPPORTED_INPUTS) -> Callable:
         if type(bvp) is AdiffBVP:
@@ -70,18 +71,21 @@ class AdiffPythonSolveBVP(AdiffScipySolveBVP):
 
     @staticmethod
     def _generate_bounding_function(bvp: AdiffDualOCP):
-        def _bounding_fun(tau_vec, y_vec, p, k):
-            # TODO p should be probably be bounded based on y_a, y_b, p, k...
-            #  but this requires major reworking of implementation to allow user to explicitly define function of
-            #  initial/final state. For now, bounded based on y_a only.
-            map_size = len(tau_vec)
-            _y_bnd_map = bvp.y_bnd_func.map(map_size)
-            # _p_bnd_map = bvp.p_bnd_func.map(map_size)
+        if bvp.bounded:
+            def _bounding_fun(tau_vec, y_vec, p, k):
+                # TODO p should be probably be bounded based on y_a, y_b, p, k...
+                #  but this requires major reworking of implementation to allow user to explicitly define function of
+                #  initial/final state. For now, bounded based on y_a only.
+                map_size = len(tau_vec)
+                _y_bnd_map = bvp.y_bnd_func.map(map_size)
+                # _p_bnd_map = bvp.p_bnd_func.map(map_size)
 
-            _y_bnd = np.asarray(_y_bnd_map(tau_vec, y_vec, p, k))
-            # _p_bnd = np.asarray(_p_bnd_map(tau_vec, y_vec, p, k))
-            _p_bnd = np.asarray(bvp.p_bnd_func(tau_vec[0], y_vec[:, 0], p, k)).flatten()
-            return _y_bnd, _p_bnd
+                _y_bnd = np.asarray(_y_bnd_map(tau_vec, y_vec, p, k))
+                # _p_bnd = np.asarray(_p_bnd_map(tau_vec, y_vec, p, k))
+                _p_bnd = np.asarray(bvp.p_bnd_func(tau_vec[0], y_vec[:, 0], p, k)).flatten()
+                return _y_bnd, _p_bnd
+        else:
+            _bounding_fun = None
         return _bounding_fun
 
     def solve(self, constants: NPArray, guess: Solution) -> Solution:
@@ -129,4 +133,10 @@ class AdiffPythonSolveBVP(AdiffScipySolveBVP):
             tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )
 
-        return self.postprocess(sol, k)
+        sols = []
+        for bvp_sol in sol:
+            sols.append(self.postprocess(bvp_sol, k))
+
+        self.solution_sets.append(sols)
+
+        return sols[-1]

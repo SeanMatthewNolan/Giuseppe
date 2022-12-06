@@ -752,7 +752,7 @@ def wrap_functions(fun, bc, fun_jac, bc_jac, k, a, S, D, dtype):
     return fun_wrapped, bc_wrapped, fun_jac_wrapped, bc_jac_wrapped
 
 
-def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding_fun=None,
+def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding_fun=None, process_iteration=None,
               tol=1e-3, max_nodes=1000, verbose=0, bc_tol=None):
     """Solve a boundary value problem for a system of ODEs.
 
@@ -1103,6 +1103,7 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding
 
     # Maximum number of iterations
     max_iteration = 10
+    sol_list = []
 
     fun_wrapped, bc_wrapped, fun_jac_wrapped, bc_jac_wrapped = wrap_functions(
         fun, bc, fun_jac, bc_jac, k, a, S, D, dtype)
@@ -1150,6 +1151,10 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding
         insert_1, = np.nonzero((rms_res > tol) & (rms_res < 100 * tol))
         insert_2, = np.nonzero(rms_res >= 100 * tol)
         nodes_added = insert_1.shape[0] + 2 * insert_2.shape[0]
+
+        sol_list.append(BVPResult(sol=sol, p=p, x=x, y=y, yp=f, rms_residuals=rms_res,
+                                  niter=iteration, status=status,
+                                  message=f'Iteration {iteration}', success=False))
 
         if m + nodes_added > max_nodes:
             status = 1
@@ -1201,6 +1206,9 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding
     if p.size == 0:
         p = None
 
-    return BVPResult(sol=sol, p=p, x=x, y=y, yp=f, rms_residuals=rms_res,
-                     niter=iteration, status=status,
-                     message=TERMINATION_MESSAGES[status], success=status == 0)
+    sol_list = sol_list[0:-1]
+    sol_list.append(BVPResult(sol=sol, p=p, x=x, y=y, yp=f, rms_residuals=rms_res,
+                              niter=iteration, status=status,
+                              message=TERMINATION_MESSAGES[status], success=status == 0))
+
+    return sol_list
