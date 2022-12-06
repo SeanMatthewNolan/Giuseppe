@@ -63,7 +63,7 @@ if ENFORCE_CONSTRAINTS:
 else:
     goddard.add_state(m, -thrust / c)
 
-goddard.set_cost(0, 0, -h)
+goddard.set_cost(0, eps_thrust * thrust**2, -h)
 
 goddard.add_constraint('initial', t)
 goddard.add_constraint('initial', h - h_0)
@@ -104,7 +104,8 @@ sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 # cont.add_linear_series(1, {'m_f': 1})
-cont.add_logarithmic_series(1, {'eps_thrust': 1e-4})
+cont.add_logarithmic_series(2, {'eps_thrust': 1e-4})
+cont.add_linear_series(1, {'max_thrust': 189.5})
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
