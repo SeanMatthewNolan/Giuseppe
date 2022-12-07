@@ -17,8 +17,7 @@ The easiest way to install Giuseppe is by cloning or downloading this repository
 ```
 pip install -e <installation_directory>
 ```
-Currently, the project only supports Python 3.10, but it should soon support back until 3.8.
-Also, I hope to soon add the project to PyPA once it is a little more mature.
+I hope to soon add the project to PyPI once it is a little more mature.
 
 ## Documentation
 
