@@ -1,4 +1,6 @@
-from typing import Union, Callable
+from __future__ import annotations
+import sys
+from typing import Union, Callable, Tuple
 
 import numpy as np
 
@@ -67,13 +69,13 @@ def generate_bc_func(prob: SUPPORTED_PROBLEMS) -> Callable[[Solution], np.ndarra
         dual_bc = prob.dual.ca_adj_boundary_conditions
 
         def bc_func(guess):
-            psi_0 = ocp_bc.initial(guess.t[0], guess.x[:, 0], guess.u[:, 0], guess.p, k)
-            psi_f = ocp_bc.terminal(guess.t[-1], guess.x[:, -1], guess.u[:, -1], guess.p, k)
+            psi_0 = ocp_bc.initial(guess.t[0], guess.x[:, 0], guess.u[:, 0], guess.p, guess.k)
+            psi_f = ocp_bc.terminal(guess.t[-1], guess.x[:, -1], guess.u[:, -1], guess.p, guess.k)
 
             adj_bc0 = dual_bc.initial(
-                    guess.t[0], guess.x[:, 0], guess.lam[:, 0], guess.u[:, 0], guess.p, guess.nu0, k)
+                    guess.t[0], guess.x[:, 0], guess.lam[:, 0], guess.u[:, 0], guess.p, guess.nu0, guess.k)
             adj_bcf = dual_bc.terminal(
-                    guess.t[-1], guess.x[:, -1], guess.lam[:, -1], guess.u[:, -1], guess.p, guess.nuf, k)
+                    guess.t[-1], guess.x[:, -1], guess.lam[:, -1], guess.u[:, -1], guess.p, guess.nuf, guess.k)
 
             return np.concatenate((np.asarray(psi_0).flatten(),
                                    np.asarray(psi_f).flatten(),
@@ -86,8 +88,13 @@ def generate_bc_func(prob: SUPPORTED_PROBLEMS) -> Callable[[Solution], np.ndarra
     return bc_func
 
 
-def generate_separated_bc_funcs(prob: SUPPORTED_PROBLEMS) \
-        -> tuple[Callable[[Solution], np.ndarray], Callable[[Solution], np.ndarray]]:
+if sys.version_info >= (3, 10):
+    SEPARATED_BCS = tuple[Callable[[Solution], np.ndarray], Callable[[Solution], np.ndarray]]
+else:
+    SEPARATED_BCS = Tuple[Callable, Callable]
+
+
+def generate_separated_bc_funcs(prob: SUPPORTED_PROBLEMS) -> SEPARATED_BCS:
     """
     Generates BC Functions to Judge Validity of Guess
 

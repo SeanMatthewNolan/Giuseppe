@@ -1,11 +1,18 @@
+from __future__ import annotations
+import sys
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from time import perf_counter_ns
 from typing import Union, Optional
 
+# TODO: Consider replacing with protocol
 _TIMER_OUTPUT_TYPE = Union[int, float]
-TIMER_TYPE = Callable[[], _TIMER_OUTPUT_TYPE]
-LOG_FUNC_TYPE = Callable[[str], None]
+if sys.version_info >= (3, 10):
+    TIMER_TYPE = Callable[[], _TIMER_OUTPUT_TYPE]
+    LOG_FUNC_TYPE = Callable[[str], None]
+else:
+    TIMER_TYPE = Callable
+    LOG_FUNC_TYPE = Callable
 
 
 # TODO Consider making this and other components useful in other projects a seperate library
