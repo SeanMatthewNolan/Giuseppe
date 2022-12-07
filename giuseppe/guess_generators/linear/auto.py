@@ -17,7 +17,7 @@ SUPPORTED_PROBLEMS = Union[CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, Ad
 
 def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayLike] = 0.1,
                       constants: Optional[ArrayLike] = None, default: Union[float, Solution] = 0.1,
-                      use_dynamics: bool = False, propagation_method: bool = 'rk',
+                      use_dynamics: bool = False, propagation_method: str = 'rk', max_steps: Optional[int] = 8,
                       abs_tol: float = 1e-3, rel_tol: float = 1e-3, backtrack: bool = True,
                       method: str = 'projection') -> Solution:
     """
@@ -40,6 +40,8 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
         specifies whether the values are fitted with respect to a linear approximation of the dynamics or BC alone
     propagation_method : str, default='rk'
         Propagation method to fit to dynamics. Supported inputs are: euler, rk
+    max_steps : int, default=8
+        maximum number of steps the iterative solver will take
     abs_tol : float, default=1e-3
         absolute tolerance
     rel_tol : float, default=1e-3
@@ -63,13 +65,14 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
     if method == 'projection':
         def optimize(func, arr):
-            return project_to_nullspace(func, arr, abs_tol=abs_tol, rel_tol=rel_tol, backtrack=backtrack)
+            return project_to_nullspace(func, arr, abs_tol=abs_tol, rel_tol=rel_tol,
+                                        max_steps=max_steps, backtrack=backtrack)
     elif method == 'gradient':
         def optimize(func, arr):
-            return gradient_descent(func, arr, abs_tol=abs_tol, backtrack=backtrack)
+            return gradient_descent(func, arr, abs_tol=abs_tol, max_steps=max_steps, backtrack=backtrack)
     elif method == 'newton':
         def optimize(func, arr):
-            return newtons_method(func, arr, abs_tol=abs_tol, backtrack=backtrack)
+            return newtons_method(func, arr, abs_tol=abs_tol, max_steps=max_steps, backtrack=backtrack)
     else:
         raise(RuntimeError, f'Optimization Method invalid!'
                             f'Should be:\nprojection\ngradient\nnewton\nYou used:\n{method}')
@@ -116,7 +119,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                     dx = np.asarray(dx).flatten()
 
                 psi_0 = boundary_conditions.initial(t_left, x_left, _p, guess.k)
-                dyn_res = _xf - _x0 - dx
+                dyn_res = x_right - x_left - dx
                 psi_f = boundary_conditions.terminal(t_right, x_right, _p, guess.k)
                 return np.concatenate((np.asarray(psi_0).flatten(), dyn_res, np.asarray(psi_f).flatten()))
 
@@ -201,8 +204,10 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
 
             if isinstance(dual, CompDual):
                 dual_bc = dual.adjoined_boundary_conditions
+                costate_dynamics = dual.costate_dynamics
             else:
                 dual_bc = dual.ca_adj_boundary_conditions
+                costate_dynamics = dual.ca_costate_dynamics
 
             def map_dual_values(values: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                                                              np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -239,11 +244,11 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                     else:
                         dx = np.asarray(dx).flatten()
 
-                    dyn_res = _xf - _x0 - dx
+                    dyn_res = x_right - x_left - dx
                     psi_f = ocp_bc.terminal(t_right, x_right, u_right, _p, guess.k)
 
                     adj_bc0 = dual_bc.initial(t_left, x_left, lam_left, u_left, _p, _nu0, guess.k)
-                    d_lam = difference_func(dual.costate_dynamics, dt,
+                    d_lam = difference_func(costate_dynamics, dt,
                                             (t_right, x_right, lam_right, u_right, _p, guess.k),
                                             (t_left, x_left, lam_left, u_left, _p, guess.k),
                                             (t_bar, x_bar, lam_bar, u_bar, _p, guess.k))
@@ -252,7 +257,7 @@ def auto_linear_guess(comp_prob: SUPPORTED_PROBLEMS, t_span: Union[float, ArrayL
                     else:
                         d_lam = np.asarray(d_lam).flatten()
 
-                    costate_dyn_res = _lamf - _lam0 - d_lam
+                    costate_dyn_res = lam_left - lam_right - d_lam
                     adj_bcf = dual_bc.terminal(t_right, x_right, lam_right, u_right, _p, _nuf, guess.k)
 
                     return np.concatenate((

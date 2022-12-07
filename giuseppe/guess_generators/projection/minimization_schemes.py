@@ -40,7 +40,7 @@ def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Option
 
     # Backtracking constants (Same as SciPy's SolveBVP)
     min_improvement = 0.2  # Min. relative improvement (Armijo constant)
-    backtrack_decrease_factor = 0.25  # Step size decrease factor
+    backtrack_decrease_factor = 0.5  # Step size decrease factor
     max_backtrack_steps = 4
 
     arr = np.array(arr)

@@ -477,6 +477,10 @@ def solve_newton(n, m, h, col_fun, bc, jac, y, p, B, sys_bound, bvp_tol, bc_tol)
     # tau ** n_trial.
     n_trial = 4
 
+    # Prior to any iterations, bound y & p
+    if sys_bound is not None:
+        y, p = sys_bound(y, p)
+
     col_res, y_middle, f, f_middle = col_fun(y, p)
     bc_res = bc(y[:, 0], y[:, -1], p)
     res = np.hstack((col_res.ravel(order='F'), bc_res))
@@ -1122,6 +1126,16 @@ def solve_bvp(fun, bc, x, y, p=None, S=None, fun_jac=None, bc_jac=None, bounding
     iteration = 0
     if verbose == 2:
         print_iteration_header()
+
+    col_res, y_middle, f, f_middle = collocation_fun(fun_wrapped, y,
+                                                     p, x, h)
+    r_middle = 1.5 * col_res / h
+    sol = create_spline(y, f, x, h)
+    rms_res = estimate_rms_residuals(fun_wrapped, sol, x, h, p,
+                                     r_middle, f_middle)
+    sol_list.append(BVPResult(sol=sol, p=p, x=x, y=y, yp=f, rms_residuals=rms_res,
+                              niter=iteration, status=status,
+                              message=f'Iteration {iteration}', success=False))
 
     while True:
         m = x.shape[0]
