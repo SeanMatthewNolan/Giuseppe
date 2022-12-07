@@ -1,3 +1,5 @@
+from __future__ import annotations
+import sys
 from typing import Union, Callable, TypeVar
 
 import casadi as ca
@@ -14,10 +16,16 @@ from ...utils.mixins import Picky
 from ...utils.typing import NPArray
 
 _scipy_bvp_sol = TypeVar('_scipy_bvp_sol')
-_dyn_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
-_bc_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
-_preprocess_type = Callable[[Solution], tuple[NPArray, NPArray, NPArray]]
-_postprocess_type = Callable[[_scipy_bvp_sol, NPArray], Solution]
+if sys.version_info >= (3, 10):
+    _dyn_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
+    _bc_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
+    _preprocess_type = Callable[[Solution], tuple[NPArray, NPArray, NPArray]]
+    _postprocess_type = Callable[[_scipy_bvp_sol, NPArray], Solution]
+else:
+    _dyn_type = Callable
+    _bc_type = Callable
+    _preprocess_type = Callable
+    _postprocess_type = Callable
 
 
 class AdiffScipySolveBVP(Picky):

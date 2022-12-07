@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Hashable, Mapping, Iterator
 from copy import copy
 
