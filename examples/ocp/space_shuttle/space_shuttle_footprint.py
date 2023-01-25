@@ -5,6 +5,7 @@ import numpy as np
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
 from giuseppe.io import InputOCP, SolutionSet
+from giuseppe.problems.input import StrInputProb
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
@@ -13,7 +14,7 @@ from giuseppe.utils import Timer
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
-ocp = InputOCP()
+ocp = StrInputProb()
 
 ocp.set_independent('t')
 
@@ -95,7 +96,8 @@ with Timer(prefix='Compilation Time:'):
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
     comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
+
+num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
 
 guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
