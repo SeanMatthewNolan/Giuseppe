@@ -5,6 +5,7 @@ import numpy as np
 from sympy import Symbol, topological_sort
 
 from giuseppe.problems.bvp.input import InputBVP
+from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.components.input import InputInequalityConstraints
 from giuseppe.problems.components.symbolic import SymBoundaryConditions, SymNamedExpr
 from giuseppe.utils.mixins import Symbolic
@@ -12,7 +13,7 @@ from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SymExpr
 
 
 class SymBVP(Symbolic):
-    def __init__(self, input_data: Optional[InputBVP] = None):
+    def __init__(self, input_data: Optional[Union[InputBVP, StrInputProb]] = None):
         super().__init__()
 
         self.independent: Symbol = SYM_NULL
@@ -30,6 +31,12 @@ class SymBVP(Symbolic):
 
         if isinstance(input_data, InputBVP):
             self.process_data_from_input(input_data)
+        elif isinstance(input_data, StrInputProb):
+            self.process_data_from_input(input_data)
+        elif input_data is None:
+            pass
+        else:
+            raise RuntimeError(f'{type(self)} cannot process input data class of {type(self)}')
 
     def process_variables_from_input(self, input_data: InputBVP):
         self.independent = self.new_sym(input_data.independent)
@@ -79,7 +86,7 @@ class SymBVP(Symbolic):
         self.boundary_conditions.initial = self.substitute(self.boundary_conditions.initial)
         self.boundary_conditions.terminal = self.substitute(self.boundary_conditions.terminal)
 
-    def process_data_from_input(self, input_data: InputBVP):
+    def process_data_from_input(self, input_data: Union[InputBVP, StrInputProb]):
         self.process_variables_from_input(input_data)
         self.process_expr_from_input(input_data)
         self.process_inequality_constraints(input_data.inequality_constraints)

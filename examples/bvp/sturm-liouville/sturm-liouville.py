@@ -1,15 +1,18 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to file location
+import os
 
 import numpy as np
 
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
-from giuseppe.io import InputBVP, SolutionSet
+from giuseppe.io import SolutionSet
+from giuseppe.problems.input import StrInputProb
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
 from giuseppe.problems.bvp import SymBVP, CompBVP
 from giuseppe.utils import Timer
 
-sturm_liouville = InputBVP()
+os.chdir(os.path.dirname(__file__))  # Set directory to file location
+
+sturm_liouville = StrInputProb()
 
 sturm_liouville.set_independent('x')
 

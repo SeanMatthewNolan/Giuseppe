@@ -1,12 +1,14 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os
 
 import giuseppe
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 G = 5.3
 NM2FT = 6076.1
 T_GUESS = 2.5
 
-lunar = giuseppe.io.InputOCP()
+lunar = giuseppe.problems.input.StrInputProb()
 
 lunar.set_independent('t')
 

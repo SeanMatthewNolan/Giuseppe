@@ -1,13 +1,14 @@
-from typing import Optional
+from typing import Optional, Union
 
 from giuseppe.problems.bvp import SymBVP
 from giuseppe.problems.components.symbolic import SymCost
+from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX
 
 
 class SymOCP(SymBVP):
-    def __init__(self, input_data: Optional[InputOCP] = None):
+    def __init__(self, input_data: Optional[Union[InputOCP, StrInputProb]] = None):
         self.controls: SymMatrix = EMPTY_SYM_MATRIX
         self.cost = SymCost()
 

@@ -12,7 +12,7 @@ class InputBVP:
 
     def __init__(self):
         """
-        Initilize InputBVP
+        Initialize InputBVP
         """
         self.independent = None
         self.states: list[InputState] = []
