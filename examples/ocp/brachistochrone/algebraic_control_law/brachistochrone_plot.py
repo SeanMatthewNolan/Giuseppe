@@ -2,7 +2,6 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 
-
 os.chdir(os.path.dirname(__file__))  # Set diectory to file location
 
 with open('sol_set.data', 'rb') as file:
