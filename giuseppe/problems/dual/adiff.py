@@ -6,13 +6,14 @@ import casadi as ca
 
 from giuseppe.utils.mixins import Picky
 from .symbolic import SymOCP
+from ..input import AdiffInputProb
 from ..components.adiff import AdiffBoundaryConditions, AdiffCost
-from ..ocp.adiff import AdiffOCP, AdiffInputOCP
+from ..ocp.adiff import AdiffOCP
 from ..ocp.compiled import CompOCP
 
 
 class AdiffDual(Picky):
-    SUPPORTED_INPUTS: type = Union[AdiffInputOCP, SymOCP, CompOCP, AdiffOCP]
+    SUPPORTED_INPUTS: type = Union[AdiffInputProb, SymOCP, CompOCP, AdiffOCP]
 
     def __init__(self, source_ocp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_ocp)
@@ -27,7 +28,7 @@ class AdiffDual(Picky):
                 self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp.src_ocp)
             else:
                 self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
-        elif isinstance(self.src_ocp, SymOCP) or isinstance(self.src_ocp, AdiffInputOCP):
+        elif isinstance(self.src_ocp, SymOCP) or isinstance(self.src_ocp, AdiffInputProb):
             self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
         else:
             raise TypeError(f"AdiffDual cannot be initialized with a {type(source_ocp)} object!")

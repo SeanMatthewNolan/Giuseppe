@@ -4,7 +4,7 @@ from warnings import warn
 
 import casadi as ca
 
-from giuseppe.problems.bvp import AdiffInputBVP
+from giuseppe.problems.input import AdiffInputProb
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import SymMatrix
 from .compiled import CompBVP
@@ -13,7 +13,7 @@ from ..components.adiff import AdiffBoundaryConditions, ca_wrap
 
 
 class AdiffBVP(Picky):
-    SUPPORTED_INPUTS: type = Union[AdiffInputBVP, SymBVP, CompBVP]
+    SUPPORTED_INPUTS: type = Union[AdiffInputProb, SymBVP, CompBVP]
 
     def __init__(self, source_bvp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_bvp)
@@ -22,7 +22,7 @@ class AdiffBVP(Picky):
 
         self.arg_names = ('t', 'x', 'p', 'k')
 
-        if isinstance(self.src_bvp, AdiffInputBVP):
+        if isinstance(self.src_bvp, AdiffInputProb):
             self.comp_bvp = None
 
             self.independent = self.src_bvp.independent

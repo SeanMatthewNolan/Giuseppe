@@ -1,7 +1,7 @@
 import casadi as ca
 import giuseppe
 
-goddard = giuseppe.io.AdiffInputOCP()
+goddard = giuseppe.problems.input.AdiffInputProb()
 
 # Constants
 max_thrust = ca.MX.sym('max_thrust', 1)

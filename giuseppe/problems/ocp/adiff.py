@@ -6,7 +6,7 @@ import casadi as ca
 
 from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import SymMatrix
-from giuseppe.problems.ocp.adiffInput import AdiffInputOCP
+from giuseppe.problems.input import AdiffInputProb
 from giuseppe.problems.components.adiffInput import InputAdiffCost, InputAdiffConstraints,\
     InputAdiffInequalityConstraints
 from .compiled import CompOCP
@@ -15,7 +15,7 @@ from ..components.adiff import AdiffBoundaryConditions, AdiffCost, ca_wrap
 
 
 class AdiffOCP(Picky):
-    SUPPORTED_INPUTS: type = Union[AdiffInputOCP, SymOCP, CompOCP]
+    SUPPORTED_INPUTS: type = Union[AdiffInputProb, SymOCP, CompOCP]
 
     def __init__(self, source_ocp: SUPPORTED_INPUTS):
         Picky.__init__(self, source_ocp)
@@ -23,7 +23,7 @@ class AdiffOCP(Picky):
 
         self.arg_names = ('t', 'x', 'u', 'p', 'k')
 
-        if isinstance(self.src_ocp, AdiffInputOCP):
+        if isinstance(self.src_ocp, AdiffInputProb):
             self.dtype = self.src_ocp.dtype
             self.comp_ocp = None
             self.independent = self.src_ocp.independent

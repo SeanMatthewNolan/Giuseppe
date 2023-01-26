@@ -1,10 +1,11 @@
 from .solution import Solution, load as load_sol
 from .solution_set import SolutionSet
 
-from ..problems.bvp import InputBVP, AdiffInputBVP
-from ..problems.ocp import InputOCP, AdiffInputOCP
+from ..problems.input import AdiffInputProb
+from ..problems.bvp import InputBVP
+from ..problems.ocp import InputOCP
 
 StrInputBVP = InputBVP
 StrInputOCP = InputOCP
-AdiffInputBVP = AdiffInputBVP
-AdiffInputOCP = AdiffInputOCP
+AdiffInputBVP = AdiffInputProb
+AdiffInputOCP = AdiffInputProb
