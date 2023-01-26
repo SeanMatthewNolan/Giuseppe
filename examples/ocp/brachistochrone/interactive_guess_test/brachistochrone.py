@@ -1,15 +1,12 @@
 import os
 
-import numpy as np
-
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import generate_constant_guess, InteractiveGuessGenerator
+from giuseppe.guess_generators import InteractiveGuessGenerator
 from giuseppe.io import InputOCP, SolutionSet
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
-
 
 os.chdir(os.path.dirname(__file__))  # Set directory to file location
 

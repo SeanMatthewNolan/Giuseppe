@@ -1,4 +1,4 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to file location
+import os
 
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
@@ -7,6 +7,8 @@ from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
+
+os.chdir(os.path.dirname(__file__))  # Set directory to file location
 
 ocp = InputOCP()
 

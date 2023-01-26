@@ -45,4 +45,3 @@ ax22.set_title('Mass')
 fig.tight_layout()
 
 plt.show()
-

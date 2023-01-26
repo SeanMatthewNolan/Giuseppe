@@ -2,7 +2,7 @@ import os
 
 import giuseppe
 
-os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 goddard = giuseppe.io.InputOCP()
 
@@ -48,7 +48,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp)
     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, tol=1e-5)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=80/180*3.14159)
+guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=80 / 180 * 3.14159)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
 

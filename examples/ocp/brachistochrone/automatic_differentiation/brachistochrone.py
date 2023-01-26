@@ -1,4 +1,4 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to file location
+import os
 
 import numpy as np
 
@@ -11,8 +11,9 @@ from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
 from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.utils import Timer
 
+os.chdir(os.path.dirname(__file__))  # Set directory to file location
+
 giuseppe.utils.compilation.JIT_COMPILE = True
-giuseppe.utils.compilation.LAMB_MODS = ['numpy']
 
 ocp = InputOCP()
 

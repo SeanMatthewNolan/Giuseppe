@@ -1,4 +1,4 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to file location
+import os
 
 import numpy as np
 
@@ -9,6 +9,8 @@ from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.utils import Timer
+
+os.chdir(os.path.dirname(__file__))  # Set directory to file location
 
 input_ocp = InputOCP()
 
@@ -57,4 +59,3 @@ cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
-
