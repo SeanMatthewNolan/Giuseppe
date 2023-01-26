@@ -1,9 +1,10 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
-
+import os
 import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 with open('sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
@@ -18,9 +19,7 @@ fig = plt.figure(figsize=(6.5, 5))
 fig.suptitle('Goddard Rocket')
 
 ax1 = fig.add_subplot(211)
-# ax1.plot(sol.t, max_thrust * np.arctan(sol.u[0, :] / (eps * h_ref)) / np.pi + max_thrust/2, linewidth=2)
-ax1.plot(sol.t, max_thrust/2 * np.sin(sol.u[0, :]) + max_thrust/2, linewidth=2)
-# ax1.plot(sol.t, sol.u[0, :], linewidth=2)
+ax1.plot(sol.t, max_thrust * np.arctan(sol.u[0, :] / (eps * h_ref)) / np.pi + max_thrust / 2, linewidth=2)
 ax1.set_xlabel('Time [s]')
 ax1.set_ylabel('Thrust [lb]')
 ax1.set_title('Thrust (Control)')
