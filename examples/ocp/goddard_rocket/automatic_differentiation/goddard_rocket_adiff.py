@@ -1,6 +1,8 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os
 
 import giuseppe
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
 
 goddard = giuseppe.io.InputOCP()
 
@@ -37,22 +39,24 @@ goddard.add_constraint('terminal', 'm - m_f')
 
 goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
-        regularizer=giuseppe.regularization.ControlConstraintHandler('eps_thrust * h_ref', method='atan'))
+        regularizer=giuseppe.regularization.ControlConstraintHandler('eps_thrust * h_ref', method='sin'))
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(goddard)
-    sym_dual = giuseppe.problems.SymDual(sym_ocp)
-    sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp)
-    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp)
+    adiff_ocp = giuseppe.problems.AdiffOCP(sym_ocp)
+    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
+    adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
+    comp_dualocp = giuseppe.problems.CompDualOCP(adiff_dualocp)
+    # num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False)
+    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dualocp, verbose=False)
 
-guess = giuseppe.guess_generators.auto_linear_guess(comp_dual_ocp)
+guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=80/180*3.14159)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
+sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'m_f': 1})
-cont.add_logarithmic_series(20, {'eps_thrust': 1e-6})
+cont.add_logarithmic_series(20, {'eps_thrust': 1e-4}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')

@@ -1,6 +1,8 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os
 
 import giuseppe
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
 
 goddard = giuseppe.io.InputOCP()
 
@@ -37,7 +39,7 @@ goddard.add_constraint('terminal', 'm - m_f')
 
 goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
-        regularizer=giuseppe.regularization.PenaltyConstraintHandler('eps_thrust * h_ref', method='sec'))
+        regularizer=giuseppe.regularization.ControlConstraintHandler('eps_thrust * h_ref', method='sin'))
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_ocp = giuseppe.problems.SymOCP(goddard)
@@ -46,14 +48,13 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp)
     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, tol=1e-5)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=150)
+guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=80/180*3.14159)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
 
 cont = giuseppe.continuation.ContinuationHandler(sol_set)
 cont.add_linear_series(10, {'m_f': 1})
-cont.add_logarithmic_series(40, {'eps_thrust': 3e-6}, bisection=True)
+cont.add_logarithmic_series(10, {'eps_thrust': 0.2e-4})
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
-
