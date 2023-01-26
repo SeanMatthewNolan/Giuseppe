@@ -66,7 +66,7 @@ def cycloid_constant2(t, x, lam, u, p, k):
     return cos(u[0]) ** 2 / (-2 * k[0] * x[1])
 
 
-with open('sol_set.data', 'rb') as file:
+with open('../sol_set.data', 'rb') as file:
     sol = pickle.load(file)[-1]
 
 err_dlam = []

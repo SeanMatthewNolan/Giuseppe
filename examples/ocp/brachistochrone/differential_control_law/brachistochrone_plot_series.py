@@ -1,13 +1,13 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to file location
-
+import os
 import pickle
-
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
 
 MED_FIG_SIZE = (6.5, 5)
 SML_FIG_SIZE = (6.5, 3)
+
+os.chdir(os.path.dirname(__file__))  # Set directory to file location
 
 with open('sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
