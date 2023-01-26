@@ -1,4 +1,6 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os;
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
 
 import pickle
 
@@ -111,7 +113,7 @@ with Timer(prefix='Compilation Time:'):
     comp_dual_ocp = CompDualOCP(sym_bvp)
     num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
+guess = auto_propagate_guess(comp_dual_ocp, control=(20 / 180 * 3.14159, 0), t_span=100)
 with open('guess.data', 'wb') as file:
     pickle.dump(guess, file)
 

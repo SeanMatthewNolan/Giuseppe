@@ -1,13 +1,11 @@
 import pickle
 
+import casadi as ca
 import matplotlib.pyplot as plt
 import numpy as np
-import casadi as ca
 
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
-
 from space_shuttle_footprint_conditional_atm import adiff_bvp
-
 
 SMALL_FIGSIZE = (6.5, 3)
 MED_FIG_SIZE = (6.5, 5)

@@ -1,20 +1,24 @@
-import os
+import os;
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+
+import pickle
 
 import numpy as np
 
+import giuseppe
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
 from giuseppe.io import InputOCP, SolutionSet
-from giuseppe.problems.input import StrInputProb
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
-from giuseppe.problems.ocp import SymOCP
+from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
+from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
+from giuseppe.problems.ocp import SymOCP, AdiffOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
-os.chdir(os.path.dirname(__file__))  # Set directory to current location
+giuseppe.utils.compilation.JIT_COMPILE = True
 
-ocp = StrInputProb()
+ocp = InputOCP()
 
 ocp.set_independent('t')
 
@@ -89,27 +93,31 @@ ocp.add_constraint('terminal', 'gamma - gamma_f')
 ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
                               regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
-#                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
+#                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec))
 
 with Timer(prefix='Compilation Time:'):
     sym_ocp = SymOCP(ocp)
-    sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    comp_dual_ocp = CompDualOCP(sym_bvp)
+    adiff_ocp = AdiffOCP(sym_ocp)
+    adiff_dual = AdiffDual(adiff_ocp)
+    adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
+    num_solver = AdiffScipySolveBVP(adiff_dualocp, bc_tol=1e-8)
 
-num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
+guess = auto_propagate_guess(adiff_dualocp, control=(20 / 180 * 3.14159, 0), t_span=100)
+with open('guess.data', 'wb') as file:
+    pickle.dump(guess, file)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
-sol_set = SolutionSet(sym_bvp, seed_sol)
+print(seed_sol.converged)
 
+with open('seed.data', 'wb') as file:
+    pickle.dump(seed_sol, file)
+
+sol_set = SolutionSet(adiff_dualocp, seed_sol)
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(50, {'h_f': 200_000, 'v_f': 20_000}, bisection=True)
-cont.add_linear_series(10, {'v_f': 10_000})
-cont.add_linear_series(30, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
+# cont.add_linear_series(100, {'alpha_min': -5 / 180 * 3.14159, 'alpha_max': 20 / 180 * 3.14159}, bisection=True)
 cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
-
-

@@ -1,10 +1,12 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os;
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
 
 import pickle
 
 import matplotlib.pyplot as plt
 
-with open('current_variation_sol_set.data', 'rb') as file:
+with open('../current_variation_sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
 
 fig = plt.figure()

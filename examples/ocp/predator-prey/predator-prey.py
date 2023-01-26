@@ -1,8 +1,9 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
-
+import os
 import pickle
 
 import giuseppe
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 giuseppe.utils.compilation.JIT_COMPILE = True
 
@@ -18,8 +19,8 @@ prob.add_state('x_2', 'delta * x_1 * x_2 - (gamma + l * u) * x_2')
 
 prob.add_control('u')
 
-prob.add_constant('alpha', 2/3)
-prob.add_constant('beta', 4/2)
+prob.add_constant('alpha', 2 / 3)
+prob.add_constant('beta', 4 / 2)
 prob.add_constant('gamma', 1)
 prob.add_constant('delta', 1)
 

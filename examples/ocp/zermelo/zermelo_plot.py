@@ -1,8 +1,10 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os
 
 import matplotlib.pyplot as plt
 
 from giuseppe.io import load_sol
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 sol = load_sol('zermelo.bson')
 
