@@ -4,10 +4,10 @@ import numpy as np
 
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
-from giuseppe.io import InputOCP, SolutionSet
-from giuseppe.problems.input import StrInputProb
+from giuseppe.io import SolutionSet
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
+from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.ocp import SymOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
@@ -99,7 +99,7 @@ with Timer(prefix='Compilation Time:'):
 
 num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
+guess = auto_propagate_guess(comp_dual_ocp, control=(20 / 180 * 3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 

@@ -51,7 +51,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=True)
     num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=True)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45/180*3.14159, t_span=T_GUESS)
+guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45 / 180 * 3.14159, t_span=T_GUESS)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
 cont = giuseppe.continuation.ContinuationHandler(sol_set)

@@ -1,6 +1,8 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os
 
 import giuseppe
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 zermelo = giuseppe.io.InputOCP()
 

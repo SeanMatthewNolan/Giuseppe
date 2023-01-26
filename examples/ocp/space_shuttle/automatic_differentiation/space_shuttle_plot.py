@@ -1,4 +1,6 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
+import os;
+
+os.chdir(os.path.dirname(__file__))  # Set diectory to current location
 
 import pickle
 
@@ -21,7 +23,7 @@ fig = plt.figure(figsize=(6.5, 5))
 title = fig.suptitle('Space Shuttle Crossrange')
 
 ax1 = fig.add_subplot(4, 1, 1)
-ax1.plot(sol.x[1, :] * 180/np.pi, sol.x[0, :] / 1000)
+ax1.plot(sol.x[1, :] * 180 / np.pi, sol.x[0, :] / 1000)
 xlabel_1 = ax1.set_xlabel(r'$\phi$ [deg]')
 ylabel_1 = ax1.set_ylabel(r'$h$ [km]')
 

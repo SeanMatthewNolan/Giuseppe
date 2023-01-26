@@ -1,9 +1,10 @@
-import os; os.chdir(os.path.dirname(__file__))  # Set diectory to current location
-
+import os
 import pickle
 
 import matplotlib.pyplot as plt
 from numpy import arctan
+
+os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 # with open('guess.data', 'rb') as file:
 #     sol = pickle.load(file)
