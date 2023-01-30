@@ -13,7 +13,7 @@ class Symbolic:
         if name in self.sym_locals:
             raise ValueError(f'{name} already defined')
         elif name is None:
-            raise RuntimeWarning('No varibale name given')
+            raise RuntimeWarning('No variable name given')
 
         sym = Symbol(name)
         self.sym_locals[name] = sym
