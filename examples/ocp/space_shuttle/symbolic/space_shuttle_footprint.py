@@ -96,20 +96,16 @@ with Timer(prefix='Compilation Time:'):
     sym_dual = SymDual(sym_ocp)
     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
     comp_dual_ocp = CompDualOCP(sym_bvp)
+    num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
 
-num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
-
-guess = auto_propagate_guess(comp_dual_ocp, control=(20 / 180 * 3.14159, 0), t_span=100)
+guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
 sol_set = SolutionSet(sym_bvp, seed_sol)
 
 cont = ContinuationHandler(sol_set)
-cont.add_linear_series(50, {'h_f': 200_000, 'v_f': 20_000}, bisection=True)
-cont.add_linear_series(10, {'v_f': 10_000})
-cont.add_linear_series(30, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
 sol_set = cont.run_continuation(num_solver)
 
 sol_set.save('sol_set.data')
-
-
