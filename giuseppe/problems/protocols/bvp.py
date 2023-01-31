@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Protocol
 
 import numpy as np
@@ -14,7 +16,7 @@ class BVP(Protocol):
         ...
 
     def boundary_conditions(
-            self, independent: tuple[np.ndarray, ...], states: tuple[np.ndarray, ...],
+            self, independent: tuple[float, ...], states: tuple[np.ndarray, ...],
             parameters: np.ndarray, constants: tuple[np.ndarray, ...]
     ) -> np.ndarray:
         ...

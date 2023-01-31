@@ -4,7 +4,7 @@ from typing import Union, Callable, Tuple
 
 import numpy as np
 
-from giuseppe.io.solution import Solution
+from giuseppe.data_classes.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 
 

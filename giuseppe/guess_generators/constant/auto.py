@@ -1,11 +1,10 @@
 from copy import deepcopy
 from typing import Union, Optional
-from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io.solution import Solution
+from giuseppe.data_classes.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import initialize_guess_w_default_value, update_constant_value

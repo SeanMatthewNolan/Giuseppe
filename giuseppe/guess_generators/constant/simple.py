@@ -4,7 +4,7 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io.solution import Solution
+from giuseppe.data_classes.solution import Solution
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from giuseppe.problems.ocp import CompOCP, AdiffOCP
 from giuseppe.problems.typing import AnyProblem

@@ -4,7 +4,7 @@ from typing import Union, Optional
 import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io.solution import Solution
+from giuseppe.data_classes.solution import Solution
 from giuseppe.problems import CompBVP, CompOCP, CompDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP
 from giuseppe.problems.dual.utils import sift_ocp_and_dual
 from .simple import update_linear_value

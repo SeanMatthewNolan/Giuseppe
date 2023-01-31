@@ -7,7 +7,7 @@ import numpy as np
 from numpy import ndarray
 from scipy.integrate import solve_bvp
 
-from giuseppe.io.solution import Solution
+from giuseppe.data_classes.solution import Solution
 from ...problems.bvp import CompBVP
 from ...problems.dual import CompDualOCP
 from ...problems.dual.compiled import CompAlgControlHandler, CompDiffControlHandler, CompDiffControlHandlerNumeric

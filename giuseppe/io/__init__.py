@@ -1,9 +1,7 @@
-from .solution import Solution, load as load_sol
-from .solution_set import SolutionSet
-
 from ..problems.input import AdiffInputProb
 from ..problems.bvp import InputBVP
 from ..problems.ocp import InputOCP
+from ..data_classes import Solution, SolutionSet
 
 StrInputBVP = InputBVP
 StrInputOCP = InputOCP
