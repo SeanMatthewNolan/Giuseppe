@@ -37,14 +37,19 @@ sturm_liouville.add_constraint('terminal', 'y - y_f')
 with Timer(prefix='Compilation Time:'):
     sym_bvp = SymBVP(sturm_liouville)
     comp_bvp = CompBVP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_bvp)
+#     num_solver = ScipySolveBVP(comp_bvp)
 
-guess = initialize_guess_w_default_value(comp_bvp, t_span=np.linspace(0, 1, 3))
-seed_sol = num_solver.solve(guess.k, guess)
+print(comp_bvp.dynamics(0.,  np.array([0, 1.]), np.array([0.1]), np.array([0, 1, 0., 0., 1.])))
+print(comp_bvp.boundary_conditions(
+        (0., 1.),  (np.array([0., 1.]), np.array([0., -1.])), np.array([1.]), np.array([0, 1, 0., 0., 1.])))
 
-sol_set = SolutionSet(sym_bvp, seed_sol)
-cont = ContinuationHandler(sol_set)
-cont.add_linear_series(10, {'a': 100})
-sol_set = cont.run_continuation(num_solver)
 
-sol_set.save('sol_set.data')
+# guess = initialize_guess_w_default_value(comp_bvp, t_span=np.linspace(0, 1, 3))
+# seed_sol = num_solver.solve(guess.k, guess)
+#
+# sol_set = SolutionSet(sym_bvp, seed_sol)
+# cont = ContinuationHandler(sol_set)
+# cont.add_linear_series(10, {'a': 100})
+# sol_set = cont.run_continuation(num_solver)
+#
+# sol_set.save('sol_set.data')

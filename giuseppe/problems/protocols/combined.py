@@ -1,8 +1,9 @@
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from .ocp import OCP
 
 
+@runtime_checkable
 class CombinedProb(Protocol):
     num_states: int
     num_controls: int

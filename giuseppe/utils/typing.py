@@ -1,4 +1,5 @@
 import numpy as np
+import numba
 from numba import float64
 from sympy import Symbol, Matrix, Expr, Integer
 
@@ -15,9 +16,10 @@ SYM_NULL = Symbol('_not_defined_')
 EMPTY_SYM_MATRIX = SymMatrix([])
 SYM_ZERO = SymInteger('0')
 
-NumbaFloat = float64
-NumbaArray = float64[:]
-NumbaMatrix = float64[:, :]
+NumbaFloat = numba.float64
+NumbaArray = numba.float64[:]
+NumbaMatrix = numba.float64[:, :]
+UniTuple = numba.types.UniTuple
 
 
 def check_if_any_exist(*args) -> bool:
