@@ -8,7 +8,7 @@ from giuseppe.io import SolutionSet, load_sol, load_sol_set
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymOCP, SymDual, SymCombined
-from giuseppe.problems.symbolic.compiled import CompOCP
+from giuseppe.problems.symbolic.compiled import CompOCP, CompDual
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
@@ -104,6 +104,12 @@ y_dot = comp_ocp.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol
 bc = comp_ocp.compute_boundary_conditions((sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), sol.p, sol.k)
 cost = comp_ocp.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
 
+comp_dual = CompDual(sym_dual)
+lam_dot = comp_dual.compute_costate_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+dual_bc = comp_dual.compute_dual_boundary_conditions(
+        (sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), (sol.lam[:, 0], sol.lam[:, -1]),
+        (sol.u[:, 0], sol.u[:, -1]), sol.p, np.concatenate((sol.nu0, sol.nuf)), sol.k)
+ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 # with Timer(prefix='Compilation Time:'):
 #     sym_ocp = SymOCP(ocp)
 #     sym_dual = SymDual(sym_ocp)

@@ -11,7 +11,7 @@ class SymDual(Symbolic):
     def __init__(self, ocp: SymOCP):
         Symbolic.__init__(self)
 
-        self.src_ocp: SymOCP = deepcopy(ocp)
+        self.source_ocp: SymOCP = deepcopy(ocp)
 
         states_and_parameters = SymMatrix(ocp.states.flat() + ocp.parameters.flat())
 
@@ -21,6 +21,7 @@ class SymDual(Symbolic):
                 [self.new_sym(f'_nu_0_{idx}') for idx, _ in enumerate(ocp.boundary_conditions.initial)])
         self.terminal_adjoints = SymMatrix(
                 [self.new_sym(f'_nu_f_{idx}') for idx, _ in enumerate(ocp.boundary_conditions.terminal)])
+        self.adjoints = self.initial_adjoints.col_join(self.terminal_adjoints)
 
         self.hamiltonian = ocp.cost.path + matrix_as_scalar(self.costates[:len(ocp.states.flat()), :].T @ ocp.dynamics)
 
@@ -32,18 +33,19 @@ class SymDual(Symbolic):
                 ocp.cost.terminal + matrix_as_scalar(self.terminal_adjoints.T @ ocp.boundary_conditions.terminal),
         )
 
-        initial_adjoined_bcs = SymMatrix([
+        initial_dual_bcs = SymMatrix([
             self.augmented_cost.initial.diff(ocp.independent) - self.hamiltonian,
             SymMatrix([self.augmented_cost.initial]).jacobian(states_and_parameters).T + self.costates
         ])
-        terminal_adjoined_bcs = SymMatrix([
+        terminal_dual_bcs = SymMatrix([
             self.augmented_cost.terminal.diff(ocp.independent) + self.hamiltonian,
             SymMatrix([self.augmented_cost.terminal]).jacobian(states_and_parameters).T - self.costates
         ])
-        self.adjoined_boundary_conditions = SymBoundaryConditions(
-                initial=initial_adjoined_bcs, terminal=terminal_adjoined_bcs
+        self.dual_boundary_conditions = SymBoundaryConditions(
+                initial=initial_dual_bcs, terminal=terminal_dual_bcs
         )
 
         self.num_costates = len(self.costates)
         self.num_initial_adjoints = len(self.initial_adjoints)
         self.num_terminal_adjoints = len(self.terminal_adjoints)
+        self.num_adjoints = len(self.adjoints)
