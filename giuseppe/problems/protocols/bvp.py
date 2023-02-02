@@ -14,13 +14,13 @@ class BVP(Protocol):
     default_values: np.ndarray
 
     @staticmethod
-    def dynamics(
+    def compute_dynamics(
             independent: float, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...
 
     @staticmethod
-    def boundary_conditions(
+    def compute_boundary_conditions(
             independent: tuple[float, ...], states: tuple[np.ndarray, ...],
             parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:

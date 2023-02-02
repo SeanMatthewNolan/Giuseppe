@@ -6,7 +6,8 @@ from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
 from giuseppe.io import SolutionSet
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
-from giuseppe.problems.bvp import SymBVP, CompBVP
+from giuseppe.problems.symbolic import SymBVP
+from giuseppe.problems.symbolic.compiled import CompBVP
 from giuseppe.problems.input import StrInputProb
 from giuseppe.utils import Timer
 
@@ -39,8 +40,8 @@ with Timer(prefix='Compilation Time:'):
     comp_bvp = CompBVP(sym_bvp)
 #     num_solver = ScipySolveBVP(comp_bvp)
 
-print(comp_bvp.dynamics(0.,  np.array([0, 1.]), np.array([0.1]), np.array([0, 1, 0., 0., 1.])))
-print(comp_bvp.boundary_conditions(
+print(comp_bvp.compute_dynamics(0.,  np.array([0, 1.]), np.array([0.1]), np.array([0, 1, 0., 0., 1.])))
+print(comp_bvp.compute_boundary_conditions(
         (0., 1.),  (np.array([0., 1.]), np.array([0., -1.])), np.array([1.]), np.array([0, 1, 0., 0., 1.])))
 
 
