@@ -3,6 +3,9 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 
 
+# TODO Added Vectorized Protocol
+
+
 @runtime_checkable
 class OCP(Protocol):
 
@@ -11,14 +14,23 @@ class OCP(Protocol):
     num_parameters: int
     num_constants: int
 
-    def dynamics(
-            self, independent: float, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
+    @staticmethod
+    def compute_dynamics(
+            independent: float, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
             constants: np.ndarray
     ) -> np.ndarray:
         ...
 
-    def boundary_conditions(
-            self, independent: tuple[np.ndarray, ...], states: tuple[np.ndarray, ...], controls: tuple[np.ndarray],
+    @staticmethod
+    def compute_boundary_conditions(
+            independent: tuple[np.ndarray, ...], states: tuple[np.ndarray, ...],
             parameters: np.ndarray, constants: tuple[np.ndarray, ...]
     ) -> np.ndarray:
+        ...
+
+    @staticmethod
+    def compute_cost(
+            independent: np.ndarray, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
+            constants: np.ndarray
+    ) -> float:
         ...

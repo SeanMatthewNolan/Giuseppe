@@ -4,10 +4,11 @@ import numpy as np
 
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import auto_propagate_guess
-from giuseppe.io import SolutionSet
+from giuseppe.io import SolutionSet, load_sol, load_sol_set
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymOCP, SymDual, SymCombined
+from giuseppe.problems.symbolic.compiled import CompOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
@@ -94,6 +95,14 @@ sym_ocp = SymOCP(ocp)
 sym_dual = SymDual(sym_ocp)
 sym_prob = SymCombined(sym_ocp, sym_dual, control_method='differential')
 
+
+sol_set = load_sol_set('sol_set.data')
+sol = sol_set[-1]
+
+comp_ocp = CompOCP(sym_ocp)
+y_dot = comp_ocp.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)
+bc = comp_ocp.compute_boundary_conditions((sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), sol.p, sol.k)
+cost = comp_ocp.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
 
 # with Timer(prefix='Compilation Time:'):
 #     sym_ocp = SymOCP(ocp)

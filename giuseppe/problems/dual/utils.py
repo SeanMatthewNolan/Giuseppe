@@ -1,5 +1,6 @@
 from typing import Union, Tuple, Optional
 
+
 from giuseppe.problems.bvp import CompBVP, AdiffBVP
 from giuseppe.problems.dual import CompDual, CompDualOCP, AdiffDual, AdiffDualOCP
 from giuseppe.problems.ocp import CompOCP, AdiffOCP

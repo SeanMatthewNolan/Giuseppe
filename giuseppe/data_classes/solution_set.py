@@ -208,7 +208,7 @@ def _load_pickle(filename: str):
 
 
 # TODO Consider embedding metadata into files to distinguish loading files of ambiguous type
-def load(filename: str = 'sol.json', file_format: Optional[str] = None) -> Solution:
+def load(filename: str = 'sol_set.json', file_format: Optional[str] = None) -> SolutionSet:
     if file_format is None:
         file_ext = splitext(filename)[1].lower()
         if file_ext == '.json':
