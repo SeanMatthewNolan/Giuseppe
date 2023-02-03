@@ -20,7 +20,7 @@ class SymAdjoints(Symbolic):
         self.source_ocp: SymOCP = deepcopy(ocp)
         self._sympify_adjoint_information(self.source_ocp)
 
-    def _sympify_adjoint_information(self, ocp):
+    def _sympify_adjoint_information(self, ocp: SymOCP):
         states_and_parameters = SymMatrix(ocp.states.flat() + ocp.parameters.flat())
 
         self.costates = SymMatrix([self.new_sym(f'_lam_{state}') for state in states_and_parameters])
@@ -32,6 +32,7 @@ class SymAdjoints(Symbolic):
         self.adjoints = self.initial_adjoints.col_join(self.terminal_adjoints)
 
         self.hamiltonian = ocp.cost.path + matrix_as_scalar(self.costates[:len(ocp.states.flat()), :].T @ ocp.dynamics)
+        self.control_law = self.hamiltonian.diff(ocp.controls)
 
         self.costate_dynamics = -self.hamiltonian.diff(states_and_parameters)
 
@@ -105,6 +106,7 @@ class CompAdjoints(Adjoints):
         self.compute_adjoint_boundary_conditions = _adjoint_boundary_condition_funcs[2]
 
         self.compute_hamiltonian = self._compile_hamiltonian(sym_adjoints)
+        self.compute_control_law = self._compile_control_law(sym_adjoints)
 
     def _compile_costate_dynamics(self, sym_adjoints: SymAdjoints) -> Callable:
         _compute_costate_dynamics = lambdify(
@@ -152,3 +154,17 @@ class CompAdjoints(Adjoints):
 
     def _compile_hamiltonian(self, sym_adjoints: SymAdjoints) -> Callable:
         return lambdify(self.sym_args['dynamic'], sym_adjoints.hamiltonian, use_jit_compile=self.use_jit_compile)
+
+    def _compile_control_law(self, sym_adjoints: SymAdjoints) -> Callable:
+
+        _compute_control_law = lambdify(self.sym_args['dynamic'], sym_adjoints.control_law,
+                                        use_jit_compile=self.use_jit_compile)
+
+        def compute_control_law(independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                                parameters: np.ndarray, constants: np.ndarray):
+            return np.asarray(_compute_control_law(independent, states, costates, controls, parameters, constants))
+
+        if self.use_jit_compile:
+            compute_control_law = jit_compile(compute_control_law, self.args_numba_signature['dynamic'])
+
+        return compute_control_law

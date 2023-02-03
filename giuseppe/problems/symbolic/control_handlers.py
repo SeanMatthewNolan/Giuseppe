@@ -9,48 +9,25 @@ from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray
 
 from .dual import SymDual, CompDual
-from .ocp import SymOCP
 
 
-class ImplicitAlgebraicControlHandler:
-    def __init__(self, source_prob: SymDual):
-
-        self.source_prob = deepcopy(source_prob)
-
-        self.controls = self.source_prob.controls
-        self.hamiltonian = self.source_prob.hamiltonian
-
-        self.control_law = self.source_prob.hamiltonian.diff(self.source_prob.controls)
-
-    def compile(self, source_comp_dual: Optional[CompDual] = None,
-                use_jit_compile: bool = True) -> 'CompImplicitAlgebraicControlHandler':
-
-        if source_comp_dual is None:
-            source_comp_dual = self.source_prob.compile(use_jit_compile=use_jit_compile)
-
-        return CompImplicitAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
-
-
-class ExplicitAlgebraicControlHandler:
+class SymAlgebraicControlHandler:
     def __init__(self, source_prob: SymDual):
         self.source_prob = deepcopy(source_prob)
 
         self.controls: list[Symbol] = list(self.source_prob.controls)
-        self.hamiltonian = self.source_prob.hamiltonian
-
-        self.dh_du = self.source_prob.hamiltonian.diff(self.source_prob.controls)
-        self.control_law = solve(self.dh_du, self.controls)
+        self.control_functions = solve(self.source_prob.control_law, self.controls)
 
     def compile(self, source_comp_dual: Optional[CompDual] = None,
-                use_jit_compile: bool = True) -> 'CompExplicitAlgebraicControlHandler':
+                use_jit_compile: bool = True) -> 'CompAlgebraicControlHandler':
 
         if source_comp_dual is None:
             source_comp_dual = self.source_prob.compile(use_jit_compile=use_jit_compile)
 
-        return CompExplicitAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
+        return CompAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
 
 
-class DifferentialControlHandler:
+class SymDifferentialControlHandler:
     def __init__(self, source_prob: SymDual):
         self.source_prob = deepcopy(source_prob)
 
@@ -75,38 +52,8 @@ class DifferentialControlHandler:
         return CompDifferentialControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
 
 
-class CompImplicitAlgebraicControlHandler:
-    def __init__(self, source_handler: ImplicitAlgebraicControlHandler, source_comp_dual: CompDual,
-                 use_jit_compile: bool = True):
-        self.source_handler = deepcopy(source_handler)
-        self.source_comp_dual = deepcopy(source_comp_dual)
-
-        self.use_jit_compile = use_jit_compile
-        self.sym_args = (self.source_comp_dual.source_dual.independent,
-                         self.source_comp_dual.source_dual.states.flat(),
-                         self.source_comp_dual.source_dual.costates.flat(),
-                         self.source_comp_dual.source_dual.controls.flat(),
-                         self.source_comp_dual.source_dual.parameters.flat(),
-                         self.source_comp_dual.source_dual.constants.flat())
-        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
-        self.compute_control_law = self.compile_control_law()
-
-    def compile_control_law(self):
-        _compute_control_law = lambdify(self.sym_args, self.source_handler.control_law,
-                                        use_jit_compile=self.use_jit_compile)
-
-        def compute_control_law(independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
-                                parameters: np.ndarray, constants: np.ndarray):
-            return np.asarray(_compute_control_law(independent, states, costates, controls, parameters, constants))
-
-        if self.use_jit_compile:
-            compute_control_law = jit_compile(compute_control_law, self.args_numba_signature)
-
-        return compute_control_law
-
-
-class CompExplicitAlgebraicControlHandler:
-    def __init__(self, source_handler: ExplicitAlgebraicControlHandler, source_comp_dual: CompDual,
+class CompAlgebraicControlHandler:
+    def __init__(self, source_handler: SymAlgebraicControlHandler, source_comp_dual: CompDual,
                  use_jit_compile: bool = True):
         self.source_handler = deepcopy(source_handler)
         self.source_comp_dual = deepcopy(source_comp_dual)
@@ -122,7 +69,7 @@ class CompExplicitAlgebraicControlHandler:
         self.compute_control = self.compile_control()
 
     def compile_control(self):
-        control_law = self.source_handler.control_law
+        control_law = self.source_handler.control_functions
 
         num_options = len(control_law)
 
@@ -151,7 +98,7 @@ class CompExplicitAlgebraicControlHandler:
 
 
 class CompDifferentialControlHandler:
-    def __init__(self, source_handler: DifferentialControlHandler, source_comp_dual: CompDual,
+    def __init__(self, source_handler: SymDifferentialControlHandler, source_comp_dual: CompDual,
                  use_jit_compile: bool = True):
         self.source_handler = deepcopy(source_handler)
         self.source_comp_dual = deepcopy(source_comp_dual)
@@ -162,7 +109,7 @@ class CompDifferentialControlHandler:
         self.args_numba_signature = self.source_comp_dual.args_numba_signature['dynamic']
 
         self.compute_control_dynamics = self.compile_control_dynamics()
-        self.compute_control_boundary_conditions = self.compile_control_boundary_conditions()
+        self.compute_control_boundary_conditions = self.source_comp_dual.compute_control_law
 
     def compile_control_dynamics(self):
         _compute_control_dynamics = lambdify(self.sym_args, self.source_handler.control_dynamics.flat(),
@@ -177,19 +124,3 @@ class CompDifferentialControlHandler:
             compute_control_dynamics = jit_compile(compute_control_dynamics, self.args_numba_signature)
 
         return compute_control_dynamics
-
-    def compile_control_boundary_conditions(self):
-        _compute_control_boundary_conditions = lambdify(self.sym_args, self.source_handler.h_u.flat(),
-                                                        use_jit_compile=self.use_jit_compile)
-
-        def compute_control_boundary_conditions(
-                independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
-                parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            return np.asarray(_compute_control_boundary_conditions(
-                    independent, states, controls, costates, parameters, constants))
-
-        if self.use_jit_compile:
-            compute_control_boundary_conditions = jit_compile(
-                    compute_control_boundary_conditions, self.args_numba_signature)
-
-        return compute_control_boundary_conditions

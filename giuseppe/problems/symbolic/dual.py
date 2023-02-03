@@ -1,16 +1,17 @@
-from typing import Union, Optional, Tuple, Sequence
+from typing import Union, Optional
 
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.problems.protocols import Dual
-from .adjoints import SymAdjoints, CompAdjoints
 
+from .adjoints import SymAdjoints, CompAdjoints
 from .ocp import SymOCP, CompOCP
 
 
 class SymDual(SymOCP, SymAdjoints):
     def __init__(self, input_data: Optional[Union[InputOCP, StrInputProb]] = None,
                  control_method: Optional[str] = 'differential'):
+
         super().__init__(input_data=input_data)
         super()._sympify_adjoint_information(self)
 
@@ -18,14 +19,11 @@ class SymDual(SymOCP, SymAdjoints):
         if self.control_method is None:
             self.control_handler = None
         elif self.control_method.lower() == 'algebraic':
-            from .control_handlers import ExplicitAlgebraicControlHandler
-            self.control_handler: ExplicitAlgebraicControlHandler = ExplicitAlgebraicControlHandler(self)
+            from .control_handlers import SymAlgebraicControlHandler
+            self.control_handler: SymAlgebraicControlHandler = SymAlgebraicControlHandler(self)
         elif self.control_method.lower() == 'differential':
-            from .control_handlers import DifferentialControlHandler
-            self.control_handler: DifferentialControlHandler = DifferentialControlHandler(self)
-        elif self.control_method.lower() == 'implicit':
-            from .control_handlers import ImplicitAlgebraicControlHandler
-            self.control_handler: ImplicitAlgebraicControlHandler = ImplicitAlgebraicControlHandler(self)
+            from .control_handlers import SymDifferentialControlHandler
+            self.control_handler: SymDifferentialControlHandler = SymDifferentialControlHandler(self)
         else:
             raise NotImplementedError(
                     f'\"{control_method}\" is not an implemented control method. Try \"differential\".')

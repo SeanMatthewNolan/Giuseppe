@@ -35,3 +35,10 @@ class Adjoints(Protocol):
             parameters: np.ndarray, constants: np.ndarray
     ) -> float:
         ...
+
+    @staticmethod
+    def compute_control_law(
+            independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+            parameters: np.ndarray, constants: np.ndarray
+    ) -> np.ndarray:
+        ...
