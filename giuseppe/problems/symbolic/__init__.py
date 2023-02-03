@@ -1,2 +1,8 @@
+from .bvp import SymBVP, CompBVP
+from .ocp import SymOCP, CompOCP
+from .dual import SymDual, CompDual
+
 from . import regularization
-from .intermediate import SymBVP, SymOCP, SymDual, SymCombined, control_handlers
+from . import control_handlers
+
+from .combined import SymCombined

@@ -1,19 +1,15 @@
-from typing import Union, Tuple, TYPE_CHECKING, TypeVar
+from typing import Union, Tuple
 
 import sympy
 
-from giuseppe.problems.regularization.generic import Regularizer
 from giuseppe.utils.typing import Symbol, SymExpr
+from giuseppe.problems.components.input import InputInequalityConstraint
 
-if TYPE_CHECKING:
-    from giuseppe.problems import SymOCP
-    from giuseppe.problems.components.input import InputInequalityConstraint
-else:
-    SymOCP = TypeVar('SymOCP')
-    InputInequalityConstraint = TypeVar('InputInequalityConstraint')
+from ..ocp import SymOCP
+from .generic import SymRegularizer, Problem
 
 
-class PenaltyConstraintHandler(Regularizer):
+class PenaltyConstraintHandler(SymRegularizer):
     def __init__(self, regulator: Union[str, Symbol], method: str = 'sec'):
         self.regulator: Union[str, Symbol] = regulator
         self.method: str = method
@@ -25,7 +21,7 @@ class PenaltyConstraintHandler(Regularizer):
         else:
             raise ValueError(f'method \'{method}\' not implemented')
 
-    def apply(self, prob: SymOCP, constraint: InputInequalityConstraint, position: str) -> SymOCP:
+    def apply(self, prob: Problem, constraint: InputInequalityConstraint, position: str) -> Problem:
 
         expr = prob.sympify(constraint.expr)
         lower_limit = prob.sympify(constraint.lower_limit)
@@ -51,7 +47,7 @@ class PenaltyConstraintHandler(Regularizer):
             raise ValueError(f'Path constraints using UTM/secant method must have lower and upper limits')
 
         penalty_func = regulator \
-            / sympy.cos(sympy.pi / 2 * (2 * expr - upper_limit - lower_limit) / (upper_limit - lower_limit)) - regulator
+                       / sympy.cos(sympy.pi / 2 * (2 * expr - upper_limit - lower_limit) / (upper_limit - lower_limit)) - regulator
         return penalty_func
 
     @staticmethod
@@ -60,7 +56,7 @@ class PenaltyConstraintHandler(Regularizer):
 
         if lower_limit is not None and upper_limit is not None:
             penalty_func = regulator \
-                * (1 / (expr - lower_limit) + 1 / (upper_limit - expr) + 4 / (lower_limit - upper_limit))
+                           * (1 / (expr - lower_limit) + 1 / (upper_limit - expr) + 4 / (lower_limit - upper_limit))
         elif lower_limit is not None:
             penalty_func = regulator / (expr - lower_limit)
         elif upper_limit is not None:

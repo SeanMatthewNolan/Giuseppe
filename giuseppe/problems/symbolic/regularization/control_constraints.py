@@ -1,19 +1,14 @@
-from typing import Union, Tuple, TYPE_CHECKING, TypeVar
+from typing import Union, Tuple
 
 import sympy
 
-from giuseppe.problems.regularization.generic import Regularizer
 from giuseppe.utils.typing import Symbol, SymExpr
+from giuseppe.problems.components.input import InputInequalityConstraint
 
-if TYPE_CHECKING:
-    from giuseppe.problems import SymOCP
-    from giuseppe.problems.components.input import InputInequalityConstraint
-else:
-    SymOCP = TypeVar('SymOCP')
-    InputInequalityConstraint = TypeVar('InputInequalityConstraint')
+from .generic import SymRegularizer, Problem
 
 
-class ControlConstraintHandler(Regularizer):
+class ControlConstraintHandler(SymRegularizer):
     def __init__(self, regulator: Union[str, Symbol], method: str = 'atan'):
         self.regulator: Union[str, Symbol] = regulator
         self.method: str = method
@@ -35,7 +30,7 @@ class ControlConstraintHandler(Regularizer):
 
     # TODO: Add technique to compute real control automatically
     # TODO: Explore one-sided control functions
-    def apply(self, prob: SymOCP, control_constraint: InputInequalityConstraint, position: str) -> SymOCP:
+    def apply(self, prob: Problem, control_constraint: InputInequalityConstraint, position: str) -> Problem:
         if position not in ['control', 'path']:
             raise ValueError(f'Location of control constraint regularizer should be \'control\' or \'path\'')
 

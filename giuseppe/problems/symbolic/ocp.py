@@ -1,16 +1,52 @@
 from copy import deepcopy
-from typing import Callable
+from typing import Optional, Union, Callable
 
 import numpy as np
 from scipy.integrate import simpson, trapezoid
 
+from giuseppe.problems.components.symbolic import SymCost
+from giuseppe.problems.input import StrInputProb
+from giuseppe.problems.ocp.input import InputOCP
+from giuseppe.problems.protocols import OCP
 from giuseppe.utils.compilation import lambdify, jit_compile
-from giuseppe.utils.typing import NumbaFloat, NumbaArray, UniTuple
-from ...protocols import OCP
-from ..intermediate import SymOCP
+from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, NumbaFloat, NumbaArray, UniTuple
+
+from .bvp import SymBVP
 
 
-# TODO add interior point and mult-arc support
+class SymOCP(SymBVP):
+    def __init__(self, input_data: Optional[Union[InputOCP, StrInputProb]] = None):
+        self.controls: SymMatrix = EMPTY_SYM_MATRIX
+        self.cost = SymCost()
+
+        super().__init__(input_data=input_data)
+
+        self.num_states = len(self.states)
+        self.num_parameters = len(self.parameters)
+        self.num_constants = len(self.constants)
+        self.num_controls = len(self.controls)
+        self.sym_args = (self.independent, self.states.flat(), self.controls.flat(),
+                         self.parameters.flat(), self.constants.flat())
+
+    def process_variables_from_input(self, input_data: InputOCP):
+        super().process_variables_from_input(input_data)
+        self.controls = SymMatrix([self.new_sym(control) for control in input_data.controls])
+
+    def process_expr_from_input(self, input_data: InputOCP):
+        super().process_expr_from_input(input_data)
+        self.cost = SymCost(
+                self.sympify(input_data.cost.initial),
+                self.sympify(input_data.cost.path),
+                self.sympify(input_data.cost.terminal)
+        )
+
+    def perform_substitutions(self):
+        super().perform_substitutions()
+        self.cost.initial = self.substitute(self.cost.initial)
+        self.cost.path = self.substitute(self.cost.path)
+        self.cost.terminal = self.substitute(self.cost.terminal)
+
+
 class CompOCP(OCP):
     def __init__(self, source_ocp: SymOCP, use_jit_compile: bool = True, cost_quadrature: str = 'simpson'):
         self.use_jit_compile = use_jit_compile

@@ -8,7 +8,9 @@ from giuseppe.io import SolutionSet, load_sol, load_sol_set
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymOCP, SymDual, SymCombined, control_handlers
-from giuseppe.problems.symbolic.compiled import CompOCP, CompDual, control_handlers as comp_control_handlers
+from giuseppe.problems.symbolic import control_handlers as comp_control_handlers
+from giuseppe.problems.symbolic.dual import CompDual
+from giuseppe.problems.symbolic.ocp import CompOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
@@ -112,7 +114,7 @@ dual_bc = comp_dual.compute_dual_boundary_conditions(
 ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 
 dif_hand = control_handlers.DifferentialControlHandler(sym_ocp, sym_dual)
-comp_hand = comp_control_handlers.CompDifferentialControlHandler(dif_hand, comp_dual)
+comp_hand = control_handlers.CompDifferentialControlHandler(dif_hand, comp_dual)
 u_dot = comp_hand.compute_control_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 dh_du = comp_hand.compute_control_boundary_conditions(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 

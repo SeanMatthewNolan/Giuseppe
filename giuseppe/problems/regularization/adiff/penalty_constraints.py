@@ -1,10 +1,8 @@
-from typing import Union, Tuple, TYPE_CHECKING, TypeVar
+from typing import Union, TYPE_CHECKING, TypeVar
 
-import sympy
 import casadi as ca
 
 from giuseppe.problems.regularization.generic import Regularizer
-from giuseppe.utils.typing import Symbol, SymExpr
 
 if TYPE_CHECKING:
     from giuseppe.problems import AdiffOCP

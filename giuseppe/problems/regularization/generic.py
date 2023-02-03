@@ -1,13 +1,9 @@
-from abc import ABC, abstractmethod
-from typing import Any, TYPE_CHECKING, TypeVar
+from typing import Any, Protocol, runtime_checkable, TypeVar
 
-if TYPE_CHECKING:
-    from ..typing import AnyProblem
-else:
-    AnyProblem = TypeVar('AnyProblem')
+Problem = TypeVar('Problem')
 
 
-class Regularizer(ABC):
-    @abstractmethod
-    def apply(self, prob: AnyProblem, item: Any, position: str) -> AnyProblem:
+@runtime_checkable
+class Regularizer(Protocol):
+    def apply(self, prob: Problem, item: Any, position: str) -> Problem:
         pass
