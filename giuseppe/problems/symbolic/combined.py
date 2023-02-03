@@ -1,9 +1,11 @@
-from typing import Optional
 from copy import deepcopy
+from typing import Optional
 
-from .ocp import SymOCP
+from .control_handlers import ImplicitAlgebraicControlHandler, ExplicitAlgebraicControlHandler, \
+    DifferentialControlHandler
 from .dual import SymDual
-from .control_handlers import ImplicitAlgebraicControlHandler, ExplicitAlgebraicControlHandler, DifferentialControlHandler
+from .ocp import SymOCP
+
 
 class SymCombined:
     def __init__(self, primal: SymOCP, dual: Optional[SymDual] = None, control_method: Optional[str] = 'differential'):

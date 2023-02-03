@@ -6,8 +6,7 @@ from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generators import initialize_guess_w_default_value
 from giuseppe.io import SolutionSet
 from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
-from giuseppe.problems.symbolic import SymBVP
-from giuseppe.problems.symbolic.intermediate.bvp import CompBVP
+from giuseppe.problems.symbolic import SymBVP, CompBVP
 from giuseppe.problems.input import StrInputProb
 from giuseppe.utils import Timer
 

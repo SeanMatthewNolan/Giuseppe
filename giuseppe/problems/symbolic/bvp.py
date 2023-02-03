@@ -1,14 +1,14 @@
 from copy import deepcopy
+from dataclasses import dataclass
 from itertools import permutations
 from typing import Optional, Union
-from dataclasses import dataclass
 
 import numpy as np
 from sympy import Symbol, topological_sort
 
 from giuseppe.problems.bvp.input import InputBVP
-from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.components.input import InputInequalityConstraints
+from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.protocols import BVP
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Symbolic
@@ -130,11 +130,12 @@ class CompBVP(BVP):
         self.compute_boundary_conditions = _boundary_condition_funcs[2]
 
     def compile_dynamics(self):
-        _compute_dynamics = lambdify(self.sym_args, self.source_bvp.dynamics.flat(), use_jit_compile=self.use_jit_compile)
+        _compute_dynamics = lambdify(self.sym_args, self.source_bvp.dynamics.flat(),
+                                     use_jit_compile=self.use_jit_compile)
 
         def compute_dynamics(
                 independent: float, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            return np.array(_compute_dynamics(independent, states, parameters, constants))
+            return np.asarray(_compute_dynamics(independent, states, parameters, constants))
 
         if self.use_jit_compile:
             compute_dynamics = jit_compile(compute_dynamics, self.args_numba_signature)
@@ -152,9 +153,8 @@ class CompBVP(BVP):
         def compute_boundary_conditions(
                 independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-
-            _bc_0 = np.array(compute_initial_boundary_conditions(independent[0], states[0], parameters, constants))
-            _bc_f = np.array(compute_terminal_boundary_conditions(independent[1], states[1], parameters, constants))
+            _bc_0 = np.asarray(compute_initial_boundary_conditions(independent[0], states[0], parameters, constants))
+            _bc_f = np.asarray(compute_terminal_boundary_conditions(independent[1], states[1], parameters, constants))
 
             return np.concatenate((_bc_0, _bc_f))
 

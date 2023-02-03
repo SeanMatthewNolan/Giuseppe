@@ -10,7 +10,6 @@ from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.problems.protocols import OCP
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, NumbaFloat, NumbaArray, UniTuple
-
 from .bvp import SymBVP
 
 
@@ -60,13 +59,13 @@ class CompOCP(OCP):
         self.sym_args = {
             'dynamic': (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_ocp.controls.flat(),
                         self.source_ocp.parameters.flat(), self.source_ocp.constants.flat()),
-            'static':  (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_ocp.parameters.flat(),
+            'static' : (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_ocp.parameters.flat(),
                         self.source_ocp.constants.flat())
         }
 
         self.args_numba_signature = {
             'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-            'static':  (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'static' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
         }
 
         self.compute_dynamics = self.compile_dynamics()
@@ -94,7 +93,7 @@ class CompOCP(OCP):
         def compute_dynamics(
                 independent: float, states: np.ndarray, controls: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            return np.array(_compute_dynamics(independent, states, controls, parameters, constants))
+            return np.asarray(_compute_dynamics(independent, states, controls, parameters, constants))
 
         if self.use_jit_compile:
             compute_dynamics = jit_compile(compute_dynamics, self.args_numba_signature['dynamic'])
@@ -112,9 +111,8 @@ class CompOCP(OCP):
         def compute_boundary_conditions(
                 independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-
-            _psi_0 = np.array(compute_initial_boundary_conditions(independent[0], states[0], parameters, constants))
-            _psi_f = np.array(compute_terminal_boundary_conditions(independent[1], states[1], parameters, constants))
+            _psi_0 = np.asarray(compute_initial_boundary_conditions(independent[0], states[0], parameters, constants))
+            _psi_f = np.asarray(compute_terminal_boundary_conditions(independent[1], states[1], parameters, constants))
 
             return np.concatenate((_psi_0, _psi_f))
 
@@ -128,19 +126,18 @@ class CompOCP(OCP):
 
     def compile_cost(self) -> tuple:
         compute_initial_cost = lambdify(
-               self.sym_args['static'], self.source_ocp.cost.initial, use_jit_compile=self.use_jit_compile)
+                self.sym_args['static'], self.source_ocp.cost.initial, use_jit_compile=self.use_jit_compile)
         compute_path_cost = lambdify(
-               self.sym_args['dynamic'], self.source_ocp.cost.path, use_jit_compile=self.use_jit_compile)
+                self.sym_args['dynamic'], self.source_ocp.cost.path, use_jit_compile=self.use_jit_compile)
         compute_terminal_cost = lambdify(
                 self.sym_args['static'], self.source_ocp.cost.terminal, use_jit_compile=self.use_jit_compile)
 
         integrate_path_cost = self.integrate_path_cost
 
         def compute_cost(
-            independent: np.ndarray, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
-            constants: np.ndarray
+                independent: np.ndarray, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
+                constants: np.ndarray
         ) -> float:
-
             initial_cost = compute_initial_cost(independent[0], states[:, 0], parameters, constants)
             terminal_cost = compute_terminal_cost(independent[-1], states[:, -1], parameters, constants)
 

@@ -7,8 +7,8 @@ from sympy import solve, Symbol
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray
 
-from .ocp import SymOCP, CompOCP
 from .dual import SymDual, CompDual
+from .ocp import SymOCP
 
 
 class ImplicitAlgebraicControlHandler:

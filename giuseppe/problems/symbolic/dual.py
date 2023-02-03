@@ -6,11 +6,12 @@ import numpy as np
 from giuseppe.problems.components.symbolic import SymCost, SymBoundaryConditions
 from giuseppe.problems.ocp.symbolic import SymOCP
 from giuseppe.problems.protocols import Dual
-from giuseppe.problems.symbolic import SymOCP
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray, UniTuple
+
+from .ocp import SymOCP
 
 
 class SymDual(Symbolic):
@@ -77,14 +78,14 @@ class CompDual(Dual):
             'dynamic': (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_dual.costates.flat(),
                         self.source_ocp.controls.flat(), self.source_ocp.parameters.flat(),
                         self.source_ocp.constants.flat()),
-            'static':  (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_dual.costates.flat(),
+            'static' : (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_dual.costates.flat(),
                         self.source_ocp.controls.flat(), self.source_ocp.parameters.flat(),
                         self.source_dual.adjoints.flat(), self.source_ocp.constants.flat())
         }
 
         self.args_numba_signature = {
             'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-            'static':  (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'static' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
         }
 
         self.compute_costate_dynamics = self.compile_costate_dynamics()
@@ -104,7 +105,7 @@ class CompDual(Dual):
         def compute_costate_dynamics(
                 independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            return np.array(_compute_costate_dynamics(independent, states, controls, costates, parameters, constants))
+            return np.asarray(_compute_costate_dynamics(independent, states, controls, costates, parameters, constants))
 
         if self.use_jit_compile:
             compute_costate_dynamics = jit_compile(compute_costate_dynamics, self.args_numba_signature['dynamic'])
@@ -123,10 +124,9 @@ class CompDual(Dual):
                 independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
                 costates: tuple[np.ndarray, np.ndarray], controls: tuple[np.ndarray, np.ndarray],
                 parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray) -> np.ndarray:
-
-            _initial_dual_bcs = np.array(compute_initial_dual_boundary_conditions(
+            _initial_dual_bcs = np.asarray(compute_initial_dual_boundary_conditions(
                     independent[0], states[0], costates[0], controls[0], parameters, adjoints, constants))
-            _terminal_dual_bcs = np.array(compute_terminal_dual_boundary_conditions(
+            _terminal_dual_bcs = np.asarray(compute_terminal_dual_boundary_conditions(
                     independent[1], states[1], costates[1], controls[1], parameters, adjoints, constants))
 
             return np.concatenate((_initial_dual_bcs, _terminal_dual_bcs))
@@ -138,7 +138,7 @@ class CompDual(Dual):
                      NumbaArray, NumbaArray, NumbaArray)
             )
 
-        return compute_initial_dual_boundary_conditions, compute_terminal_dual_boundary_conditions,\
+        return compute_initial_dual_boundary_conditions, compute_terminal_dual_boundary_conditions, \
             compute_dual_boundary_conditions
 
     def compile_hamiltonian(self) -> Callable:

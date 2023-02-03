@@ -2,10 +2,9 @@ from typing import Union, Tuple
 
 import sympy
 
-from giuseppe.utils.typing import Symbol, SymExpr
 from giuseppe.problems.components.input import InputInequalityConstraint
+from giuseppe.utils.typing import Symbol, SymExpr
 
-from ..ocp import SymOCP
 from .generic import SymRegularizer, Problem
 
 
@@ -47,7 +46,8 @@ class PenaltyConstraintHandler(SymRegularizer):
             raise ValueError(f'Path constraints using UTM/secant method must have lower and upper limits')
 
         penalty_func = regulator \
-                       / sympy.cos(sympy.pi / 2 * (2 * expr - upper_limit - lower_limit) / (upper_limit - lower_limit)) - regulator
+                       / sympy.cos(
+            sympy.pi / 2 * (2 * expr - upper_limit - lower_limit) / (upper_limit - lower_limit)) - regulator
         return penalty_func
 
     @staticmethod

@@ -2,8 +2,8 @@ from typing import Union, Tuple
 
 import sympy
 
-from giuseppe.utils.typing import Symbol, SymExpr
 from giuseppe.problems.components.input import InputInequalityConstraint
+from giuseppe.utils.typing import Symbol, SymExpr
 
 from .generic import SymRegularizer, Problem
 
@@ -71,7 +71,7 @@ class ControlConstraintHandler(SymRegularizer):
 
         control_func = (upper_limit - lower_limit) / sympy.pi * sympy.atan(pseudo_control / regulator) \
                        + (upper_limit + lower_limit) / 2
-        error_func = regulator * sympy.log(1 + pseudo_control**2 / regulator**2) / sympy.pi
+        error_func = regulator * sympy.log(1 + pseudo_control ** 2 / regulator ** 2) / sympy.pi
 
         return control_func, error_func
 
@@ -89,7 +89,7 @@ class ControlConstraintHandler(SymRegularizer):
             -> Tuple[SymExpr, SymExpr]:
 
         control_func = (upper_limit - lower_limit) / 2 * sympy.erf(pseudo_control) + (upper_limit + lower_limit) / 2
-        error_func = regulator * (1 - sympy.exp(-pseudo_control**2/regulator**2)) / sympy.sqrt(sympy.pi)
+        error_func = regulator * (1 - sympy.exp(-pseudo_control ** 2 / regulator ** 2)) / sympy.sqrt(sympy.pi)
 
         return control_func, error_func
 
@@ -98,9 +98,9 @@ class ControlConstraintHandler(SymRegularizer):
             -> Tuple[SymExpr, SymExpr]:
 
         control_func = (upper_limit - lower_limit) / 2 * sympy.tanh(pseudo_control / regulator) \
-            + (upper_limit + lower_limit) / 2
+                       + (upper_limit + lower_limit) / 2
         error_func = pseudo_control * sympy.tanh(pseudo_control / regulator) \
-            - regulator * sympy.log(sympy.cosh(pseudo_control / regulator))
+                     - regulator * sympy.log(sympy.cosh(pseudo_control / regulator))
 
         return control_func, error_func
 
@@ -108,10 +108,10 @@ class ControlConstraintHandler(SymRegularizer):
     def _gen_logistic_expr(pseudo_control: Symbol, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \
             -> Tuple[SymExpr, SymExpr]:
 
-        control_func = (upper_limit - lower_limit) * ((1 + sympy.exp(-pseudo_control / regulator))**-1 - 1 / 2) \
-            + (upper_limit + lower_limit) / 2
+        control_func = (upper_limit - lower_limit) * ((1 + sympy.exp(-pseudo_control / regulator)) ** -1 - 1 / 2) \
+                       + (upper_limit + lower_limit) / 2
         error_func = - 2 * regulator * sympy.log((1 + sympy.exp(-pseudo_control / regulator)) / 2) \
-            + 2 * pseudo_control * ((1 + sympy.exp(-pseudo_control / regulator)) ** -1 - 1)
+                     + 2 * pseudo_control * ((1 + sympy.exp(-pseudo_control / regulator)) ** -1 - 1)
 
         return control_func, error_func
 
@@ -120,7 +120,7 @@ class ControlConstraintHandler(SymRegularizer):
             -> Tuple[SymExpr, SymExpr]:
 
         control_func = (upper_limit - lower_limit) / 2 * (pseudo_control / regulator) \
-            * (1 + (pseudo_control ** 2 / regulator ** 2)) + (upper_limit + lower_limit) / 2
-        error_func = regulator * (1 - (1 + (pseudo_control ** 2 / regulator ** 2)) ** (-1/2))
+                       * (1 + (pseudo_control ** 2 / regulator ** 2)) + (upper_limit + lower_limit) / 2
+        error_func = regulator * (1 - (1 + (pseudo_control ** 2 / regulator ** 2)) ** (-1 / 2))
 
         return control_func, error_func
