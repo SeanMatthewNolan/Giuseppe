@@ -1,3 +1,4 @@
+from typing import Optional
 from copy import deepcopy
 
 import numpy as np
@@ -20,6 +21,14 @@ class ImplicitAlgebraicControlHandler:
 
         self.control_law = dual.hamiltonian.diff(primal.controls)
 
+    def compile(self, source_comp_dual: Optional[CompDual] = None,
+                use_jit_compile: bool = True) -> 'CompImplicitAlgebraicControlHandler':
+
+        if source_comp_dual is None:
+            source_comp_dual = self.dual.compile(use_jit_compile=use_jit_compile)
+
+        return CompImplicitAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
+
 
 class ExplicitAlgebraicControlHandler:
     def __init__(self, primal: SymOCP, dual: SymDual):
@@ -30,6 +39,14 @@ class ExplicitAlgebraicControlHandler:
 
         self.dh_du = dual.hamiltonian.diff(primal.controls)
         self.control_law = solve(self.dh_du, self.controls)
+
+    def compile(self, source_comp_dual: Optional[CompDual] = None,
+                use_jit_compile: bool = True) -> 'CompExplicitAlgebraicControlHandler':
+        
+        if source_comp_dual is None:
+            source_comp_dual = self.dual.compile(use_jit_compile=use_jit_compile)
+
+        return CompExplicitAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
 
 
 class DifferentialControlHandler:
@@ -48,13 +65,22 @@ class DifferentialControlHandler:
             -self.h_uu.LUsolve(self.h_ut + self.h_ux @ primal.dynamics
                                + self.f_u.T @ dual.costate_dynamics[:len(primal.states.flat()), :])
 
+    def compile(self, source_comp_dual: Optional[CompDual] = None,
+                use_jit_compile: bool = True) -> 'CompDifferentialControlHandler':
+
+        if source_comp_dual is None:
+            source_comp_dual = self.dual.compile(use_jit_compile=use_jit_compile)
+
+        return CompDifferentialControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
+
 
 class CompImplicitAlgebraicControlHandler:
-    def __init__(self, source_handler: ImplicitAlgebraicControlHandler, source_comp_dual: CompDual):
+    def __init__(self, source_handler: ImplicitAlgebraicControlHandler, source_comp_dual: CompDual,
+                 use_jit_compile: bool = True):
         self.source_handler = deepcopy(source_handler)
         self.source_comp_dual = deepcopy(source_comp_dual)
 
-        self.use_jit_compile = source_comp_dual.use_jit_compile
+        self.use_jit_compile = use_jit_compile
         self.sym_args = (self.source_comp_dual.source_ocp.independent,
                          self.source_comp_dual.source_ocp.states.flat(),
                          self.source_comp_dual.source_dual.costates.flat(),
@@ -79,10 +105,12 @@ class CompImplicitAlgebraicControlHandler:
 
 
 class CompExplicitAlgebraicControlHandler:
-    def __init__(self, source_handler: ExplicitAlgebraicControlHandler, source_comp_dual: CompDual):
+    def __init__(self, source_handler: ExplicitAlgebraicControlHandler, source_comp_dual: CompDual,
+                 use_jit_compile: bool = True):
         self.source_handler = deepcopy(source_handler)
         self.source_comp_dual = deepcopy(source_comp_dual)
 
+        self.use_jit_compile = use_jit_compile
         self.use_jit_compile = source_comp_dual.use_jit_compile
         self.sym_args = (self.source_comp_dual.source_ocp.independent,
                          self.source_comp_dual.source_ocp.states.flat(),
@@ -122,11 +150,12 @@ class CompExplicitAlgebraicControlHandler:
 
 
 class CompDifferentialControlHandler:
-    def __init__(self, source_handler: DifferentialControlHandler, source_comp_dual: CompDual):
+    def __init__(self, source_handler: DifferentialControlHandler, source_comp_dual: CompDual,
+                 use_jit_compile: bool = True):
         self.source_handler = deepcopy(source_handler)
         self.source_comp_dual = deepcopy(source_comp_dual)
 
-        self.use_jit_compile = self.source_comp_dual.use_jit_compile
+        self.use_jit_compile = use_jit_compile
 
         self.sym_args = self.source_comp_dual.sym_args['dynamic']
         self.args_numba_signature = self.source_comp_dual.args_numba_signature['dynamic']

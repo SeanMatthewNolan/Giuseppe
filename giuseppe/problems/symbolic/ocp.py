@@ -45,6 +45,9 @@ class SymOCP(SymBVP):
         self.cost.path = self.substitute(self.cost.path)
         self.cost.terminal = self.substitute(self.cost.terminal)
 
+    def compile(self, use_jit_compile: bool = True, cost_quadrature: str = 'simpson') -> 'CompOCP':
+        return CompOCP(self, use_jit_compile=use_jit_compile, cost_quadrature=cost_quadrature)
+
 
 class CompOCP(OCP):
     def __init__(self, source_ocp: SymOCP, use_jit_compile: bool = True, cost_quadrature: str = 'simpson'):

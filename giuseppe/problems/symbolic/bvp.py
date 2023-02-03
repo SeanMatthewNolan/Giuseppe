@@ -107,9 +107,12 @@ class SymBVP(Symbolic):
         self.process_inequality_constraints(input_data.inequality_constraints)
         self.perform_substitutions()
 
+    def compile(self, use_jit_compile: bool = True) -> 'CompBVP':
+        return CompBVP(self, use_jit_compile=use_jit_compile)
+
 
 class CompBVP(BVP):
-    def __init__(self, source_bvp: SymBVP, use_jit_compile=True):
+    def __init__(self, source_bvp: SymBVP, use_jit_compile: bool = True):
         self.use_jit_compile = use_jit_compile
         self.source_bvp = deepcopy(source_bvp)
 

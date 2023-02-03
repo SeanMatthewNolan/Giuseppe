@@ -57,6 +57,9 @@ class SymDual(Symbolic):
         self.num_terminal_adjoints = len(self.terminal_adjoints)
         self.num_adjoints = len(self.adjoints)
 
+    def compile(self, use_jit_compile: bool = True) -> 'CompDual':
+        return CompDual(self, use_jit_compile=use_jit_compile)
+
 
 class CompDual(Dual):
     def __init__(self, source_dual: SymDual, use_jit_compile: bool = True):

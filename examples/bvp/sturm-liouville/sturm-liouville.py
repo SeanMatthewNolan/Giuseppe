@@ -35,8 +35,7 @@ sturm_liouville.add_constraint('terminal', 'x - x_f')
 sturm_liouville.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Compilation Time:'):
-    sym_bvp = SymBVP(sturm_liouville)
-    comp_bvp = CompBVP(sym_bvp)
+    comp_bvp = SymBVP(sturm_liouville).compile()
 #     num_solver = ScipySolveBVP(comp_bvp)
 
 print(comp_bvp.compute_dynamics(0.,  np.array([0, 1.]), np.array([0.1]), np.array([0, 1, 0., 0., 1.])))
