@@ -93,28 +93,25 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
 #                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
-sym_ocp = SymOCP(ocp)
-sym_dual = SymDual(sym_ocp)
-sym_prob = SymCombined(sym_ocp, sym_dual, control_method='differential')
-
+comp_dual = SymDual(ocp, control_method='differential').compile()
 
 sol_set = load_sol_set('sol_set.data')
 sol = sol_set[-1]
 
-comp_ocp, comp_dual, comp_hand = sym_prob.compile()
-
-y_dot = comp_ocp.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)
-bc = comp_ocp.compute_boundary_conditions((sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), sol.p, sol.k)
-cost = comp_ocp.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
+y_dot = comp_dual.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)
+bc = comp_dual.compute_boundary_conditions((sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), sol.p, sol.k)
+cost = comp_dual.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
 
 lam_dot = comp_dual.compute_costate_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-dual_bc = comp_dual.compute_dual_boundary_conditions(
+dual_bc = comp_dual.compute_adjoint_boundary_conditions(
         (sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), (sol.lam[:, 0], sol.lam[:, -1]),
         (sol.u[:, 0], sol.u[:, -1]), sol.p, np.concatenate((sol.nu0, sol.nuf)), sol.k)
 ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 
+comp_hand = comp_dual.control_handler
 u_dot = comp_hand.compute_control_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 dh_du = comp_hand.compute_control_boundary_conditions(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+# dh_du = comp_hand.compute_control_law(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
 
 # with Timer(prefix='Compilation Time:'):
 #     sym_ocp = SymOCP(ocp)

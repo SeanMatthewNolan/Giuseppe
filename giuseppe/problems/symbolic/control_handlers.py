@@ -13,63 +13,64 @@ from .ocp import SymOCP
 
 
 class ImplicitAlgebraicControlHandler:
-    def __init__(self, primal: SymOCP, dual: SymDual):
-        self.primal, self.dual = deepcopy(primal), deepcopy(dual)
+    def __init__(self, source_prob: SymDual):
 
-        self.controls = primal.controls
-        self.hamiltonian = dual.hamiltonian
+        self.source_prob = deepcopy(source_prob)
 
-        self.control_law = dual.hamiltonian.diff(primal.controls)
+        self.controls = self.source_prob.controls
+        self.hamiltonian = self.source_prob.hamiltonian
+
+        self.control_law = self.source_prob.hamiltonian.diff(self.source_prob.controls)
 
     def compile(self, source_comp_dual: Optional[CompDual] = None,
                 use_jit_compile: bool = True) -> 'CompImplicitAlgebraicControlHandler':
 
         if source_comp_dual is None:
-            source_comp_dual = self.dual.compile(use_jit_compile=use_jit_compile)
+            source_comp_dual = self.source_prob.compile(use_jit_compile=use_jit_compile)
 
         return CompImplicitAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
 
 
 class ExplicitAlgebraicControlHandler:
-    def __init__(self, primal: SymOCP, dual: SymDual):
-        self.primal, self.dual = deepcopy(primal), deepcopy(dual)
+    def __init__(self, source_prob: SymDual):
+        self.source_prob = deepcopy(source_prob)
 
-        self.controls: list[Symbol] = list(primal.controls)
-        self.hamiltonian = dual.hamiltonian
+        self.controls: list[Symbol] = list(self.source_prob.controls)
+        self.hamiltonian = self.source_prob.hamiltonian
 
-        self.dh_du = dual.hamiltonian.diff(primal.controls)
+        self.dh_du = self.source_prob.hamiltonian.diff(self.source_prob.controls)
         self.control_law = solve(self.dh_du, self.controls)
 
     def compile(self, source_comp_dual: Optional[CompDual] = None,
                 use_jit_compile: bool = True) -> 'CompExplicitAlgebraicControlHandler':
-        
+
         if source_comp_dual is None:
-            source_comp_dual = self.dual.compile(use_jit_compile=use_jit_compile)
+            source_comp_dual = self.source_prob.compile(use_jit_compile=use_jit_compile)
 
         return CompExplicitAlgebraicControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
 
 
 class DifferentialControlHandler:
-    def __init__(self, primal: SymOCP, dual: SymDual):
-        self.primal, self.dual = deepcopy(primal), deepcopy(dual)
+    def __init__(self, source_prob: SymDual):
+        self.source_prob = deepcopy(source_prob)
 
-        self.controls: list[Symbol] = list(primal.controls)
+        self.controls: list[Symbol] = list( self.source_prob.controls)
 
-        self.h_u: SymMatrix = SymMatrix([dual.hamiltonian]).jacobian(primal.controls)
-        self.h_uu: SymMatrix = self.h_u.jacobian(primal.controls)
-        self.h_ut: SymMatrix = self.h_u.jacobian([primal.independent])
-        self.h_ux: SymMatrix = self.h_u.jacobian(primal.states)
-        self.f_u: SymMatrix = primal.dynamics.jacobian(primal.controls)
+        self.h_u: SymMatrix = SymMatrix([self.source_prob.hamiltonian]).jacobian(self.source_prob.controls)
+        self.h_uu: SymMatrix = self.h_u.jacobian(self.source_prob.controls)
+        self.h_ut: SymMatrix = self.h_u.jacobian([self.source_prob.independent])
+        self.h_ux: SymMatrix = self.h_u.jacobian(self.source_prob.states)
+        self.f_u: SymMatrix = self.source_prob.dynamics.jacobian(self.source_prob.controls)
 
         self.control_dynamics = \
-            -self.h_uu.LUsolve(self.h_ut + self.h_ux @ primal.dynamics
-                               + self.f_u.T @ dual.costate_dynamics[:len(primal.states.flat()), :])
+            -self.h_uu.LUsolve(self.h_ut + self.h_ux @ self.source_prob.dynamics + self.f_u.T
+                               @ self.source_prob.costate_dynamics[:len(self.source_prob.states.flat()), :])
 
     def compile(self, source_comp_dual: Optional[CompDual] = None,
                 use_jit_compile: bool = True) -> 'CompDifferentialControlHandler':
 
         if source_comp_dual is None:
-            source_comp_dual = self.dual.compile(use_jit_compile=use_jit_compile)
+            source_comp_dual = self.source_prob.compile(use_jit_compile=use_jit_compile)
 
         return CompDifferentialControlHandler(self, source_comp_dual, use_jit_compile=use_jit_compile)
 
@@ -81,12 +82,12 @@ class CompImplicitAlgebraicControlHandler:
         self.source_comp_dual = deepcopy(source_comp_dual)
 
         self.use_jit_compile = use_jit_compile
-        self.sym_args = (self.source_comp_dual.source_ocp.independent,
-                         self.source_comp_dual.source_ocp.states.flat(),
+        self.sym_args = (self.source_comp_dual.source_dual.independent,
+                         self.source_comp_dual.source_dual.states.flat(),
                          self.source_comp_dual.source_dual.costates.flat(),
-                         self.source_comp_dual.source_ocp.controls.flat(),
-                         self.source_comp_dual.source_ocp.parameters.flat(),
-                         self.source_comp_dual.source_ocp.constants.flat())
+                         self.source_comp_dual.source_dual.controls.flat(),
+                         self.source_comp_dual.source_dual.parameters.flat(),
+                         self.source_comp_dual.source_dual.constants.flat())
         self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
         self.compute_control_law = self.compile_control_law()
 
@@ -114,7 +115,7 @@ class CompExplicitAlgebraicControlHandler:
         self.use_jit_compile = source_comp_dual.use_jit_compile
         self.sym_args = (self.source_comp_dual.source_ocp.independent,
                          self.source_comp_dual.source_ocp.states.flat(),
-                         self.source_comp_dual.source_dual.costates.flat(),
+                         self.source_comp_dual.source_adjoints.costates.flat(),
                          self.source_comp_dual.source_ocp.parameters.flat(),
                          self.source_comp_dual.source_ocp.constants.flat())
         self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray)

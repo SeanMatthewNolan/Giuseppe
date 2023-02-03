@@ -29,7 +29,7 @@ class SymBoundaryConditions:
 
 class SymBVP(Symbolic):
     def __init__(self, input_data: Optional[Union[InputBVP, StrInputProb]] = None):
-        super().__init__()
+        Symbolic.__init__(self)
 
         self.independent: Symbol = SYM_NULL
         self.states: SymMatrix = EMPTY_SYM_MATRIX
