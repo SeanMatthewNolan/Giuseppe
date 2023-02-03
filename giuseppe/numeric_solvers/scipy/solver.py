@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import sys
-from typing import Callable, TypeVar, Protocol
+from typing import Callable, TypeVar
 
 import numpy as np
 from scipy.integrate import solve_bvp
 
-from giuseppe.io.solution import Solution
+from giuseppe.io import Solution
+from giuseppe.numeric_solvers.scipy.protocol import SciPyBVP
 from giuseppe.problems.bvp import CompBVP
 from giuseppe.problems.dual import CompDualOCP
 from giuseppe.utils.typing import NPArray
@@ -22,20 +23,6 @@ else:
     _bc_type = Callable
     _preprocess_type = Callable
     _postprocess_type = Callable
-
-
-class SciPyBVP(Protocol):
-    def dynamics(self, tau_vec: NPArray, x_vec: NPArray, p: NPArray, k: NPArray) -> NPArray:
-        ...
-
-    def boundary_conditions(self, x0: NPArray, xf: NPArray, p: NPArray, k: NPArray):
-        ...
-
-    def preprocess(self, guess: Solution) -> tuple[NPArray, NPArray, NPArray]:
-        ...
-
-    def postprocess(self, scipy_sol: _scipy_bvp_sol) -> Solution:
-        ...
 
 
 class SciPySolver:
