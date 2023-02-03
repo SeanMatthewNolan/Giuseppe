@@ -7,8 +7,8 @@ from giuseppe.guess_generators import auto_propagate_guess
 from giuseppe.io import SolutionSet, load_sol, load_sol_set
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.symbolic import SymOCP, SymDual, SymCombined
-from giuseppe.problems.symbolic.compiled import CompOCP, CompDual
+from giuseppe.problems.symbolic import SymOCP, SymDual, SymCombined, control_handlers
+from giuseppe.problems.symbolic.compiled import CompOCP, CompDual, control_handlers as comp_control_handlers
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
@@ -110,6 +110,12 @@ dual_bc = comp_dual.compute_dual_boundary_conditions(
         (sol.t[0], sol.t[-1]), (sol.x[:, 0], sol.x[:, -1]), (sol.lam[:, 0], sol.lam[:, -1]),
         (sol.u[:, 0], sol.u[:, -1]), sol.p, np.concatenate((sol.nu0, sol.nuf)), sol.k)
 ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+
+dif_hand = control_handlers.DifferentialControlHandler(sym_ocp, sym_dual)
+comp_hand = comp_control_handlers.CompDifferentialControlHandler(dif_hand, comp_dual)
+u_dot = comp_hand.compute_control_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+dh_du = comp_hand.compute_control_boundary_conditions(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+
 # with Timer(prefix='Compilation Time:'):
 #     sym_ocp = SymOCP(ocp)
 #     sym_dual = SymDual(sym_ocp)
