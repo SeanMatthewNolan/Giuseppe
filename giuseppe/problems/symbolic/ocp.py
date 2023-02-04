@@ -54,9 +54,10 @@ class CompOCP(OCP):
         self.use_jit_compile = use_jit_compile
         self.source_ocp: SymOCP = deepcopy(source_ocp)
 
-        self.num_states: int = len(self.source_ocp.states)
-        self.num_parameters: int = len(self.source_ocp.parameters)
-        self.num_constants: int = len(self.source_ocp.constants)
+        self.num_states: int = self.source_ocp.num_states
+        self.num_controls: int = self.source_ocp.num_controls
+        self.num_parameters: int = self.source_ocp.num_parameters
+        self.num_constants: int = self.source_ocp.num_constants
         self.default_values: np.ndarray = self.source_ocp.default_values
 
         self.sym_args = {

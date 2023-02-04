@@ -7,13 +7,14 @@ import numpy as np
 class AlgebraicControlHandler(Protocol):
     @staticmethod
     def compute_control(
-            independent: float, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
+            independent: float, states: np.ndarray, costates: np.ndarray, parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...
 
 
 @runtime_checkable
 class DifferentialControlHandler(Protocol):
+
     @staticmethod
     def compute_control_dynamics(
             independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,

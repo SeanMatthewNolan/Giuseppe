@@ -77,6 +77,7 @@ class CompAdjoints(Adjoints):
         self.num_parameters: int = sym_ocp.num_parameters
         self.num_constants: int = sym_ocp.num_constants
 
+        self.num_costates: int = sym_adjoints.num_costates
         self.num_initial_adjoints: int = sym_adjoints.num_initial_adjoints
         self.num_terminal_adjoints: int = sym_adjoints.num_terminal_adjoints
         self.num_adjoints: int = self.num_initial_adjoints + self.num_terminal_adjoints
@@ -135,6 +136,7 @@ class CompAdjoints(Adjoints):
                 independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
                 costates: tuple[np.ndarray, np.ndarray], controls: tuple[np.ndarray, np.ndarray],
                 parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray) -> np.ndarray:
+
             _initial_adjoint_bcs = np.asarray(compute_initial_adjoint_boundary_conditions(
                     independent[0], states[0], costates[0], controls[0], parameters, adjoints, constants))
             _terminal_adjoint_bcs = np.asarray(compute_terminal_adjoint_boundary_conditions(

@@ -2,8 +2,10 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
+from giuseppe.data_classes import Solution
 
-# TODO Added Vectorized Protocol
+
+# TODO Add Vectorized Protocol
 
 
 @runtime_checkable
@@ -14,6 +16,8 @@ class OCP(Protocol):
     num_parameters: int
     num_constants: int
 
+    default_values: np.ndarray
+
     @staticmethod
     def compute_dynamics(
             independent: float, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
@@ -23,8 +27,8 @@ class OCP(Protocol):
 
     @staticmethod
     def compute_boundary_conditions(
-            independent: tuple[np.ndarray, ...], states: tuple[np.ndarray, ...],
-            parameters: np.ndarray, constants: tuple[np.ndarray, ...]
+            independent: tuple[float, ...], states: tuple[np.ndarray, ...],
+            parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...
 
@@ -33,4 +37,10 @@ class OCP(Protocol):
             independent: np.ndarray, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
             constants: np.ndarray
     ) -> float:
+        ...
+
+    def preprocess_data(self, data: Solution) -> Solution:
+        ...
+
+    def post_process_data(self, data: Solution) -> Solution:
         ...

@@ -4,6 +4,8 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
+from giuseppe.data_classes import Solution
+
 
 @runtime_checkable
 class BVP(Protocol):
@@ -24,4 +26,12 @@ class BVP(Protocol):
             independent: tuple[float, ...], states: tuple[np.ndarray, ...],
             parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
+        ...
+
+    @staticmethod
+    def preprocess_data(data: Solution) -> Solution:
+        ...
+
+    @staticmethod
+    def post_process_data(data: Solution) -> Solution:
         ...
