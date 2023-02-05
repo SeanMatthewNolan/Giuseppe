@@ -27,8 +27,7 @@ class OCP(Protocol):
 
     @staticmethod
     def compute_boundary_conditions(
-            independent: tuple[float, ...], states: tuple[np.ndarray, ...],
-            parameters: np.ndarray, constants: np.ndarray
+            independent: np.ndarray, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...
 

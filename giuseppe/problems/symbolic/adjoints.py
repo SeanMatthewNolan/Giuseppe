@@ -8,7 +8,7 @@ from giuseppe.problems.protocols import Adjoints
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic
-from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray, UniTuple
+from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray, NumbaMatrix
 
 from .ocp import SymOCP
 
@@ -133,22 +133,24 @@ class CompAdjoints(Adjoints):
                 use_jit_compile=self.use_jit_compile)
 
         def compute_adjoint_boundary_conditions(
-                independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
-                costates: tuple[np.ndarray, np.ndarray], controls: tuple[np.ndarray, np.ndarray],
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
                 parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray) -> np.ndarray:
 
-            _initial_adjoint_bcs = np.asarray(compute_initial_adjoint_boundary_conditions(
-                    independent[0], states[0], costates[0], controls[0], parameters, adjoints, constants))
-            _terminal_adjoint_bcs = np.asarray(compute_terminal_adjoint_boundary_conditions(
-                    independent[1], states[1], costates[1], controls[1], parameters, adjoints, constants))
+            _initial_adjoint_bcs = np.asarray(
+                    compute_initial_adjoint_boundary_conditions(
+                            independent[0], states[:, 0], costates[:, 0], controls[:, 0],
+                            parameters, adjoints, constants))
+            _terminal_adjoint_bcs = np.asarray(
+                    compute_terminal_adjoint_boundary_conditions(
+                            independent[-1], states[:, -1], costates[:, -1], controls[:, -1],
+                            parameters, adjoints, constants))
 
             return np.concatenate((_initial_adjoint_bcs, _terminal_adjoint_bcs))
 
         if self.use_jit_compile:
             compute_adjoint_boundary_conditions = jit_compile(
                     compute_adjoint_boundary_conditions,
-                    (UniTuple(NumbaFloat, 2), UniTuple(NumbaArray, 2), UniTuple(NumbaArray, 2), UniTuple(NumbaArray, 2),
-                     NumbaArray, NumbaArray, NumbaArray)
+                    (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray, NumbaArray)
             )
 
         return compute_initial_adjoint_boundary_conditions, compute_terminal_adjoint_boundary_conditions, \

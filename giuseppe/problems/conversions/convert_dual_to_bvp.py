@@ -2,6 +2,8 @@ from copy import deepcopy
 
 import numpy as np
 
+from giuseppe.utils.compilation import jit_compile
+from giuseppe.utils.typing import NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols.bvp import BVP
 from giuseppe.problems.protocols.dual import Dual
@@ -41,7 +43,12 @@ class BVPFromDual(BVP):
             raise ValueError('Cannot convert Dual to BVP without valid control handler')
 
         if use_jit_compile:
-            ...
+            self.compute_dynamics = jit_compile(
+                    self.compute_dynamics, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+            )
+            self.compute_boundary_conditions = jit_compile(
+                    self.compute_boundary_conditions, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
+            )
 
         self.num_parameters: int = self.source_dual.num_parameters + self.source_dual.num_adjoints
         self.num_constants: int = self.source_dual.num_constants
@@ -87,25 +94,19 @@ class BVPFromDual(BVP):
         _compute_control = self.source_dual.control_handler.compute_control
 
         def compute_boundary_conditions(
-                ts: tuple[float, ...], ys: tuple[np.ndarray, ...], rho: np.ndarray, k: np.ndarray
+                t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
+
+            x = y[:_num_states, :]
+            lam = y[_num_states:_num_states + _num_costates, :]
 
             p = rho[:_num_parameters]
             nu = rho[_num_parameters:]
 
-            xs, lams, us = [], [], []
-            for ti, yi in zip(ts, ys):
-                xi = yi[:_num_states]
-                lam_i = yi[_num_states:_num_states + _num_costates]
+            u = np.asarray([_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T)])
 
-                xs.append(xi)
-                lams.append(lam_i)
-                us.append(_compute_control(ti, xi, lam_i, p, k))
-
-            xs, lams, us = tuple(xs), tuple(lams), tuple(us)
-
-            _psi = _compute_state_boundary_conditions(ts, xs, p, k)
-            _adj_bc = _compute_adjoint_boundary_conditions(ts, xs, lams, us, p, nu, k)
+            _psi = _compute_state_boundary_conditions(t, x, p, k)
+            _adj_bc = _compute_adjoint_boundary_conditions(t, x, lam, u, p, nu, k)
 
             return np.concatenate((_psi, _adj_bc))
 
@@ -200,23 +201,19 @@ class BVPFromDual(BVP):
         _compute_control_boundary_conditions = self.source_dual.control_handler.compute_control_dynamics
 
         def compute_boundary_conditions(
-                ts: tuple[float, ...], ys: tuple[np.ndarray, ...], rho: np.ndarray, k: np.ndarray
+                t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            xs, lams, us = [], [], []
-            for yi in ys:
-                xs.append(yi[:_num_states])
-                lams.append(yi[_num_states:_num_states + _num_costates])
-                us.append(yi[_num_states + _num_costates:])
-
-            xs, lams, us = tuple(xs), tuple(lams), tuple(us)
+            x = y[:_num_states, :]
+            lam = y[_num_states:_num_states + _num_costates, :]
+            u = y[_num_states + _num_costates:, :]
 
             p = rho[:_num_parameters]
             nu = rho[_num_parameters:]
 
-            _psi = _compute_state_boundary_conditions(ts, xs, p, k)
-            _adj_bc = _compute_adjoint_boundary_conditions(ts, xs, lams, us, p, nu, k)
-            _dh_du = _compute_control_boundary_conditions(ts[0], xs[0], lams[0], us[0], p, k)
+            _psi = _compute_state_boundary_conditions(t, x, p, k)
+            _adj_bc = _compute_adjoint_boundary_conditions(t, x, lam, u, p, nu, k)
+            _dh_du = _compute_control_boundary_conditions(t[0], x[:, 0], lam[:, 0], u[:, 0], p, k)
 
             return np.concatenate((_psi, _adj_bc, _dh_du))
 

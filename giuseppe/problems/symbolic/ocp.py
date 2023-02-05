@@ -9,7 +9,7 @@ from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.problems.protocols import OCP
 from giuseppe.utils.compilation import lambdify, jit_compile
-from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, NumbaFloat, NumbaArray, UniTuple
+from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, NumbaFloat, NumbaArray, NumbaMatrix
 from .bvp import SymBVP
 
 
@@ -113,17 +113,19 @@ class CompOCP(OCP):
                 use_jit_compile=self.use_jit_compile)
 
         def compute_boundary_conditions(
-                independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
+                independent: np.ndarray, states: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            _psi_0 = np.asarray(compute_initial_boundary_conditions(independent[0], states[0], parameters, constants))
-            _psi_f = np.asarray(compute_terminal_boundary_conditions(independent[1], states[1], parameters, constants))
+
+            _psi_0 = np.asarray(
+                    compute_initial_boundary_conditions(independent[0], states[:, 0], parameters, constants))
+            _psi_f = np.asarray(
+                    compute_terminal_boundary_conditions(independent[-1], states[:, -1], parameters, constants))
 
             return np.concatenate((_psi_0, _psi_f))
 
         if self.use_jit_compile:
             compute_boundary_conditions = jit_compile(
-                    compute_boundary_conditions,
-                    (UniTuple(NumbaFloat, 2), UniTuple(NumbaArray, 2), NumbaArray, NumbaArray)
+                    compute_boundary_conditions, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
             )
 
         return compute_initial_boundary_conditions, compute_terminal_boundary_conditions, compute_boundary_conditions

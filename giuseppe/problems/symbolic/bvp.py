@@ -12,7 +12,7 @@ from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.protocols import BVP
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.mixins import Symbolic
-from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SymExpr, NumbaFloat, NumbaArray, UniTuple
+from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SymExpr, NumbaFloat, NumbaArray, NumbaMatrix
 
 
 class SymNamedExpr:
@@ -154,17 +154,19 @@ class CompBVP(BVP):
                 use_jit_compile=self.use_jit_compile)
 
         def compute_boundary_conditions(
-                independent: tuple[float, float], states: tuple[np.ndarray, np.ndarray],
+                independent: np.ndarray, states: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            _bc_0 = np.asarray(compute_initial_boundary_conditions(independent[0], states[0], parameters, constants))
-            _bc_f = np.asarray(compute_terminal_boundary_conditions(independent[1], states[1], parameters, constants))
+
+            _bc_0 = np.asarray(
+                    compute_initial_boundary_conditions(independent[0], states[:, 0], parameters, constants))
+            _bc_f = np.asarray(
+                    compute_terminal_boundary_conditions(independent[-1], states[:, -1], parameters, constants))
 
             return np.concatenate((_bc_0, _bc_f))
 
         if self.use_jit_compile:
             compute_boundary_conditions = jit_compile(
-                    compute_boundary_conditions,
-                    (UniTuple(NumbaFloat, 2), UniTuple(NumbaArray, 2), NumbaArray, NumbaArray)
+                    compute_boundary_conditions, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
             )
 
         return compute_initial_boundary_conditions, compute_terminal_boundary_conditions, compute_boundary_conditions

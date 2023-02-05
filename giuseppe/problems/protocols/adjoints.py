@@ -24,8 +24,8 @@ class Adjoints(Protocol):
 
     @staticmethod
     def compute_adjoint_boundary_conditions(
-            independent: tuple[float, ...], states: tuple[np.ndarray, ...], costates: tuple[np.ndarray, ...],
-            controls: tuple[np.ndarray, ...], parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray
+            independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+            parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...
 
