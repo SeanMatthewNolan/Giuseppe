@@ -149,5 +149,5 @@ class ContinuationHandler:
                     display.end_cont_series()
             return self.solution_set
         except ContinuationError as e:
-            print(f'Contiuation failed to complete because exception: {e}')
+            print(f'Continuation failed to complete because exception: {e}')
             return self.solution_set

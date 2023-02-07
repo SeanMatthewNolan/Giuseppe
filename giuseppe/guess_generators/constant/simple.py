@@ -5,21 +5,21 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from giuseppe.data_classes.solution import Solution
-from giuseppe.problems.dual.utils import sift_ocp_and_dual
-from giuseppe.problems.ocp import CompOCP, AdiffOCP
-from giuseppe.problems.typing import AnyProblem
+from giuseppe.problems.protocols import BVP, OCP, Dual, Adjoints
+
+SUPPORTED_PROBLEMS = Union[BVP, OCP, Dual, Adjoints]
 
 
 def initialize_guess_w_default_value(
-        comp_prob: AnyProblem, default_value: float = 1., t_span: Union[float, ArrayLike] = 0.1) -> Solution:
+        prob: SUPPORTED_PROBLEMS, default_value: float = 1., t_span: Union[float, ArrayLike] = 0.1) -> Solution:
     """
-    Generate guess where all variables (excluding the indenpendent) are set to a default single constant
+    Generate guess where all variables (excluding the independent) are set to a default single constant
 
     Main purpose is to initialize a solution object for more advanced guess generators
 
     Parameters
     ----------
-    comp_prob : CompBVP, CompOCP, CompDual or CompDualOCP
+    prob : BVP, OCP, Dual, Adjoints
         the problem that the guess is for, needed to shape/size of arrays
 
     default_value : float, default=1.
@@ -35,8 +35,6 @@ def initialize_guess_w_default_value(
 
     """
 
-    prob, dual = sift_ocp_and_dual(comp_prob)
-
     data = {'converged': False}
 
     if isinstance(t_span, float) or isinstance(t_span, int):
@@ -46,18 +44,17 @@ def initialize_guess_w_default_value(
 
     num_t_steps = len(data['t'])
 
-    if prob is not None:
-        data['x'] = np.ones((prob.num_states, num_t_steps)) * default_value
-        data['p'] = np.ones((prob.num_parameters,)) * default_value
-        data['k'] = prob.default_values
+    data['x'] = np.ones((prob.num_states, num_t_steps)) * default_value
+    data['p'] = np.ones((prob.num_parameters,)) * default_value
+    data['k'] = prob.default_values
 
-    if isinstance(prob, CompOCP) or isinstance(prob, AdiffOCP):
+    if hasattr(prob, 'num_controls'):
         data['u'] = np.ones((prob.num_controls, num_t_steps)) * default_value
 
-    if dual is not None:
-        data['lam'] = np.ones((dual.num_costates, num_t_steps)) * default_value
-        data['nu0'] = np.ones((dual.num_initial_adjoints,)) * default_value
-        data['nuf'] = np.ones((dual.num_terminal_adjoints,)) * default_value
+    if hasattr(prob, 'num_costates'):
+        data['lam'] = np.ones((prob.num_costates, num_t_steps)) * default_value
+        data['nu0'] = np.ones((prob.num_initial_adjoints,)) * default_value
+        data['nuf'] = np.ones((prob.num_terminal_adjoints,)) * default_value
 
     return Solution(**data)
 
@@ -68,7 +65,7 @@ def update_constant_value(guess: Solution, name: str, values: Optional[Union[flo
 
     Parameters
     ----------
-    guess : BVPSol, OCPSol, DualSol, or DualOCPSol
+    guess : Solution
         guess to update with values
     name : str
         name of attribute in guess to update
@@ -100,13 +97,13 @@ def update_constant_value(guess: Solution, name: str, values: Optional[Union[flo
 
 
 def generate_constant_guess(
-        prob: AnyProblem, default_value: float = 0.1, t_span: Union[float, ArrayLike] = 0.1,
+        prob: SUPPORTED_PROBLEMS, default_value: float = 0.1, t_span: Union[float, ArrayLike] = 0.1,
         x: Optional[Union[float, ArrayLike]] = None, lam: Optional[Union[float, ArrayLike]] = None,
         u: Optional[Union[float, ArrayLike]] = None, p: Optional[Union[float, ArrayLike]] = None,
         nu_0: Optional[Union[float, ArrayLike]] = None, nu_f: Optional[Union[float, ArrayLike]] = None,
         k: Optional[Union[float, ArrayLike]] = None) -> Solution:
     """
-    Generate guess where variables (excluding the indenpendent) are set to constant values
+    Generate guess where variables (excluding the independent) are set to constant values
 
     Main purpose is to initialize a solution object for more advanced guess generators
 

@@ -3,11 +3,11 @@ import os
 import numpy as np
 
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import auto_propagate_guess
+from giuseppe.guess_generators import auto_propagate_guess, initialize_guess_w_default_value
 from giuseppe.io import SolutionSet, load_sol, load_sol_set
 from giuseppe.numeric_solvers.bvp import ScipySolveBVP
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.symbolic import SymDual
+from giuseppe.problems.symbolic import SymDual, SymOCP, SymAdjoints
 from giuseppe.problems.conversions import convert_dual_to_bvp
 from giuseppe.problems.symbolic import control_handlers as comp_control_handlers
 from giuseppe.problems.symbolic.dual import CompDual
@@ -96,35 +96,44 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
 #                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
+sym_ocp = SymOCP(ocp)
+comp_ocp = sym_ocp.compile()
+comp_adj = SymAdjoints(sym_ocp).compile()
 comp_dual = SymDual(ocp, control_method='differential').compile()
-
-sol_set = load_sol_set('sol_set.data')
-sol = sol_set[-1]
-
-x_dot = comp_dual.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)
-bc = comp_dual.compute_boundary_conditions(sol.t, sol.x, sol.p, sol.k)
-cost = comp_dual.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
-
-lam_dot = comp_dual.compute_costate_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-adj_bc = comp_dual.compute_adjoint_boundary_conditions(
-        sol.t, sol.x, sol.lam, sol.u, sol.p, np.concatenate((sol.nu0, sol.nuf)), sol.k)
-ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-
-comp_hand = comp_dual.control_handler
-u_dot = comp_hand.compute_control_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-# dh_du = comp_hand.compute_control_boundary_conditions(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-dh_du = comp_dual.compute_control_law(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-
 comp_bvp = convert_dual_to_bvp(comp_dual)
 
-sol_bvp = comp_bvp.preprocess_data(sol)
-y_dot = comp_bvp.compute_dynamics(sol_bvp.t[0], sol_bvp.x[:, 0], sol_bvp.p, sol_bvp.k)
-dual_bc = comp_bvp.compute_boundary_conditions(sol_bvp.t, sol_bvp.x, sol_bvp.p, sol_bvp.k)
-sol_back = comp_bvp.post_process_data(sol_bvp)
+guess_bvp = initialize_guess_w_default_value(comp_bvp)
+guess_ocp = initialize_guess_w_default_value(comp_ocp)
+guess_adj = initialize_guess_w_default_value(comp_adj)
+guess_dua = initialize_guess_w_default_value(comp_dual)
 
-sp_bvp = SciPyBVP(comp_bvp)
+# sol_set = load_sol_set('sol_set.data')
+# sol = sol_set[-1]
+#
+# x_dot = comp_dual.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)
+# bc = comp_dual.compute_boundary_conditions(sol.t, sol.x, sol.p, sol.k)
+# cost = comp_dual.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
+#
+# lam_dot = comp_dual.compute_costate_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+# adj_bc = comp_dual.compute_adjoint_boundary_conditions(
+#         sol.t, sol.x, sol.lam, sol.u, sol.p, np.concatenate((sol.nu0, sol.nuf)), sol.k)
+# ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+#
+# comp_hand = comp_dual.control_handler
+# u_dot = comp_hand.compute_control_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+# # dh_du = comp_hand.compute_control_boundary_conditions(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+# dh_du = comp_dual.compute_control_law(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
+#
+# comp_bvp = convert_dual_to_bvp(comp_dual)
+#
+# sol_bvp = comp_bvp.preprocess_data(sol)
+# y_dot = comp_bvp.compute_dynamics(sol_bvp.t[0], sol_bvp.x[:, 0], sol_bvp.p, sol_bvp.k)
+# dual_bc = comp_bvp.compute_boundary_conditions(sol_bvp.t, sol_bvp.x, sol_bvp.p, sol_bvp.k)
+# sol_back = comp_bvp.post_process_data(sol_bvp)
+
+# sp_bvp = SciPyBVP(comp_bvp)
 # sp_tau, sp_x, sp_p = sp_bvp.preprocess(sol)
-scipy_sol = SciPySolver(comp_bvp, verbose=True).solve(sol_set[1].k, sol_set[0])
+# scipy_sol = SciPySolver(comp_bvp, verbose=True).solve(sol_set[1].k, sol_set[0])
 
 # with Timer(prefix='Compilation Time:'):
 #     sym_ocp = SymOCP(ocp)
