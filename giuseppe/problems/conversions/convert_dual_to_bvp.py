@@ -130,7 +130,7 @@ class BVPFromDual(BVP):
 
             lam, u, nu0, nuf = None, None, None, None
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
 
         return preprocess_data
 
@@ -156,7 +156,7 @@ class BVPFromDual(BVP):
 
             u = np.array(_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T))
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
 
         return post_process_data
 
@@ -235,7 +235,7 @@ class BVPFromDual(BVP):
 
             lam, u, nu0, nuf = None, None, None, None
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
 
         return preprocess_data
 
@@ -259,6 +259,6 @@ class BVPFromDual(BVP):
             nuf = in_data.p[_num_parameters + _num_initial_adjoints:_num_parameters + _num_adjoints]
             k = in_data.k
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
 
         return post_process_data

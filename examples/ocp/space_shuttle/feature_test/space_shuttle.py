@@ -14,6 +14,8 @@ from giuseppe.problems.symbolic.dual import CompDual
 from giuseppe.problems.symbolic.ocp import CompOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
+from giuseppe.numeric_solvers.scipy import SciPySolver
+from giuseppe.numeric_solvers.scipy.scipy_bvp_problem import SciPyBVP
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
@@ -119,6 +121,10 @@ sol_bvp = comp_bvp.preprocess_data(sol)
 y_dot = comp_bvp.compute_dynamics(sol_bvp.t[0], sol_bvp.x[:, 0], sol_bvp.p, sol_bvp.k)
 dual_bc = comp_bvp.compute_boundary_conditions(sol_bvp.t, sol_bvp.x, sol_bvp.p, sol_bvp.k)
 sol_back = comp_bvp.post_process_data(sol_bvp)
+
+sp_bvp = SciPyBVP(comp_bvp)
+# sp_tau, sp_x, sp_p = sp_bvp.preprocess(sol)
+scipy_sol = SciPySolver(comp_bvp, verbose=True).solve(sol_set[1].k, sol_set[0])
 
 # with Timer(prefix='Compilation Time:'):
 #     sym_ocp = SymOCP(ocp)

@@ -29,8 +29,8 @@ class BVP(Protocol):
 
     @staticmethod
     def preprocess_data(data: Solution) -> Solution:
-        ...
+        return data
 
     @staticmethod
     def post_process_data(data: Solution) -> Solution:
-        ...
+        return data

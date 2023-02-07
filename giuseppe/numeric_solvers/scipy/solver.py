@@ -1,28 +1,9 @@
-from __future__ import annotations
-
-import sys
-from typing import Callable, TypeVar
-
 import numpy as np
 from scipy.integrate import solve_bvp
 
 from giuseppe.io import Solution
-from giuseppe.numeric_solvers.scipy.protocol import SciPyBVP
-from giuseppe.problems.bvp import CompBVP
-from giuseppe.problems.dual import CompDualOCP
-from giuseppe.utils.typing import NPArray
-
-_scipy_bvp_sol = TypeVar('_scipy_bvp_sol')
-if sys.version_info >= (3, 10):
-    _dyn_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
-    _bc_type = Callable[[NPArray, NPArray, NPArray, NPArray], NPArray]
-    _preprocess_type = Callable[[Solution], tuple[NPArray, NPArray, NPArray]]
-    _postprocess_type = Callable[[_scipy_bvp_sol, NPArray], Solution]
-else:
-    _dyn_type = Callable
-    _bc_type = Callable
-    _preprocess_type = Callable
-    _postprocess_type = Callable
+from .scipy_bvp_problem import BVP, SciPyBVP
+from .scipy_types import _scipy_bvp_sol
 
 
 class SciPySolver:
@@ -35,14 +16,14 @@ class SciPySolver:
 
     """
 
-    def __init__(self, prob: SciPyBVP,
+    def __init__(self, prob: BVP, use_jit_compile: bool = False,
                  tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
         """
         Initialize ScipySolveBVP
 
         Parameters
         ----------
-        prob : CompBVP or CompDualOCP
+        prob : BVP
             the BVP (or dualized OCP) to solve
         tol : float, default=0.001
             sets `tol` kwarg for `scipy.integrate.solve_bvp`
@@ -59,9 +40,9 @@ class SciPySolver:
         self.max_nodes: int = max_nodes
         self.verbose: bool = verbose
 
-        self.prob: SciPyBVP = prob
+        self.prob: SciPyBVP = SciPyBVP(prob, use_jit_compile=use_jit_compile)
 
-    def solve(self, constants: NPArray, guess: Solution) -> Solution:
+    def solve(self, constants: np.ndarray, guess: Solution) -> Solution:
         """
         Solve BVP (or dualized OCP) with instance of ScipySolveBVP
 
@@ -74,7 +55,7 @@ class SciPySolver:
 
         Returns
         -------
-        solution : Solution or DualOCPSol
+        solution : Solution
             solution to the BVP for given constants
 
         """
@@ -83,10 +64,10 @@ class SciPySolver:
         k = constants
 
         sol: _scipy_bvp_sol = solve_bvp(
-                lambda tau, x, p: self.prob.dynamics(tau, x, p, k),
-                lambda x0, xf, p: self.prob.boundary_conditions(x0, xf, p, k),
+                lambda tau, x, p: self.prob.compute_dynamics(tau, x, p, k),
+                lambda x0, xf, p: self.prob.compute_boundary_conditions(x0, xf, p, k),
                 tau_guess, x_guess, p_guess,
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )
 
-        return self.prob.postprocess(sol)
+        return self.prob.post_process(sol, constants)
