@@ -7,7 +7,7 @@ from giuseppe.data_classes.solution_set import SolutionSet
 from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
-from ..numeric_solvers import ScipySolveBVP, AdiffScipySolveBVP
+from ..numeric_solvers import SciPySolver, AdiffScipySolveBVP
 from ..utils.exceptions import ContinuationError
 
 
@@ -119,7 +119,7 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
-    def run_continuation(self, numeric_solver: Union[ScipySolveBVP, AdiffScipySolveBVP], display=ProgressBarDisplay()) \
+    def run_continuation(self, numeric_solver: Union[SciPySolver, AdiffScipySolveBVP], display=ProgressBarDisplay()) \
             -> SolutionSet:
         """
         Run continuation set

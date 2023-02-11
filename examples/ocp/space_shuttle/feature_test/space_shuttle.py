@@ -2,20 +2,11 @@ import os
 
 import numpy as np
 
-from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import auto_propagate_guess, initialize_guess_w_default_value
-from giuseppe.io import SolutionSet, load_sol, load_sol_set
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
+from giuseppe.guess import initialize_guess
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymDual, SymOCP, SymAdjoints
 from giuseppe.problems.conversions import convert_dual_to_bvp
-from giuseppe.problems.symbolic import control_handlers as comp_control_handlers
-from giuseppe.problems.symbolic.dual import CompDual
-from giuseppe.problems.symbolic.ocp import CompOCP
 from giuseppe.problems.regularization import PenaltyConstraintHandler
-from giuseppe.utils import Timer
-from giuseppe.numeric_solvers.scipy import SciPySolver
-from giuseppe.numeric_solvers.scipy.scipy_bvp_problem import SciPyBVP
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
@@ -102,10 +93,10 @@ comp_adj = SymAdjoints(sym_ocp).compile()
 comp_dual = SymDual(ocp, control_method='differential').compile()
 comp_bvp = convert_dual_to_bvp(comp_dual)
 
-guess_bvp = initialize_guess_w_default_value(comp_bvp)
-guess_ocp = initialize_guess_w_default_value(comp_ocp)
-guess_adj = initialize_guess_w_default_value(comp_adj)
-guess_dua = initialize_guess_w_default_value(comp_dual)
+guess_bvp = initialize_guess(comp_bvp)
+guess_ocp = initialize_guess(comp_ocp)
+guess_adj = initialize_guess(comp_adj)
+guess_dua = initialize_guess(comp_dual)
 
 # sol_set = load_sol_set('sol_set.data')
 # sol = sol_set[-1]

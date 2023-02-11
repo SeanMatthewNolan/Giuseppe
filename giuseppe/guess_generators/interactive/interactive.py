@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 
 from giuseppe.io import Solution
 from giuseppe.problems.dual import CompDualOCP
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
+from giuseppe.numeric_solvers.bvp import SciPySolver as ScipySolveBVP
 
 from ..constant import initialize_guess_for_auto
 from ..propagation.simple import propagate_guess
