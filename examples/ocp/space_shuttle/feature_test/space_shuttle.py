@@ -96,7 +96,7 @@ comp_bvp = convert_dual_to_bvp(comp_dual)
 guess_bvp = initialize_guess(comp_bvp)
 guess_ocp = initialize_guess(comp_ocp)
 guess_adj = initialize_guess(comp_adj)
-guess_dua = initialize_guess(comp_dual)
+guess_dua = initialize_guess(comp_dual, t_span=[0, 3], x=[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]], p=2)
 
 # sol_set = load_sol_set('sol_set.data')
 # sol = sol_set[-1]
