@@ -5,6 +5,7 @@ import numpy as np
 
 @runtime_checkable
 class Adjoints(Protocol):
+    prob_class = 'adjoints'
 
     num_states: int
     num_controls: int

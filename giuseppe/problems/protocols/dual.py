@@ -7,4 +7,5 @@ from .control_handlers import AlgebraicControlHandler, DifferentialControlHandle
 
 @runtime_checkable
 class Dual(OCP, Adjoints, Protocol):
+    prob_class = 'dual'
     control_handler: Union[None, AlgebraicControlHandler, DifferentialControlHandler]

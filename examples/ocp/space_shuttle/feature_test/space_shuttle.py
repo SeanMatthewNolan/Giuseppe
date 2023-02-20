@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from giuseppe.guess import initialize_guess
+from giuseppe.guess import initialize_guess, propagate_guess, propagate_guess_ocp, propagate_guess_dual
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymDual, SymOCP, SymAdjoints
 from giuseppe.problems.conversions import convert_dual_to_bvp
@@ -93,10 +93,19 @@ comp_adj = SymAdjoints(sym_ocp).compile()
 comp_dual = SymDual(ocp, control_method='differential').compile()
 comp_bvp = convert_dual_to_bvp(comp_dual)
 
-guess_bvp = initialize_guess(comp_bvp)
-guess_ocp = initialize_guess(comp_ocp)
-guess_adj = initialize_guess(comp_adj)
-guess_dua = initialize_guess(comp_dual, t_span=[0, 3], x=[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]], p=2)
+# guess_bvp = initialize_guess(comp_bvp)
+# guess_ocp = initialize_guess(comp_ocp)
+# guess_adj = initialize_guess(comp_adj)
+# guess_dua = initialize_guess(comp_dual, t_span=[0, 3], x=np.array([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]]),
+#                              p=2, nu0=(1, 2, 3, 4, 5, 6, 7))
+
+x_0 = np.array([260_000., 0., 0., 25_000., -1 / 180 * np.pi, np.pi/2])
+lam_0 = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+u_0 = np.array([10 / 180 * np.pi, 0.])
+guess_prop_bvp = propagate_guess(comp_bvp, initial_states=np.concatenate((x_0, lam_0, u_0)), t_span=10, reverse=True)
+guess_prop_ocp = propagate_guess_ocp(comp_ocp, 100, x_0, (7.5*np.pi/180, 0))
+guess_prop_ocp_fun = propagate_guess_ocp(comp_ocp, 100, x_0, lambda _t, _x, _p, _k: np.asarray([_t, _x[1]]))
+guess_prop = propagate_guess_dual(comp_dual, 100, x_0, lam_0, (7.5*np.pi/180, 0))
 
 # sol_set = load_sol_set('sol_set.data')
 # sol = sol_set[-1]

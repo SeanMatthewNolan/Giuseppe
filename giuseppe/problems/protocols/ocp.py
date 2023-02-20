@@ -6,10 +6,9 @@ from giuseppe.data_classes import Solution
 
 
 # TODO Add Vectorized Protocol
-
-
 @runtime_checkable
 class OCP(Protocol):
+    prob_class = 'ocp'
 
     num_states: int
     num_controls: int

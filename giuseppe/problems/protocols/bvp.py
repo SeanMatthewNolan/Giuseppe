@@ -9,6 +9,8 @@ from giuseppe.data_classes import Solution
 
 @runtime_checkable
 class BVP(Protocol):
+    prob_class = 'bvp'
+
     num_states: int
     num_parameters: int
     num_constants: int

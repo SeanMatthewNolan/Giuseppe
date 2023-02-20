@@ -44,14 +44,16 @@ def process_dynamic_value(input_value: Union[float, ArrayLike], output_shape: tu
 
 
 def initialize_guess(
-        prob: Problem, default_value: float = 1.,
+        prob: Problem,
+        default_value: float = 1.,
         t_span: Union[float, ArrayLike] = 1.,
-        x: Optional[ArrayLike] = None,
-        p: Optional[ArrayLike] = None,
-        u: Optional[ArrayLike] = None,
-        lam: Optional[ArrayLike] = None,
-        nu0: Optional[ArrayLike] = None,
-        nuf: Optional[ArrayLike] = None,
+        x: Optional[Union[ArrayLike, float]] = None,
+        p: Optional[Union[ArrayLike, float]] = None,
+        u: Optional[Union[ArrayLike, float]] = None,
+        k: Optional[Union[float, ArrayLike]] = None,
+        lam: Optional[Union[ArrayLike, float]] = None,
+        nu0: Optional[Union[ArrayLike, float]] = None,
+        nuf: Optional[Union[ArrayLike, float]] = None,
 ) -> Solution:
 
     """
@@ -80,6 +82,9 @@ def initialize_guess(
 
     u : NDArray, Optional
         control values to initialize guess with
+
+    k : NDArray, Optional
+        constant values to initialize guess with
 
     lam : NDArray, Optional
         costate values to initialize guess with
@@ -117,8 +122,11 @@ def initialize_guess(
 
         data['p'] = process_static_value(p, prob.num_parameters)
 
-    if hasattr(prob, 'default_values'):
-        data['k'] = prob.default_values
+    if hasattr(prob, 'num_constants'):
+        if k is None:
+            k = prob.default_values
+
+        data['k'] = process_static_value(k, prob.num_constants)
 
     if hasattr(prob, 'num_controls'):
         if u is None:
