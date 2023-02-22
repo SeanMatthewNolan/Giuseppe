@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from giuseppe.guess import initialize_guess, propagate_guess, propagate_guess_ocp, propagate_guess_dual
+from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymDual, SymOCP, SymAdjoints
 from giuseppe.problems.conversions import convert_dual_to_bvp
@@ -106,6 +107,10 @@ guess_prop_bvp = propagate_guess(comp_bvp, initial_states=np.concatenate((x_0, l
 guess_prop_ocp = propagate_guess_ocp(comp_ocp, 100, x_0, (7.5*np.pi/180, 0))
 guess_prop_ocp_fun = propagate_guess_ocp(comp_ocp, 100, x_0, lambda _t, _x, _p, _k: np.asarray([_t, _x[1]]))
 guess_prop = propagate_guess_dual(comp_dual, 100, x_0, lam_0, (7.5*np.pi/180, 0))
+
+guess_constants_matched_bvp = match_constants_to_boundary_conditions(comp_bvp, guess_prop_bvp)
+guess_constants_matched_ocp = match_constants_to_boundary_conditions(comp_ocp, guess_prop_ocp)
+guess_constants_matched = match_constants_to_boundary_conditions(comp_dual, guess_prop)
 
 # sol_set = load_sol_set('sol_set.data')
 # sol = sol_set[-1]

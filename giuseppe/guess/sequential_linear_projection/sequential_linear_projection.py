@@ -9,9 +9,11 @@ from giuseppe.utils.numerical_derivatives.finite_difference\
 
 # TODO Use Armijo step etc. to make more stable
 # TODO Explore options based on stability (linear vs. nonlinear)
-def project_to_nullspace(func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int] = 8,
-                         abs_tol: float = 1e-3, rel_tol: float = 1e-3,
-                         jacobian_function: Union[str, Callable] = 'central') -> np.ndarray:
+def sequential_linearized_projection(
+        func: ArrayFunction, arr: np.ndarray, max_steps: Optional[int] = 8,
+        abs_tol: float = 1e-4, rel_tol: float = 1e-4,
+        jacobian_function: Union[str, Callable] = 'central'
+) -> np.ndarray:
     """
     Function which projects an array onto the nullspace of a function
 
