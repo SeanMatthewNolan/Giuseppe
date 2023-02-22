@@ -16,6 +16,9 @@ class Adjoints(Protocol):
     num_terminal_adjoints: int
     num_adjoints: int
 
+    # TODO add multi-arc support
+    num_arcs: int = 1
+
     @staticmethod
     def compute_costate_dynamics(
             independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,

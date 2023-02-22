@@ -17,6 +17,9 @@ class BVP(Protocol):
 
     default_values: np.ndarray
 
+    # TODO add multi-arc support
+    num_arcs: int = 1
+
     @staticmethod
     def compute_dynamics(
             independent: float, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray

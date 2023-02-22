@@ -15,6 +15,9 @@ class OCP(Protocol):
     num_parameters: int
     num_constants: int
 
+    # TODO add multi-arc support
+    num_arcs: int = 1
+
     default_values: np.ndarray
 
     @staticmethod
