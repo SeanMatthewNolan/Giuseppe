@@ -1,2 +1,3 @@
 from .sequential_linear_projection import sequential_linearized_projection
 from .match_to_boundary_conditions import match_constants_to_boundary_conditions, match_states_to_boundary_conditions
+from .match_adjoints import match_adjoints

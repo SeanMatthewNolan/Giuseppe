@@ -87,7 +87,6 @@ def match_states_to_boundary_conditions(
         _slp_guess.append([guess.t[_idx]])
     for _idx in _idx_x:
         _slp_guess.append(guess.x[:, _idx])
-    # if guess.p.size > 0:
     _slp_guess.append(guess.p)
     _slp_guess = np.concatenate(_slp_guess)
 
