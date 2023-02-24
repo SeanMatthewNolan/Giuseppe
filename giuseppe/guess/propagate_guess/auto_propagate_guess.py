@@ -1,42 +1,36 @@
-from typing import Union, Optional, Callable, TypeVar
+from typing import Union, Optional, Callable
 
-import numpy as np
 from numpy.typing import ArrayLike
-from scipy.integrate import solve_ivp
 
 from giuseppe.io import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
-from .initialize_guess import initialize_guess, process_static_value, process_dynamic_value
+from giuseppe.guess.initialize_guess import initialize_guess, process_dynamic_value
+from giuseppe.guess.propagate_guess import propagate_bvp_guess_from_guess, propagate_ocp_guess_from_guess,\
+    propagate_dual_guess_from_guess
+from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions, match_states_to_boundary_conditions,\
+    match_adjoints
 
-_IVP_SOL = TypeVar('_IVP_SOL')
-OCP_CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 
 
-def propagate_guess(
+def auto_propagate_guess(
         problem: Union[BVP, OCP, Dual],
         t_span: Union[float, ArrayLike] = 1,
         reverse: bool = False,
         initial_states: Optional[ArrayLike] = None,
         initial_costates: Optional[ArrayLike] = None,
-        control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
+        control: Union[float, ArrayLike, CONTROL_FUNC, None] = None,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         p: Optional[Union[float, ArrayLike]] = None,
         k: Optional[Union[float, ArrayLike]] = None,
         nu0: Optional[ArrayLike] = None,
         nuf: Optional[ArrayLike] = None,
-        default_value: float = 1.
+        default_value: float = 1.,
+        match_constants: bool = True,
 ) -> Solution:
 
     """
-    Propagate a guess with a constant control input_value or control function.
-
-    After propagation, projection may be used to estimate the dual variable (costates and adjoints) and match the
-    constants to the guess.
-
-    Unspecified values will be set to default_value.
-
     Parameters
     ----------
     problem : BVP, OCP, or Dual
@@ -77,15 +71,16 @@ def propagate_guess(
 
     """
     if problem.prob_class == 'bvp':
-        guess = propagate_guess_bvp(
+        guess = auto_propagate_bvp_guess(
                 problem, t_span, initial_states,
-                p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
+                p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value,
+                match_constants=match_constants)
     elif problem.prob_class == 'ocp':
-        guess = propagate_guess_ocp(
+        guess = auto_propagate_ocp_guess(
                 problem, t_span, initial_states, control,
                 p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
     elif problem.prob_class == 'dual':
-        guess = propagate_guess_dual(
+        guess = auto_propagate_dual_guess(
                 problem, t_span, initial_states, initial_costates, control,
                 p=p, nu0=nu0, nuf=nuf, k=k,
                 abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
@@ -95,39 +90,28 @@ def propagate_guess(
     return guess
 
 
-def propagate_guess_bvp(
+def auto_propagate_bvp_guess(
         bvp: BVP,
         t_span: Union[float, ArrayLike],
-        initial_states: Optional[ArrayLike],
+        initial_states: Optional[ArrayLike] = None,
         p: Optional[Union[float, ArrayLike]] = None,
         k: Optional[Union[float, ArrayLike]] = None,
         default_value: float = 1.,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
+        match_constants: bool = True
 ) -> Solution:
-
-    guess = initialize_guess(
-            bvp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k
-    )
-
-    if reverse:
-        guess.t = np.flip(guess.t)
-
-    ivp_sol: _IVP_SOL = solve_ivp(
-            lambda _t, _x: bvp.compute_dynamics(_t, _x, guess.p, guess.k),
-            (guess.t[0], guess.t[-1]), initial_states, atol=abs_tol, rtol=rel_tol)
-    guess.t = ivp_sol.t
-    guess.x = ivp_sol.y
-
-    if reverse:
-        guess.t = np.flip(guess.t)
-        guess.x = np.flip(guess.x, axis=1)
+    guess = initialize_guess(bvp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k)
+    guess = match_states_to_boundary_conditions(bvp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    guess = propagate_bvp_guess_from_guess(bvp, guess, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+    if match_constants:
+        guess = match_constants_to_boundary_conditions(bvp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     return guess
 
 
-def propagate_guess_ocp(
+def auto_propagate_ocp_guess(
         ocp: OCP,
         t_span: Union[float, ArrayLike],
         initial_states: ArrayLike,
@@ -138,48 +122,19 @@ def propagate_guess_ocp(
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
+        match_constants: bool = True
 ) -> Solution:
-
     guess = initialize_guess(ocp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k)
-
-    _compute_dynamics = ocp.compute_dynamics
-    p, k = guess.p, guess.k
-
-    if isinstance(control, Callable):
-        def _compute_dynamics_wrapped(_t, _x):
-            _u = control(_t, _x, p, k)
-            return _compute_dynamics(_t, _x, _u, p, k)
-
-    else:
-        if control is None:
-            control = default_value
-
-        u = process_static_value(control, ocp.num_controls)
-
-        def _compute_dynamics_wrapped(_t, _x):
-            return _compute_dynamics(_t, _x, u, p, k)
-
-    if reverse:
-        guess.t = np.flip(guess.t)
-
-    ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, (guess.t[0], guess.t[-1]), initial_states,
-                                  atol=abs_tol, rtol=rel_tol)
-    guess.t = ivp_sol.t
-    guess.x = ivp_sol.y
-
-    if reverse:
-        guess.t = np.flip(guess.t)
-        guess.x = np.flip(guess.x, axis=1)
-
-    if isinstance(control, Callable):
-        guess.u = np.asarray([control(t_i, x_i, p, k) for t_i, x_i in zip(guess.t, guess.x.T)]).T
-    else:
-        guess.u = process_dynamic_value(control, (ocp.num_controls, len(guess.t)))
+    guess = match_states_to_boundary_conditions(ocp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+    guess = propagate_ocp_guess_from_guess(
+            ocp, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+    if match_constants:
+        guess = match_constants_to_boundary_conditions(ocp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     return guess
 
 
-def propagate_guess_dual(
+def auto_propagate_dual_guess(
         dual: Dual,
         t_span: Union[float, ArrayLike],
         initial_states: ArrayLike,
@@ -193,53 +148,24 @@ def propagate_guess_dual(
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
+        match_constants: bool = True,
+        fit_adjoints: bool = True,
+        quadrature: str = 'linear',
 ) -> Solution:
-
     guess = initialize_guess(dual, default_value=default_value, t_span=t_span, x=initial_states, lam=initial_costates,
                              p=p, nu0=nu0, nuf=nuf, k=k)
+    guess = match_states_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    num_states, num_costates, _compute_dynamics, _compute_costate_dynamics = dual.num_states, dual.num_costates,\
-        dual.compute_dynamics, dual.compute_costate_dynamics
-    p, nu0, nuf, k = guess.p, guess.nu0, guess.nuf, guess.k
-
-    if isinstance(control, Callable):
-        def _compute_dynamics_wrapped(_t, _y):
-            _x, _lam = _y[:num_states], _y[num_states:num_states + num_costates]
-            _u = control(_t, _x, p, k)
-            _x_dot = _compute_dynamics(_t, _x, _u, p, k)
-            _lam_dot = _compute_costate_dynamics(_t, _x, _lam, _u, p, k)
-            return np.concatenate((_x_dot, _lam_dot))
-
+    if fit_adjoints:
+        guess = propagate_ocp_guess_from_guess(
+                dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+        guess.lam = process_dynamic_value(initial_costates, guess.x.shape)
+        guess = match_adjoints(dual, guess, quadrature, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
-        if control is None:
-            control = default_value
+        guess = propagate_dual_guess_from_guess(
+                dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
-        u = process_static_value(control, dual.num_controls)
-
-        def _compute_dynamics_wrapped(_t, _y):
-            _x, _lam = _y[:num_states], _y[num_states:num_states + num_costates]
-            _x_dot = _compute_dynamics(_t, _x, u, p, k)
-            _lam_dot = _compute_costate_dynamics(_t, _x, _lam, u, p, k)
-            return np.concatenate((_x_dot, _lam_dot))
-
-    if reverse:
-        guess.t = np.flip(guess.t)
-
-    ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, (guess.t[0], guess.t[-1]),
-                                  np.concatenate((initial_states, initial_costates)),
-                                  atol=abs_tol, rtol=rel_tol)
-    guess.t = ivp_sol.t
-    guess.x = ivp_sol.y[:num_states, :]
-    guess.lam = ivp_sol.y[num_states:num_states + num_costates, :]
-
-    if reverse:
-        guess.t = np.flip(guess.t)
-        guess.x = np.flip(guess.x, axis=1)
-        guess.lam = np.flip(guess.lam, axis=1)
-
-    if isinstance(control, Callable):
-        guess.u = np.asarray([control(t_i, x_i, p, k) for t_i, x_i in zip(guess.t, guess.x.T)]).T
-    else:
-        guess.u = process_dynamic_value(control, (dual.num_controls, len(guess.t)))
+    if match_constants:
+        guess = match_constants_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     return guess
