@@ -7,8 +7,8 @@ from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess.initialize_guess import initialize_guess, process_dynamic_value
 from giuseppe.guess.propagate_guess import propagate_bvp_guess_from_guess, propagate_ocp_guess_from_guess,\
     propagate_dual_guess_from_guess
-from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions, match_states_to_boundary_conditions,\
-    match_adjoints
+from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions,\
+    match_states_to_boundary_conditions, match_adjoints
 
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 
@@ -28,6 +28,8 @@ def auto_propagate_guess(
         nuf: Optional[ArrayLike] = None,
         default_value: float = 1.,
         match_constants: bool = True,
+        fit_adjoints: bool = True,
+        quadrature: str = 'linear',
 ) -> Solution:
 
     """
@@ -83,7 +85,9 @@ def auto_propagate_guess(
         guess = auto_propagate_dual_guess(
                 problem, t_span, initial_states, initial_costates, control,
                 p=p, nu0=nu0, nuf=nuf, k=k,
-                abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
+                abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value,
+                fit_adjoints=fit_adjoints, quadrature=quadrature
+        )
     else:
         raise RuntimeError(f'Cannot process problem of class {type(problem)}')
 
@@ -160,7 +164,7 @@ def auto_propagate_dual_guess(
         guess = propagate_ocp_guess_from_guess(
                 dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
         guess.lam = process_dynamic_value(initial_costates, guess.x.shape)
-        guess = match_adjoints(dual, guess, quadrature, rel_tol=rel_tol, abs_tol=abs_tol)
+        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         guess = propagate_dual_guess_from_guess(
                 dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)

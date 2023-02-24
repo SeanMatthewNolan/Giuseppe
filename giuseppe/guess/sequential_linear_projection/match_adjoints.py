@@ -101,8 +101,6 @@ def match_adjoints(
             _lam = _adjoints[_lam_slice].reshape((_num_costates, _num_t))
             _nu = _adjoints[_nu_slice]
 
-            _lam_mid = (_lam[:, :-1] + _lam[:, 1:]) / 2
-
             res_bc = _compute_adjoint_boundary_conditions(_t, _x, _lam, _u, _p, _nu, _k)
 
             _lam_dot_nodes = np.array([
@@ -111,7 +109,7 @@ def match_adjoints(
             ]).T
 
             _lam_dot_diff = np.diff(_lam_dot_nodes)
-            _lam_mid = _lam_mid - _h_arr / 8 * np.diff(_lam_dot_nodes)
+            _lam_mid = (_lam[:, :-1] + _lam[:, 1:]) / 2 - _h_arr / 8 * np.diff(_lam_dot_nodes)
 
             _lam_dot_mid = np.array([
                 _compute_costate_dynamics(_t_i, _x_i, _lam_i, _u_i, _p, _k)
@@ -124,6 +122,7 @@ def match_adjoints(
                 - _h_arr * ((_lam_dot_nodes[:, :-1] + _lam_dot_nodes[:, 1:]) / 6 + 2 / 3 * _lam_dot_mid)
 
             return np.concatenate((res_bc, res_dyn.flatten()))
+
     else:
         raise ValueError(f'Quadrature {quadrature} not valid, must be \"linear\", \"midpoint\", or \"simpson\"')
 

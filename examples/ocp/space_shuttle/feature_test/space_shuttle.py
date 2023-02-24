@@ -4,7 +4,7 @@ import numpy as np
 
 from giuseppe.guess import initialize_guess, propagate_guess, propagate_ocp_guess, propagate_dual_guess
 from giuseppe.guess import auto_propagate_guess, auto_propagate_bvp_guess, auto_propagate_ocp_guess,\
-    auto_propagate_dual_guess
+    auto_propagate_dual_guess, auto_guess
 from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions,\
     match_states_to_boundary_conditions, match_adjoints
 from giuseppe.problems.input import StrInputProb
@@ -104,6 +104,7 @@ comp_bvp = convert_dual_to_bvp(comp_dual)
 #                              p=2, nu0=(1, 2, 3, 4, 5, 6, 7))
 
 x_0 = np.array([260_000., 0., 0., 25_000., -1 / 180 * np.pi, np.pi/2])
+x_f = np.array([25_600., 1., 1., 2_500., -1 / 180 * np.pi, np.pi/2])
 lam_0 = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 u_0 = np.array([10 / 180 * np.pi, 0.])
 guess_prop_bvp = propagate_guess(comp_bvp, initial_states=np.concatenate((x_0, lam_0, u_0)), t_span=100, reverse=True)
@@ -111,23 +112,26 @@ guess_prop_ocp = propagate_ocp_guess(comp_ocp, 100, x_0, (7.5 * np.pi / 180, 0))
 guess_prop_ocp_fun = propagate_ocp_guess(comp_ocp, 100, x_0, lambda _t, _x, _p, _k: np.asarray([_t, _x[1]]))
 guess_prop = propagate_dual_guess(comp_dual, 100, x_0, lam_0, (7.5 * np.pi / 180, 0))
 
-# guess_constants_matched_bvp = match_constants_to_boundary_conditions(comp_bvp, guess_prop_bvp)
-# guess_constants_matched_ocp = match_constants_to_boundary_conditions(comp_ocp, guess_prop_ocp)
-# guess_constants_matched = match_constants_to_boundary_conditions(comp_dual, guess_prop)
+guess_constants_matched_bvp = match_constants_to_boundary_conditions(comp_bvp, guess_prop_bvp)
+guess_constants_matched_ocp = match_constants_to_boundary_conditions(comp_ocp, guess_prop_ocp)
+guess_constants_matched = match_constants_to_boundary_conditions(comp_dual, guess_prop)
 
-# guess_states_matched_bvp = match_states_to_boundary_conditions(comp_bvp, guess_prop_bvp)
-# guess_states_matched_ocp = match_states_to_boundary_conditions(comp_ocp, guess_prop_ocp)
-# guess_states_matched = match_states_to_boundary_conditions(comp_dual, guess_prop)
+guess_states_matched_bvp = match_states_to_boundary_conditions(comp_bvp, guess_prop_bvp)
+guess_states_matched_ocp = match_states_to_boundary_conditions(comp_ocp, guess_prop_ocp)
+guess_states_matched = match_states_to_boundary_conditions(comp_dual, guess_prop)
 
-# guess_adjoints_matched_mid = match_adjoints(comp_dual, guess_constants_matched, quadrature='midpoint')
-# guess_adjoints_matched_lin = match_adjoints(comp_dual, guess_constants_matched, quadrature='linear')
-# guess_adjoints_matched_sim = match_adjoints(comp_dual, guess_constants_matched, quadrature='simpson')
+guess_adjoints_matched_mid = match_adjoints(comp_dual, guess_constants_matched, quadrature='midpoint')
+guess_adjoints_matched_lin = match_adjoints(comp_dual, guess_constants_matched, quadrature='linear')
+guess_adjoints_matched_sim = match_adjoints(comp_dual, guess_constants_matched, quadrature='simpson')
 
 auto_guess_prop_bvp = auto_propagate_guess(
         comp_bvp, initial_states=np.concatenate((x_0, lam_0, u_0)), t_span=100, reverse=True)
 auto_guess_prop_ocp = auto_propagate_ocp_guess(comp_ocp, 100, x_0, (7.5 * np.pi / 180, 0))
 auto_guess_prop_ocp_fun = auto_propagate_ocp_guess(comp_ocp, 100, x_0, lambda _t, _x, _p, _k: np.asarray([_t, _x[1]]))
 auto_guess_prop = auto_propagate_dual_guess(comp_dual, 100, x_0, lam_0, (7.5 * np.pi / 180, 0))
+
+auto_guess = auto_guess(comp_dual, t_span=np.linspace(0, 1, 11), x=np.linspace(x_0, x_f, 11).T, u=u_0,
+                        quadrature='midpoint')
 
 # sol_set = load_sol_set('sol_set.data')
 # sol = sol_set[-1]
