@@ -5,6 +5,7 @@ import numpy as np
 
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
+from giuseppe.utils import make_array_slices
 from .sequential_linear_projection import sequential_linearized_projection
 
 
@@ -45,8 +46,7 @@ def match_states(
         raise RuntimeError('Please provide guess with at least 2 points')
     _h_arr = np.diff(_t)
 
-    _x_slice = slice(_num_t * _num_states)
-    _p_slice = slice(_x_slice.stop, _x_slice.stop + _num_parameters)
+    _x_slice, _p_slice = make_array_slices((_num_t * _num_states, _num_parameters))
 
     if quadrature.lower() == 'linear':
 
@@ -112,7 +112,7 @@ def match_states(
 
             _x_dot_mid = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
-                for _t_i, _x_i, _lam_i, _u_i in zip(_t_mid, _x_mid.T, _u_mid.T)
+                for _t_i, _x_i, _u_i in zip(_t_mid, _x_mid.T, _u_mid.T)
             ]).T
 
             _delta_x = np.diff(_x)

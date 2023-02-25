@@ -5,6 +5,7 @@ import numpy as np
 
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
+from giuseppe.utils import make_array_slices
 from .sequential_linear_projection import sequential_linearized_projection
 
 
@@ -64,13 +65,13 @@ def match_states_to_boundary_conditions(
     """
     guess = deepcopy(guess)
 
+    _initial_node_spacing = (guess.t - guess.t[0]) / (guess.t[-1] - guess.t[0])
+
     _compute_boundary_conditions = prob.compute_boundary_conditions
     _num_boundaries, _num_states, _num_parameters = prob.num_arcs + 1, prob.num_states, prob.num_parameters
     _k = guess.k
 
-    _t_slice = slice(_num_boundaries)
-    _x_slice = slice(_t_slice.stop, _t_slice.stop + _num_states * _num_boundaries)
-    _p_slice = slice(_x_slice.stop, _x_slice.stop + _num_parameters)
+    _t_slice, _x_slice, _p_slice = make_array_slices((_num_boundaries, _num_states * _num_boundaries, _num_parameters))
 
     def _constraint_function(_z: np.ndarray):
         _t = _z[_t_slice]
@@ -94,8 +95,11 @@ def match_states_to_boundary_conditions(
     out = sequential_linearized_projection(_constraint_function, _slp_guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     # Assigning fitted values to guess to output
-    guess.t = out[_t_slice]
-    guess.x = out[_x_slice].reshape((_num_states, _num_boundaries))
+    matched_t = out[_t_slice]
+    matched_x = out[_x_slice].reshape((_num_states, _num_boundaries))
+
+    guess.t = matched_t[0] + (matched_t[-1] - matched_t[0]) * _initial_node_spacing
+    guess.x = (matched_x[:, 0] + np.outer(_initial_node_spacing, (matched_x[:, -1] - matched_x[:, 0]))).T
     guess.p = out[_p_slice]
 
     return guess

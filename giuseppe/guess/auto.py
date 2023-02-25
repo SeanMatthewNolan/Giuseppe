@@ -6,7 +6,7 @@ from giuseppe.io import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess.initialize_guess import initialize_guess
 from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions, \
-    match_states, match_adjoints
+    match_states_to_boundary_conditions, match_states, match_adjoints
 
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 
@@ -24,18 +24,28 @@ def auto_guess(
         nuf: Optional[Union[ArrayLike, float]] = None,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
-        match_constants: bool = True,
+        fit_state_dynamics: bool = False,
         fit_adjoints: bool = True,
+        fit_constants: bool = True,
         quadrature: str = 'linear'
 ) -> Solution:
+
     if problem.prob_class in ['bvp', 'ocp']:
         guess = initialize_guess(problem, default_value=default_value, t_span=t_span, x=x, u=u, p=p, k=k)
-        guess = match_states(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+
+        guess = match_states_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+
+        if fit_state_dynamics:
+            guess = match_states(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, quadrature=quadrature)
 
     elif problem.prob_class == 'dual':
-        guess = initialize_guess(problem, default_value=default_value, t_span=t_span, x=x, lam=lam,
+        guess = initialize_guess(problem, default_value=default_value, t_span=t_span, x=x, lam=lam, u=u,
                                  p=p, nu0=nu0, nuf=nuf, k=k)
-        guess = match_states(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, quadrature=quadrature)
+
+        guess = match_states_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+
+        if fit_state_dynamics:
+            guess = match_states(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, quadrature=quadrature)
 
         if fit_adjoints:
             guess = match_adjoints(problem, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -43,7 +53,7 @@ def auto_guess(
     else:
         raise RuntimeError(f'Cannot process problem of class {type(problem)}')
 
-    if match_constants:
+    if fit_constants:
         guess = match_constants_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol)
 
     return guess

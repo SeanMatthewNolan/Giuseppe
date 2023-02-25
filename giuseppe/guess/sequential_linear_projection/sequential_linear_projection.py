@@ -11,10 +11,11 @@ from giuseppe.utils.numerical_derivatives.finite_difference\
 # TODO Use Armijo step etc. to make more stable
 # TODO Explore options based on stability (linear vs. nonlinear)
 def sequential_linearized_projection(
-        func: ArrayFunction, arr: np.ndarray, max_steps: int = 10,
+        func: ArrayFunction, arr: np.ndarray, max_steps: int = 20,
         abs_tol: float = 1e-4, rel_tol: float = 1e-4,
         jacobian_function: Union[str, Callable] = 'central',
-        verbose: bool = True
+        use_line_search: bool = True, line_search_alpha: float = 1e-4, line_search_reduction_ratio: float =  0.5,
+        verbose: bool = True,
 ) -> np.ndarray:
     """
     Function which projects an array onto the nullspace of a function
@@ -35,6 +36,12 @@ def sequential_linearized_projection(
     jacobian_function : str, Callable, default='central'
         String inputs of 'central', 'forward', or 'backward' specify corresponding numerical derivatives to be taken
         Providing a Callable will use that function to compute the Jacobian
+    use_line_search : bool, default=True
+        whether to use Armijo backtracking line search
+    line_search_alpha : float, default=1e-4
+        "alpha" variable for line search (defines sufficient descent)
+    line_search_reduction_ratio : float, default=0.5
+        ratio to decrease step in each iteration of line search
     verbose :  bool, default=False
         whether to print current status
 
@@ -66,34 +73,57 @@ def sequential_linearized_projection(
         return arr
 
     if verbose:
-        print(f'Starting SLP: InitRes = {np.linalg.norm(residual)}, ArraySize= = {len(arr)}')
+        print(f'Starting SLP: InitRes = {np.linalg.norm(residual)}, ArraySize = {len(arr)}')
 
-    converged, step_num = False, 1
-    while not converged:
+    for step_num in range(1, max_steps + 1):
         sensitivity = compute_jacobian(func, arr)
         p_inv_sensitivity = np.linalg.pinv(sensitivity)
 
-        step = p_inv_sensitivity @ residual
+        raw_step = p_inv_sensitivity @ residual
 
-        if np.all(abs(step) < step_tol):
-            converged = True
+        if np.all(abs(raw_step) < step_tol):
             if verbose:
-                print(f'SLP converged in {step_num} steps with final step size {np.linalg.norm(step)}')
-
-        arr -= step
-        residual = func(arr)
-
-        if verbose:
-            print(f'    Iter {step_num}: ResNorm = {np.linalg.norm(residual)}; StepSize = {np.linalg.norm(step)}')
-
-        if np.all(abs(residual) < residual_tol):
-            converged = True
-            if verbose:
-                print(f'SLP converged in {step_num} steps with final residual {np.linalg.norm(residual)}')
-
-        step_num += 1
-        if step_num > max_steps:
-            print(f'Projection failed to converge in {max_steps} steps! ❌')
+                print(f'SLP converged in {step_num} steps with final step size {np.linalg.norm(raw_step)}')
             return arr
 
+        if use_line_search:
+            arr, residual = armijo_step(arr, residual, raw_step, func, verbose=verbose,
+                                        alpha=line_search_alpha, step_reduction_ratio=line_search_reduction_ratio)
+        else:
+            arr -= raw_step
+            residual = func(arr)
+
+        if verbose:
+            print(f'    Iter {step_num}: ResNorm = {np.linalg.norm(residual)}; StepSize = {np.linalg.norm(raw_step)}')
+
+        if np.all(abs(residual) < residual_tol):
+            if verbose:
+                print(f'SLP converged in {step_num} steps with final residual {np.linalg.norm(residual)}\n')
+            return arr
+
+    print(f'Projection failed to converge in {max_steps} steps! ❌\n')
     return arr
+
+
+def armijo_step(
+        current_arr: np.ndarray, current_residual: np.ndarray, raw_step: np.ndarray, func: Callable,
+        alpha: float = 1e-4, step_reduction_ratio: float = 0.5, min_step_ratio: float = 0.000001, verbose: bool = False
+) -> (np.ndarray, np.ndarray):
+
+    step, step_ratio = raw_step, 1
+    norm_current_residual = np.linalg.norm(current_residual)
+    trial_arr = current_arr - raw_step
+    trial_residual = func(trial_arr)
+
+    while np.linalg.norm(trial_residual) > (1 - alpha * step_ratio) * norm_current_residual:
+        step_ratio *= step_reduction_ratio
+        trial_arr -= step_ratio * raw_step
+        trial_residual = func(trial_arr)
+
+        if step_ratio < min_step_ratio:
+            break
+
+    if verbose:
+        print(f'        Armijo step ratio = {step_ratio}')
+
+    return trial_arr, trial_residual

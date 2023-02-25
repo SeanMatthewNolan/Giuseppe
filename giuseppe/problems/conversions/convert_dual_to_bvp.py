@@ -2,6 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
+from giuseppe.utils import make_array_slices
 from giuseppe.utils.compilation import jit_compile
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.data_classes import Solution
@@ -20,9 +21,28 @@ class BVPFromDual(BVP):
     def __init__(self, source_dual: Dual, use_jit_compile: bool = True):
         self.source_dual = deepcopy(source_dual)
 
-        if isinstance(self.source_dual.control_handler, AlgebraicControlHandler):
-            self.num_states: int = self.source_dual.num_states + self.source_dual.num_costates
+        _source_num_states = self.source_dual.num_states
+        _source_num_costates = self.source_dual.num_costates
+        _source_num_controls = self.source_dual.num_controls
 
+        _source_num_parameters = self.source_dual.num_parameters
+        _source_num_initial_adjoints = self.source_dual.num_initial_adjoints
+        _source_num_terminal_adjoints = self.source_dual.num_terminal_adjoints
+        _source_num_adjoints = self.source_dual.num_adjoints
+
+        self._x_slice, self._lam_slice, self._u_slice = \
+            make_array_slices((_source_num_states, _source_num_costates, _source_num_controls))
+        self._p_slice, self._nu0_slice, self._nuf_slice = \
+            make_array_slices((_source_num_parameters, _source_num_initial_adjoints, _source_num_terminal_adjoints))
+        self._nu_slice = slice(self._nu0_slice.start, self._nuf_slice.stop)
+
+        self.num_states: int = _source_num_states + _source_num_costates
+        self.num_parameters: int = _source_num_parameters + _source_num_adjoints
+        self.num_constants: int = self.source_dual.num_constants
+
+        self.default_values: np.ndarray = self.source_dual.default_values
+
+        if isinstance(self.source_dual.control_handler, AlgebraicControlHandler):
             self.compute_dynamics = self._alg_convert_dynamics()
             self.compute_boundary_conditions = self._alg_convert_boundary_conditions()
 
@@ -30,8 +50,7 @@ class BVPFromDual(BVP):
             self.post_process_data = self._alg_compile_post_process()
 
         elif isinstance(self.source_dual.control_handler, DifferentialControlHandler):
-            self.num_states: int = self.source_dual.num_states + self.source_dual.num_costates \
-                                   + self.source_dual.num_controls
+            self.num_states += _source_num_controls
 
             self.compute_dynamics = self._diff_convert_dynamics()
             self.compute_boundary_conditions = self._diff_convert_boundary_conditions()
@@ -50,16 +69,8 @@ class BVPFromDual(BVP):
                     self.compute_boundary_conditions, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
             )
 
-        self.num_parameters: int = self.source_dual.num_parameters + self.source_dual.num_adjoints
-        self.num_constants: int = self.source_dual.num_constants
-
-        self.default_values: np.ndarray = self.source_dual.default_values
-
     def _alg_convert_dynamics(self):
-
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-        _num_parameters = self.source_dual.num_parameters
+        _x_slice, _lam_slice, _p_slice = self._x_slice, self._lam_slice, self._p_slice
 
         _compute_state_dynamics = self.source_dual.compute_dynamics
         _compute_costate_dynamics = self.source_dual.compute_costate_dynamics
@@ -69,10 +80,10 @@ class BVPFromDual(BVP):
                 t: float, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            x = y[:_num_states]
-            lam = y[_num_states:_num_states + _num_costates]
+            x = y[_x_slice]
+            lam = y[_lam_slice]
 
-            p = rho[:_num_parameters]
+            p = rho[_p_slice]
 
             u = _compute_control(t, x, lam, p, k)
 
@@ -84,10 +95,8 @@ class BVPFromDual(BVP):
         return compute_dynamics
 
     def _alg_convert_boundary_conditions(self):
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-
-        _num_parameters = self.source_dual.num_parameters
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu_slice
 
         _compute_state_boundary_conditions = self.source_dual.compute_boundary_conditions
         _compute_adjoint_boundary_conditions = self.source_dual.compute_adjoint_boundary_conditions
@@ -97,11 +106,11 @@ class BVPFromDual(BVP):
                 t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            x = y[:_num_states, :]
-            lam = y[_num_states:_num_states + _num_costates, :]
+            x = y[_x_slice, :]
+            lam = y[_lam_slice, :]
 
-            p = rho[:_num_parameters]
-            nu = rho[_num_parameters:]
+            p = rho[_p_slice]
+            nu = rho[_nu_slice]
 
             u = np.asarray([_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T)])
 
@@ -112,16 +121,8 @@ class BVPFromDual(BVP):
 
         return compute_boundary_conditions
 
-    def _alg_compile_preprocess(self):
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-
-        _num_parameters = self.source_dual.num_parameters
-        _num_initial_adjoints = self.source_dual.num_initial_adjoints
-        _num_terminal_adjoints = self.source_dual.num_terminal_adjoints
-
-        _compute_control = self.source_dual.control_handler.compute_control
-
+    @staticmethod
+    def _alg_compile_preprocess():
         def preprocess_data(in_data: Solution) -> Solution:
             t = in_data.t
             x = np.vstack((in_data.x, in_data.lam))
@@ -135,23 +136,18 @@ class BVPFromDual(BVP):
         return preprocess_data
 
     def _alg_compile_post_process(self):
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-
-        _num_parameters = self.source_dual.num_parameters
-        _num_initial_adjoints = self.source_dual.num_initial_adjoints
-        _num_terminal_adjoints = self.source_dual.num_terminal_adjoints
-        _num_adjoints = self.source_dual.num_adjoints
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu0_slice, _nuf_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
 
         _compute_control = self.source_dual.control_handler.compute_control
 
         def post_process_data(in_data: Solution) -> Solution:
             t = in_data.t
-            x = in_data.x[:_num_states]
-            lam = in_data.x[_num_states:_num_states + _num_costates]
-            p = in_data.p[:_num_parameters]
-            nu0 = in_data.p[_num_parameters:_num_parameters + _num_initial_adjoints]
-            nuf = in_data.p[_num_parameters + _num_initial_adjoints: _num_parameters + _num_adjoints]
+            x = in_data.x[_x_slice, :]
+            lam = in_data.x[_lam_slice, :]
+            p = in_data.p[_p_slice]
+            nu0 = in_data.p[_nu0_slice]
+            nuf = in_data.p[_nuf_slice]
             k = in_data.k
 
             u = np.array(_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T))
@@ -161,11 +157,8 @@ class BVPFromDual(BVP):
         return post_process_data
 
     def _diff_convert_dynamics(self):
-
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-
-        _num_parameters = self.source_dual.num_parameters
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu_slice
 
         _compute_state_dynamics = self.source_dual.compute_dynamics
         _compute_costate_dynamics = self.source_dual.compute_costate_dynamics
@@ -175,11 +168,11 @@ class BVPFromDual(BVP):
                 t: float, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            x = y[:_num_states]
-            lam = y[_num_states:_num_states + _num_costates]
-            u = y[_num_states + _num_costates:]
+            x = y[_x_slice]
+            lam = y[_lam_slice]
+            u = y[_u_slice]
 
-            p = rho[:_num_parameters]
+            p = rho[_p_slice]
 
             _x_dot = _compute_state_dynamics(t, x, u, p, k)
             _lam_dot = _compute_costate_dynamics(t, x, lam, u, p, k)
@@ -190,11 +183,8 @@ class BVPFromDual(BVP):
         return compute_dynamics
 
     def _diff_convert_boundary_conditions(self):
-
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-
-        _num_parameters = self.source_dual.num_parameters
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu_slice
 
         _compute_state_boundary_conditions = self.source_dual.compute_boundary_conditions
         _compute_adjoint_boundary_conditions = self.source_dual.compute_adjoint_boundary_conditions
@@ -204,12 +194,12 @@ class BVPFromDual(BVP):
                 t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            x = y[:_num_states, :]
-            lam = y[_num_states:_num_states + _num_costates, :]
-            u = y[_num_states + _num_costates:, :]
+            x = y[_x_slice, :]
+            lam = y[_lam_slice, :]
+            u = y[_u_slice, :]
 
-            p = rho[:_num_parameters]
-            nu = rho[_num_parameters:]
+            p = rho[_p_slice]
+            nu = rho[_nu_slice]
 
             _psi = _compute_state_boundary_conditions(t, x, p, k)
             _adj_bc = _compute_adjoint_boundary_conditions(t, x, lam, u, p, nu, k)
@@ -219,14 +209,8 @@ class BVPFromDual(BVP):
 
         return compute_boundary_conditions
 
-    def _diff_compile_preprocess(self):
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-
-        _num_parameters = self.source_dual.num_parameters
-        _num_initial_adjoints = self.source_dual.num_initial_adjoints
-        _num_terminal_adjoints = self.source_dual.num_terminal_adjoints
-
+    @staticmethod
+    def _diff_compile_preprocess():
         def preprocess_data(in_data: Solution) -> Solution:
             t = in_data.t
             x = np.vstack((in_data.x, in_data.lam, in_data.u))
@@ -240,23 +224,17 @@ class BVPFromDual(BVP):
         return preprocess_data
 
     def _diff_compile_post_process(self):
-        _num_states = self.source_dual.num_states
-        _num_costates = self.source_dual.num_costates
-        _num_controls = self.source_dual.num_controls
-
-        _num_parameters = self.source_dual.num_parameters
-        _num_initial_adjoints = self.source_dual.num_initial_adjoints
-        _num_terminal_adjoints = self.source_dual.num_terminal_adjoints
-        _num_adjoints = self.source_dual.num_adjoints
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu0_slice, _nuf_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
 
         def post_process_data(in_data: Solution) -> Solution:
             t = in_data.t
-            x = in_data.x[:_num_states]
-            lam = in_data.x[_num_states:_num_states + _num_costates]
-            u = in_data.x[_num_states + _num_costates:_num_states + _num_costates + _num_controls]
-            p = in_data.p[:_num_parameters]
-            nu0 = in_data.p[_num_parameters:_num_parameters + _num_initial_adjoints]
-            nuf = in_data.p[_num_parameters + _num_initial_adjoints:_num_parameters + _num_adjoints]
+            x = in_data.x[_x_slice, :]
+            lam = in_data.x[_lam_slice, :]
+            u = in_data.x[_u_slice, :]
+            p = in_data.p[_p_slice]
+            nu0 = in_data.p[_nu0_slice]
+            nuf = in_data.p[_nuf_slice]
             k = in_data.k
 
             return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)

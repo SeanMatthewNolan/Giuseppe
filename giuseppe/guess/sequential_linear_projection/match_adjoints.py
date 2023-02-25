@@ -4,6 +4,7 @@ import numpy as np
 
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import Dual
+from giuseppe.utils import make_array_slices
 from .sequential_linear_projection import sequential_linearized_projection
 
 
@@ -39,8 +40,7 @@ def match_adjoints(
         raise RuntimeError('Please provide guess with at least 2 points')
     _h_arr = np.diff(_t)
 
-    _lam_slice = slice(_num_t * _num_costates)
-    _nu_slice = slice(_lam_slice.stop, _lam_slice.stop + _num_adjoints)
+    _lam_slice, _nu_slice = make_array_slices((_num_t * _num_costates, _num_adjoints))
 
     if quadrature.lower() == 'linear':
 
