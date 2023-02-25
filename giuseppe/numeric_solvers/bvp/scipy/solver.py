@@ -20,7 +20,7 @@ class SciPySolver:
 
     """
 
-    def __init__(self, prob: Union[BVP, Dual], use_jit_compile: bool = False,
+    def __init__(self, prob: Union[BVP, Dual], use_jit_compile: bool = True,
                  tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
         """
         Initialize SciPySolver

@@ -9,7 +9,8 @@ from .sequential_linear_projection import sequential_linearized_projection
 
 
 def match_adjoints(
-        prob: Dual, guess: Solution, quadrature: str = 'linear', rel_tol: float = 1e-4, abs_tol: float = 1e-4
+        prob: Dual, guess: Solution, quadrature: str = 'linear', rel_tol: float = 1e-4, abs_tol: float = 1e-4,
+        verbose: bool = False
 ) -> Solution:
     """
 
@@ -20,6 +21,7 @@ def match_adjoints(
     quadrature
     rel_tol
     abs_tol
+    verbose
 
     Returns
     -------
@@ -128,7 +130,7 @@ def match_adjoints(
 
     adjoints = sequential_linearized_projection(
             _fitting_function, np.concatenate((guess.lam.flatten(), guess.nu0, guess.nuf)),
-            rel_tol=rel_tol, abs_tol=abs_tol
+            rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose
     )
 
     guess.lam = adjoints[_lam_slice].reshape((_num_costates, _num_t))

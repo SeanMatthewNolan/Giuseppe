@@ -92,7 +92,7 @@ class CompOCP(OCP):
 
     def compile_dynamics(self) -> Callable:
         _compute_dynamics = lambdify(
-                self.sym_args['dynamic'], self.source_ocp.dynamics.flat(), use_jit_compile=self.use_jit_compile)
+                self.sym_args['dynamic'], tuple(self.source_ocp.dynamics.flat()), use_jit_compile=self.use_jit_compile)
 
         def compute_dynamics(
                 independent: float, states: np.ndarray, controls: np.ndarray,

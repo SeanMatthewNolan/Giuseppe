@@ -1,6 +1,4 @@
-from copy import copy
-from typing import Union, Optional, Callable
-from warnings import warn
+from typing import Union, Callable
 
 import numpy as np
 
@@ -8,14 +6,13 @@ from giuseppe.utils.numerical_derivatives.finite_difference\
     import forward_difference_jacobian, central_difference_jacobian, backward_difference_jacobian, ArrayFunction
 
 
-# TODO Use Armijo step etc. to make more stable
 # TODO Explore options based on stability (linear vs. nonlinear)
 def sequential_linearized_projection(
         func: ArrayFunction, arr: np.ndarray, max_steps: int = 20,
         abs_tol: float = 1e-4, rel_tol: float = 1e-4,
         jacobian_function: Union[str, Callable] = 'central',
-        use_line_search: bool = True, line_search_alpha: float = 1e-4, line_search_reduction_ratio: float =  0.5,
-        verbose: bool = True,
+        use_line_search: bool = True, line_search_alpha: float = 1e-4, line_search_reduction_ratio: float = 0.5,
+        verbose: bool = False,
 ) -> np.ndarray:
     """
     Function which projects an array onto the nullspace of a function

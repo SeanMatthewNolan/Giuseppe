@@ -112,13 +112,13 @@ class CompDifferentialControlHandler:
         self.compute_control_boundary_conditions = self.source_comp_dual.compute_control_law
 
     def compile_control_dynamics(self):
-        _compute_control_dynamics = lambdify(self.sym_args, self.source_handler.control_dynamics.flat(),
+        _compute_control_dynamics = lambdify(self.sym_args, tuple(self.source_handler.control_dynamics.flat()),
                                              use_jit_compile=self.use_jit_compile)
 
         def compute_control_dynamics(
                 independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
-            return np.array(_compute_control_dynamics(independent, states, controls, costates, parameters, constants))
+            return np.asarray(_compute_control_dynamics(independent, states, controls, costates, parameters, constants))
 
         if self.use_jit_compile:
             compute_control_dynamics = jit_compile(compute_control_dynamics, self.args_numba_signature)

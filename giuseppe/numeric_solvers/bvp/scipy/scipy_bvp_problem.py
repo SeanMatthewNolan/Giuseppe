@@ -36,11 +36,9 @@ class SciPyBVP:
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
 
-            p = p[:-2]
-
             x_dot = np.empty_like(x_vec)  # Need to pre-allocate for Numba
             for idx, (ti, xi) in enumerate(zip(t_vec, x_vec.T)):
-                x_dot[:, idx] = bvp_dyn(ti, xi, p, k)
+                x_dot[:, idx] = bvp_dyn(ti, xi, p[:-2], k)
 
             return x_dot * tau_mult
 

@@ -30,6 +30,7 @@ def auto_propagate_guess(
         match_constants: bool = True,
         fit_adjoints: bool = True,
         quadrature: str = 'linear',
+        verbose: bool = False
 ) -> Solution:
 
     """
@@ -66,6 +67,10 @@ def auto_propagate_guess(
        relative tolerance for propagation
     default_value : float, default=1
         input_value used if no input_value is given
+    match_constants: bool, default=True
+    fit_adjoints: bool, default=True
+    quadrature: str, default='linear'
+    verbose : bool, default=False
 
     Returns
     -------
@@ -76,17 +81,20 @@ def auto_propagate_guess(
         guess = auto_propagate_bvp_guess(
                 problem, t_span, initial_states,
                 p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value,
-                match_constants=match_constants)
+                match_constants=match_constants, verbose=verbose
+        )
     elif problem.prob_class == 'ocp':
         guess = auto_propagate_ocp_guess(
                 problem, t_span, initial_states, control,
-                p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
+                p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value,
+                verbose=verbose
+        )
     elif problem.prob_class == 'dual':
         guess = auto_propagate_dual_guess(
                 problem, t_span, initial_states, initial_costates, control,
                 p=p, nu0=nu0, nuf=nuf, k=k,
                 abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value,
-                fit_adjoints=fit_adjoints, quadrature=quadrature
+                fit_adjoints=fit_adjoints, quadrature=quadrature, verbose=verbose
         )
     else:
         raise RuntimeError(f'Cannot process problem of class {type(problem)}')
@@ -104,13 +112,23 @@ def auto_propagate_bvp_guess(
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
-        match_constants: bool = True
+        match_constants: bool = True,
+        verbose: bool = False
 ) -> Solution:
     guess = initialize_guess(bvp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k)
-    guess = match_states_to_boundary_conditions(bvp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+
+    if verbose:
+        print(f'Matching states, parameters, and time to boundary conditions:')
+    guess = match_states_to_boundary_conditions(bvp, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+
+    if verbose:
+        print(f'Propagating the dynamics in time\n')
     guess = propagate_bvp_guess_from_guess(bvp, guess, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+
     if match_constants:
-        guess = match_constants_to_boundary_conditions(bvp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        if verbose:
+            print(f'Matching states, parameters, and time to dynamics:')
+        guess = match_constants_to_boundary_conditions(bvp, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
 
     return guess
 
@@ -126,14 +144,24 @@ def auto_propagate_ocp_guess(
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
-        match_constants: bool = True
+        match_constants: bool = True,
+        verbose: bool = False
 ) -> Solution:
     guess = initialize_guess(ocp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k)
-    guess = match_states_to_boundary_conditions(ocp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+
+    if verbose:
+        print(f'Matching states, parameters, and time to boundary conditions:')
+    guess = match_states_to_boundary_conditions(ocp, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+
+    if verbose:
+        print(f'Propagating the dynamics in time\n')
     guess = propagate_ocp_guess_from_guess(
             ocp, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+
     if match_constants:
-        guess = match_constants_to_boundary_conditions(ocp, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        if verbose:
+            print(f'Matching states, parameters, and time to dynamics:')
+        guess = match_constants_to_boundary_conditions(ocp, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
 
     return guess
 
@@ -155,22 +183,38 @@ def auto_propagate_dual_guess(
         match_constants: bool = True,
         fit_adjoints: bool = True,
         quadrature: str = 'simpson',
+        verbose: bool = False
 ) -> Solution:
 
     guess = initialize_guess(dual, default_value=default_value, t_span=t_span, x=initial_states, lam=initial_costates,
                              p=p, nu0=nu0, nuf=nuf, k=k)
-    guess = match_states_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+
+    if verbose:
+        print(f'Matching states, parameters, and time to boundary conditions:')
+
+    guess = match_states_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+
+    if verbose:
+        print(f'Propagating the dynamics in time\n')
 
     if fit_adjoints:
+
         guess = propagate_ocp_guess_from_guess(
                 dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+
+        if verbose:
+            print(f'Fitting the costates and adjoint parameters:')
+
         guess.lam = process_dynamic_value(guess.lam[:, 0], guess.x.shape)
-        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol)
+        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
     else:
         guess = propagate_dual_guess_from_guess(
                 dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
     if match_constants:
-        guess = match_constants_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol)
+        if verbose:
+            print(f'Matching the constants to the boundary conditions:')
+
+        guess = match_constants_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
 
     return guess

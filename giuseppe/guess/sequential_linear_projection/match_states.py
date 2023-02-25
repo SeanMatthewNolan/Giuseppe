@@ -11,7 +11,7 @@ from .sequential_linear_projection import sequential_linearized_projection
 
 def match_states(
         prob: Union[BVP, OCP, Dual], guess: Solution, quadrature: str = 'linear',
-        rel_tol: float = 1e-4, abs_tol: float = 1e-4
+        rel_tol: float = 1e-4, abs_tol: float = 1e-4, verbose: bool = False
 ) -> Solution:
     """
 
@@ -127,7 +127,7 @@ def match_states(
 
     adjoints = sequential_linearized_projection(
             _fitting_function, np.concatenate((guess.x.flatten(), guess.p)),
-            rel_tol=rel_tol, abs_tol=abs_tol
+            rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose
     )
 
     guess.s = adjoints[_x_slice].reshape((_num_states, _num_t))

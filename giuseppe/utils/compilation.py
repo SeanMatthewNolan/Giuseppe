@@ -9,6 +9,7 @@ from sympy.utilities.iterables import flatten
 JIT_COMPILE = True
 CSE = True
 EAGER_COMPILE = True
+PRINT_LAMBDA_FUNCS = False
 NUMBA_CACHE = False
 LAMB_MODS = ['numpy', 'math']
 
@@ -19,6 +20,10 @@ def lambdify(args: Union[Sequence, Expr], expr, flatten_args: bool = False, use_
         args = flatten(args)
 
     func = sympy_lambdify(args, expr, cse=CSE, modules=LAMB_MODS)
+
+    if PRINT_LAMBDA_FUNCS:
+        from inspect import getsource
+        print(getsource(func))
 
     if use_jit_compile:
         func = jit_compile(func, signature=signature_from_args(args))

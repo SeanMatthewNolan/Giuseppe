@@ -111,7 +111,7 @@ class CompAdjoints(Adjoints):
 
     def _compile_costate_dynamics(self, sym_adjoints: SymAdjoints) -> Callable:
         _compute_costate_dynamics = lambdify(
-                self.sym_args['dynamic'], sym_adjoints.costate_dynamics.flat(),
+                self.sym_args['dynamic'], tuple(sym_adjoints.costate_dynamics.flat()),
                 use_jit_compile=self.use_jit_compile)
 
         def compute_costate_dynamics(
@@ -160,8 +160,7 @@ class CompAdjoints(Adjoints):
         return lambdify(self.sym_args['dynamic'], sym_adjoints.hamiltonian, use_jit_compile=self.use_jit_compile)
 
     def _compile_control_law(self, sym_adjoints: SymAdjoints) -> Callable:
-
-        _compute_control_law = lambdify(self.sym_args['dynamic'], sym_adjoints.control_law,
+        _compute_control_law = lambdify(self.sym_args['dynamic'], tuple(sym_adjoints.control_law),
                                         use_jit_compile=self.use_jit_compile)
 
         def compute_control_law(independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
