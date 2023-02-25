@@ -154,8 +154,9 @@ def auto_propagate_dual_guess(
         reverse: bool = False,
         match_constants: bool = True,
         fit_adjoints: bool = True,
-        quadrature: str = 'linear',
+        quadrature: str = 'simpson',
 ) -> Solution:
+
     guess = initialize_guess(dual, default_value=default_value, t_span=t_span, x=initial_states, lam=initial_costates,
                              p=p, nu0=nu0, nuf=nuf, k=k)
     guess = match_states_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -163,7 +164,7 @@ def auto_propagate_dual_guess(
     if fit_adjoints:
         guess = propagate_ocp_guess_from_guess(
                 dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
-        guess.lam = process_dynamic_value(initial_costates, guess.x.shape)
+        guess.lam = process_dynamic_value(guess.lam[:, 0], guess.x.shape)
         guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         guess = propagate_dual_guess_from_guess(

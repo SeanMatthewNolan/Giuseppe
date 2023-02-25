@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 
+from giuseppe.numeric_solvers import SciPySolver
+from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess import initialize_guess, propagate_guess, propagate_ocp_guess, propagate_dual_guess
 from giuseppe.guess import auto_propagate_guess, auto_propagate_bvp_guess, auto_propagate_ocp_guess,\
     auto_propagate_dual_guess, auto_guess
@@ -11,6 +13,8 @@ from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymDual, SymOCP, SymAdjoints
 from giuseppe.problems.conversions import convert_dual_to_bvp
 from giuseppe.problems.regularization import PenaltyConstraintHandler
+from giuseppe.data_classes import SolutionSet
+from giuseppe.utils import Timer
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
@@ -91,87 +95,16 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 # ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
 #                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
-sym_ocp = SymOCP(ocp)
-comp_ocp = sym_ocp.compile()
-comp_adj = SymAdjoints(sym_ocp).compile()
-comp_dual = SymDual(ocp, control_method='differential').compile()
-comp_bvp = convert_dual_to_bvp(comp_dual)
 
-# guess_bvp = initialize_guess(comp_bvp)
-# guess_ocp = initialize_guess(comp_ocp)
-# guess_adj = initialize_guess(comp_adj)
-# guess_dua = initialize_guess(comp_dual, t_span=[0, 3], x=np.array([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]]),
-#                              p=2, nu0=(1, 2, 3, 4, 5, 6, 7))
+with Timer(prefix='Compilation Time:'):
+    sym_dual = SymDual(ocp, control_method='differential')
+    comp_dual = sym_dual.compile()
+    num_solver = SciPySolver(comp_dual, verbose=True)
 
-x_0 = np.array([260_000., 0., 0., 25_000., -1 / 180 * np.pi, np.pi/2])
-x_f = np.array([25_600., 1., 1., 2_500., -1 / 180 * np.pi, np.pi/2])
-lam_0 = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-u_0 = np.array([10 / 180 * np.pi, 0.])
-guess_prop_bvp = propagate_guess(comp_bvp, initial_states=np.concatenate((x_0, lam_0, u_0)), t_span=10, reverse=True)
-guess_prop_ocp = propagate_ocp_guess(comp_ocp, 100, x_0, (7.5 * np.pi / 180, 0))
-guess_prop_ocp_fun = propagate_ocp_guess(comp_ocp, 100, x_0, lambda _t, _x, _p, _k: np.asarray([_t, _x[1]]))
-guess_prop = propagate_dual_guess(comp_dual, 100, x_0, lam_0, (7.5 * np.pi / 180, 0))
+guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
+seed_sol = num_solver.solve(guess.k, guess)
 
-# # guess_constants_matched_bvp = match_constants_to_boundary_conditions(comp_bvp, guess_prop_bvp)
-# guess_constants_matched_ocp = match_constants_to_boundary_conditions(comp_ocp, guess_prop_ocp)
-guess_constants_matched = match_constants_to_boundary_conditions(comp_dual, guess_prop)
-
-# # guess_states_matched_bvp = match_states_to_boundary_conditions(comp_bvp, guess_prop_bvp)
-# guess_states_matched_ocp = match_states_to_boundary_conditions(comp_ocp, guess_prop_ocp)
-# guess_states_matched = match_states_to_boundary_conditions(comp_dual, guess_prop)
-
-# guess_adjoints_matched_mid = match_adjoints(comp_dual, guess_constants_matched, quadrature='midpoint')
-# guess_adjoints_matched_lin = match_adjoints(comp_dual, guess_constants_matched, quadrature='linear')
-# guess_adjoints_matched_sim = match_adjoints(comp_dual, guess_constants_matched, quadrature='simpson')
-
-# auto_guess_prop_bvp = auto_propagate_guess(
-#         comp_bvp, initial_states=np.concatenate((x_0, lam_0, u_0)), t_span=100, reverse=True)
-auto_guess_prop_ocp = auto_propagate_ocp_guess(comp_ocp, 100, x_0, (7.5 * np.pi / 180, 0))
-auto_guess_prop_ocp_fun = auto_propagate_ocp_guess(comp_ocp, 100, x_0, lambda _t, _x, _p, _k: np.asarray([_t, _x[1]]))
-auto_guess_prop = auto_propagate_dual_guess(comp_dual, 100, x_0, lam_0, (7.5 * np.pi / 180, 0), rel_tol=1e-6)
-
-auto_guess = auto_guess(comp_dual, t_span=np.linspace(0, 10, 4), x=np.linspace(x_0, x_0, 4).T, u=u_0,
-                        quadrature='simpson')
-
-# sol_set = load_sol_set('sol_set.data')
-# sol = sol_set[-1]
-#
-# x_dot = comp_dual.compute_dynamics(sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)
-# bc = comp_dual.compute_boundary_conditions(sol.t, sol.x, sol.p, sol.k)
-# cost = comp_dual.compute_cost(sol.t, sol.x, sol.u, sol.p, sol.k)
-#
-# lam_dot = comp_dual.compute_costate_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-# adj_bc = comp_dual.compute_adjoint_boundary_conditions(
-#         sol.t, sol.x, sol.lam, sol.u, sol.p, np.concatenate((sol.nu0, sol.nuf)), sol.k)
-# ham = comp_dual.compute_hamiltonian(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-#
-# comp_hand = comp_dual.control_handler
-# u_dot = comp_hand.compute_control_dynamics(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-# # dh_du = comp_hand.compute_control_boundary_conditions(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-# dh_du = comp_dual.compute_control_law(sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.k)
-#
-# comp_bvp = convert_dual_to_bvp(comp_dual)
-#
-# sol_bvp = comp_bvp.preprocess_data(sol)
-# y_dot = comp_bvp.compute_dynamics(sol_bvp.t[0], sol_bvp.x[:, 0], sol_bvp.p, sol_bvp.k)
-# dual_bc = comp_bvp.compute_boundary_conditions(sol_bvp.t, sol_bvp.x, sol_bvp.p, sol_bvp.k)
-# sol_back = comp_bvp.post_process_data(sol_bvp)
-
-# sp_bvp = SciPyBVP(comp_bvp)
-# sp_tau, sp_x, sp_p = sp_bvp.preprocess(sol)
-# scipy_sol = SciPySolver(comp_bvp, verbose=True).solve(sol_set[1].k, sol_set[0])
-
-# with Timer(prefix='Compilation Time:'):
-#     sym_ocp = SymOCP(ocp)
-#     sym_dual = SymDual(sym_ocp)
-#     sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-#     comp_dual_ocp = CompDualOCP(sym_bvp)
-#     num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
-#
-# guess = auto_propagate_guess(comp_dual_ocp, control=(20/180*3.14159, 0), t_span=100)
-# seed_sol = num_solver.solve(guess.k, guess)
-# sol_set = SolutionSet(sym_bvp, seed_sol)
-#
+# sol_set = SolutionSet(sym_dual, seed_sol)
 # cont = ContinuationHandler(sol_set)
 # cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
 # cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})

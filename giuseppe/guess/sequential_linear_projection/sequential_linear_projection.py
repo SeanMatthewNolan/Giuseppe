@@ -83,7 +83,7 @@ def sequential_linearized_projection(
 
         if np.all(abs(raw_step) < step_tol):
             if verbose:
-                print(f'SLP converged in {step_num} steps with final step size {np.linalg.norm(raw_step)}')
+                print(f'SLP converged in {step_num-1} steps with final step size {np.linalg.norm(raw_step)}\n')
             return arr
 
         if use_line_search:

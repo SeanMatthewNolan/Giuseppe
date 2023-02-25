@@ -1,8 +1,12 @@
+from typing import Union
+
 import numpy as np
 from scipy.integrate import solve_bvp
 
 from giuseppe.io import Solution
-from .scipy_bvp_problem import BVP, SciPyBVP
+from giuseppe.problems.protocols import BVP, Dual
+from giuseppe.problems.conversions import convert_dual_to_bvp
+from .scipy_bvp_problem import SciPyBVP
 from .scipy_types import _scipy_bvp_sol
 
 
@@ -16,14 +20,14 @@ class SciPySolver:
 
     """
 
-    def __init__(self, prob: BVP, use_jit_compile: bool = False,
+    def __init__(self, prob: Union[BVP, Dual], use_jit_compile: bool = False,
                  tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
         """
-        Initialize ScipySolveBVP
+        Initialize SciPySolver
 
         Parameters
         ----------
-        prob : BVP
+        prob : BVP, Dual
             the BVP (or dualized OCP) to solve
         tol : float, default=0.001
             sets `tol` kwarg for `scipy.integrate.solve_bvp`
@@ -39,6 +43,9 @@ class SciPySolver:
         self.bc_tol: float = bc_tol
         self.max_nodes: int = max_nodes
         self.verbose: bool = verbose
+
+        if prob.prob_class == 'dual':
+            prob = convert_dual_to_bvp(prob)
 
         self.prob: SciPyBVP = SciPyBVP(prob, use_jit_compile=use_jit_compile)
 
