@@ -9,6 +9,7 @@ from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
 from ..numeric_solvers import SciPySolver, AdiffScipySolveBVP
+from ..numeric_solvers import NumericSolver
 from ..utils.exceptions import ContinuationError
 
 
@@ -28,20 +29,29 @@ class ContinuationHandler:
     constant_names : tuple[Hashable, ...]
     """
 
-    def __init__(self, root: Union[Solution, SolutionSet],
+    def __init__(self, root: Union[Solution, SolutionSet], numeric_solver: NumericSolver,
                  constant_names: Optional[Union[Iterable[Hashable, ...], Annotations]] = None):
         """
         Initialize continuation handler
         """
+        self.numeric_solver: NumericSolver = numeric_solver
+
         if isinstance(root, Solution):
+            if not root.converged:
+                root = numeric_solver.solve(root.k, root)
+
+                if not root.converged:
+                    raise RuntimeError('Guess for root solution did not converged!!!')
+
             self.solution_set: SolutionSet = SolutionSet(solutions=[root])
+
         elif isinstance(root, SolutionSet):
+            if len(root) < 1:
+                raise ValueError('Please ensure that the root solution set has at least one solution')
             self.solution_set: SolutionSet = root
         else:
-            raise TypeError('Please provide continuation handler root of type Solution or SolutionSet')
-
-        if len(self.solution_set) < 1:
-            raise ValueError('Please ensure that solution set has at least one solution')
+            raise TypeError('Please provide continuation handler root solution or guess '
+                            'of type Solution or SolutionSet')
 
         self.continuation_series: list[ContinuationSeries] = []
 
@@ -100,7 +110,7 @@ class ContinuationHandler:
         """
         Add a logarithmic series to the continuation handler
 
-        The logarithmic series will take proportinally spaced steps torward the specified target values using the last
+        The logarithmic series will take proportionally spaced steps toward the specified target values using the last
         solution as the next guess
 
         Parameters
@@ -137,15 +147,12 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
-    def run_continuation(self, numeric_solver: Union[SciPySolver, AdiffScipySolveBVP], display=ProgressBarDisplay()) \
-            -> SolutionSet:
+    def run_continuation(self, display=ProgressBarDisplay()) -> SolutionSet:
         """
         Run continuation set
 
         Parameters
         ----------
-        numeric_solver
-           Numeric solver which will be used to solve the problems
         display : optional
 
         Returns
@@ -162,10 +169,11 @@ class ContinuationHandler:
                 for series in self.continuation_series:
                     display.start_cont_series(series)
                     for k, last_sol in series:
-                        self.solution_set.append(numeric_solver.solve(k, last_sol))
+                        self.solution_set.append(self.numeric_solver.solve(k, last_sol))
                         display.log_step()
                     display.end_cont_series()
             return self.solution_set
+
         except ContinuationError as e:
             print(f'Continuation failed to complete because exception: {e}')
             return self.solution_set

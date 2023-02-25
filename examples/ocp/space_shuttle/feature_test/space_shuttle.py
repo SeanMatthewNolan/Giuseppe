@@ -96,12 +96,11 @@ with Timer(prefix='Compilation Time:'):
     num_solver = SciPySolver(comp_dual)
 
 guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
-seed_sol = num_solver.solve(guess.k, guess)
 
-cont = ContinuationHandler(seed_sol, tuple(str(constant) for constant in sym_dual.constants))
+cont = ContinuationHandler(guess, num_solver, tuple(str(constant) for constant in sym_dual.constants))
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'xi': np.pi / 2})
-sol_set = cont.run_continuation(num_solver)
+sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')
