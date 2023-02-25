@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Hashable, Mapping
-from typing import Union, Optional
+from typing import Union, Optional, Iterable
 
-from giuseppe.data_classes.solution_set import SolutionSet
+from giuseppe.data_classes import Solution, SolutionSet, Annotations
+
 from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
@@ -27,18 +28,30 @@ class ContinuationHandler:
     constant_names : tuple[Hashable, ...]
     """
 
-    def __init__(self, solution_set: SolutionSet):
+    def __init__(self, root: Union[Solution, SolutionSet],
+                 constant_names: Optional[Union[Iterable[Hashable, ...], Annotations]] = None):
         """
         Initialize continuation handler
-
-        Parameters
-        ----------
-        solution_set: SolutionSet
-            Object for continuation handler to retrieve guess and store solutions
         """
+        if isinstance(root, Solution):
+            self.solution_set: SolutionSet = SolutionSet(solutions=[root])
+        elif isinstance(root, SolutionSet):
+            self.solution_set: SolutionSet = root
+        else:
+            raise TypeError('Please provide continuation handler root of type Solution or SolutionSet')
+
+        if len(self.solution_set) < 1:
+            raise ValueError('Please ensure that solution set has at least one solution')
+
         self.continuation_series: list[ContinuationSeries] = []
-        self.solution_set: SolutionSet = solution_set
-        self.constant_names: tuple[Hashable, ...] = solution_set.constant_names
+
+        if constant_names is None:
+            self.constant_names: tuple[Hashable, ...] = tuple(range(len(self.solution_set[-1].k)))
+        elif isinstance(constant_names, Annotations):
+            self.constant_names: tuple[Hashable, ...] = tuple(constant_names.constants)
+        else:
+            self.constant_names: tuple[Hashable, ...] = tuple(constant_names)
+
         self.monitor: Optional[ContinuationDisplayManager] = None
 
     def add_linear_series(self, num_steps: int, target_values: Mapping[Hashable: float],
@@ -46,7 +59,7 @@ class ContinuationHandler:
         """
         Add a linear series to the continuation handler
 
-        The linear series will take linearly spaced steps torward the specified target values using the last solution as
+        The linear series will take linearly spaced steps toward the specified target values using the last solution as
         the next guess
 
         Parameters
@@ -71,11 +84,13 @@ class ContinuationHandler:
         """
 
         if bisection is True:
-            series = BisectionLinearSeries(num_steps, target_values, self.solution_set)
+            series = BisectionLinearSeries(num_steps, target_values, self.solution_set,
+                                           constant_names=self.constant_names)
         elif bisection > 0:
-            series = BisectionLinearSeries(num_steps, target_values, self.solution_set, max_bisections=bisection)
+            series = BisectionLinearSeries(num_steps, target_values, self.solution_set,
+                                           max_bisections=bisection, constant_names=self.constant_names)
         else:
-            series = LinearSeries(num_steps, target_values, self.solution_set)
+            series = LinearSeries(num_steps, target_values, self.solution_set, constant_names=self.constant_names)
 
         self.continuation_series.append(series)
         return self
@@ -110,11 +125,14 @@ class ContinuationHandler:
         """
 
         if bisection is True:
-            series = BisectionLogarithmicSeries(num_steps, target_values, self.solution_set)
+            series = BisectionLogarithmicSeries(num_steps, target_values, self.solution_set,
+                                                constant_names=self.constant_names)
         elif bisection > 0:
-            series = BisectionLogarithmicSeries(num_steps, target_values, self.solution_set, max_bisections=bisection)
+            series = BisectionLogarithmicSeries(num_steps, target_values, self.solution_set, max_bisections=bisection,
+                                                constant_names=self.constant_names)
         else:
-            series = LogarithmicSeries(num_steps, target_values, self.solution_set)
+            series = LogarithmicSeries(num_steps, target_values, self.solution_set,
+                                       constant_names=self.constant_names)
 
         self.continuation_series.append(series)
         return self

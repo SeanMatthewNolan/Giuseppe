@@ -1,21 +1,32 @@
 from __future__ import annotations
-from collections.abc import Hashable, Mapping, Iterator
+from collections.abc import Hashable, Mapping, Iterator, Iterable
+from typing import Union, Optional
 from copy import copy
 
 import numpy as np
 
-from giuseppe.io import Solution, SolutionSet
+from giuseppe.data_classes import Solution, SolutionSet, Annotations
 from .abstract import ContinuationSeries
 from ...utils.exceptions import ContinuationError
 from ...utils.typing import NPArray
 
 
 class LinearSeries(ContinuationSeries):
-    def __init__(self, num_steps: int, target_mapping: Mapping[Hashable: float], solution_set: SolutionSet):
+    def __init__(
+            self, num_steps: int, target_mapping: Mapping[Hashable: float], solution_set: SolutionSet,
+            constant_names: Optional[Union[Iterable[Hashable, ...], Annotations]] = None
+    ):
 
         super().__init__(solution_set)
         self.num_steps: int = num_steps
         self.target_mapping: Mapping[Hashable: float] = target_mapping
+
+        if constant_names is None:
+            self.constant_names: tuple[Hashable, ...] = tuple(range(len(self.solution_set[-1].k)))
+        elif isinstance(constant_names, Annotations):
+            self.constant_names: tuple[Hashable, ...] = tuple(constant_names.constants)
+        else:
+            self.constant_names: tuple[Hashable, ...] = tuple(constant_names)
 
         self.constant_indices = self._get_constant_indices()
         self.constant_targets = np.fromiter(self.target_mapping.values(), dtype=float)
@@ -57,7 +68,7 @@ class LinearSeries(ContinuationSeries):
         indices = []
         for constant_key, target_value in self.target_mapping.items():
             try:
-                indices.append(self.solution_set.constant_names.index(constant_key))
+                indices.append(self.constant_names.index(constant_key))
             except ValueError:
                 raise KeyError(f'Cannot perform continuation on {constant_key} because it is not a defined constant')
 
@@ -81,10 +92,12 @@ class LinearSeries(ContinuationSeries):
 
 
 class BisectionLinearSeries(LinearSeries):
-    def __init__(self, num_steps: int, target_mapping: Mapping[Hashable: float], solution_set: SolutionSet,
-                 max_bisections: int = 3):
+    def __init__(
+            self, num_steps: int, target_mapping: Mapping[Hashable: float], solution_set: SolutionSet,
+            max_bisections: int = 3, constant_names: Optional[Union[Iterable[Hashable, ...], Annotations]] = None
+    ):
 
-        LinearSeries.__init__(self, num_steps, target_mapping, solution_set)
+        LinearSeries.__init__(self, num_steps, target_mapping, solution_set, constant_names=constant_names)
 
         self.max_bisections: int = max_bisections
         self.bisection_counter: int = 0

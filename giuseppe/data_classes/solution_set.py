@@ -1,60 +1,33 @@
-from __future__ import annotations
+# from __future__ import annotations as _annotations
 import json
 import pprint
 import pickle
-import warnings
 from abc import abstractmethod
-from collections.abc import Iterable, MutableSequence, Hashable
-from copy import deepcopy
+from collections.abc import Iterable, MutableSequence
 from os.path import splitext
-from typing import Optional, Union, overload
+from typing import Optional, overload
 
 import bson
 
-from giuseppe.problems.bvp import SymBVP, AdiffBVP
-from giuseppe.problems.dual import SymDualOCP, AdiffDual, AdiffDualOCP
-from giuseppe.problems.ocp import SymOCP, AdiffOCP
-from giuseppe.utils.mixins import Picky
 from .solution import Solution
+from .annotations import Annotations
 
 
-# TODO: add annotations to solution set
-class SolutionSet(MutableSequence, Picky):
-    SUPPORTED_INPUTS = Union[SymBVP, SymOCP, SymDualOCP, AdiffBVP, AdiffOCP, AdiffDualOCP]
+class SolutionSet(MutableSequence):
+    def __init__(self, annotations: Optional[Annotations] = None, solutions: Optional[Iterable[Solution]] = None):
 
-    def __init__(self, problem: SUPPORTED_INPUTS, seed_solution: Solution):
-        Picky.__init__(self, problem)
-
-        problem = deepcopy(problem)
-        if type(problem) is SymDualOCP:
-            self.constants = problem.ocp.constants
-            self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
-        elif isinstance(problem, AdiffDualOCP):
-            self.constants = None
-            constants = problem.dual.adiff_ocp.constants
-            self.constant_names: tuple[Hashable, ...] = tuple(constants[i].name() for i in range(constants.numel()))
-        elif isinstance(problem, AdiffDual):
-            self.constants = None
-            constants = problem.adiff_ocp.constants
-            self.constant_names: tuple[Hashable, ...] = tuple(constants[i].name() for i in range(constants.numel()))
-        elif isinstance(problem, AdiffOCP):
-            self.constants = None
-            constants = problem.constants
-            self.constant_names: tuple[Hashable, ...] = tuple(constants[i].name() for i in range(constants.numel()))
-        else:
-            self.constants = problem.constants
-            self.constant_names: tuple[Hashable, ...] = tuple(str(constant) for constant in self.constants)
-
-        if not seed_solution.converged:
-            warnings.warn(
-                'Seed solution is not converged! It is suggested to solve seed prior to initialization of solution set.'
-            )
-
-        self.seed_solution: Solution = seed_solution
-
-        self.solutions: list[Solution] = [seed_solution]
+        self.solutions: list[Solution] = []
         self.continuation_slices: list[slice] = []
-        self.damned_sols: list[Solution] = []
+        self.damned_sols: list[Solution] = []  # Pun: solutions which are not converged
+
+        self.annotations: Optional[Annotations] = annotations
+
+        if solutions is not None:
+            for solution in solutions:
+                if solution.converged:
+                    self.solutions.append(solution)
+                else:
+                    self.damned_sols.append(solution)
 
     def insert(self, index: int, solution: Solution) -> None:
         self.solutions.insert(index, solution)
@@ -105,7 +78,7 @@ class SolutionSet(MutableSequence, Picky):
         self.damned_sols.append(self.solutions.pop(idx))
 
     def as_dict(self, arr_to_list: bool = False):
-        # TODO Add some more attributes which would be useful with plotting/ananlysis
+        # TODO Add some more attributes which would be useful with plotting/analysis
         sol_set_dict = {
             'solutions': [sol.as_dict(arr_to_list=arr_to_list) for sol in self.solutions],
             'damned_sols': [sol.as_dict(arr_to_list=arr_to_list) for sol in self.damned_sols],

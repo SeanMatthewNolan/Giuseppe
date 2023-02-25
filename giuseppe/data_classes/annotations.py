@@ -1,16 +1,16 @@
-from typing import Optional
+from typing import Optional, Hashable, Sequence
 from dataclasses import dataclass
 
 
 @dataclass
 class Annotations:
-    independent: Optional[str] = None
-    states: Optional[list[str]] = None
-    parameters: Optional[list[str]] = None
-    constants: Optional[list[str]] = None
+    independent: Optional[Hashable] = None
+    states: Optional[Sequence[Hashable]] = None
+    parameters: Optional[Sequence[Hashable]] = None
+    constants: Optional[Sequence[Hashable]] = None
 
-    controls: Optional[list[str]] = None
+    controls: Optional[Sequence[Hashable]] = None
 
-    costates: Optional[list[str]] = None
-    initial_adjoints: Optional[list[str]] = None
-    terminal_adjoints: Optional[list[str]] = None
+    costates: Optional[Sequence[Hashable]] = None
+    initial_adjoints: Optional[Sequence[Hashable]] = None
+    terminal_adjoints: Optional[Sequence[Hashable]] = None

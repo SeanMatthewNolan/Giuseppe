@@ -4,16 +4,10 @@ import numpy as np
 
 from giuseppe.numeric_solvers import SciPySolver
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess import initialize_guess, propagate_guess, propagate_ocp_guess, propagate_dual_guess
-from giuseppe.guess import auto_propagate_guess, auto_propagate_bvp_guess, auto_propagate_ocp_guess,\
-    auto_propagate_dual_guess, auto_guess
-from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions,\
-    match_states_to_boundary_conditions, match_adjoints
+from giuseppe.guess import auto_propagate_guess
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.symbolic import SymDual, SymOCP, SymAdjoints
-from giuseppe.problems.conversions import convert_dual_to_bvp
+from giuseppe.problems.symbolic import SymDual
 from giuseppe.problems.regularization import PenaltyConstraintHandler
-from giuseppe.data_classes import SolutionSet
 from giuseppe.utils import Timer
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
@@ -99,16 +93,15 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 with Timer(prefix='Compilation Time:'):
     sym_dual = SymDual(ocp, control_method='differential')
     comp_dual = sym_dual.compile()
-    num_solver = SciPySolver(comp_dual, verbose=True)
+    num_solver = SciPySolver(comp_dual)
 
 guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
 seed_sol = num_solver.solve(guess.k, guess)
 
-# sol_set = SolutionSet(sym_dual, seed_sol)
-# cont = ContinuationHandler(sol_set)
-# cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
-# cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
-# cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
-# sol_set = cont.run_continuation(num_solver)
-#
-# sol_set.save('sol_set.data')
+cont = ContinuationHandler(seed_sol, tuple(str(constant) for constant in sym_dual.constants))
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
+cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
+sol_set = cont.run_continuation(num_solver)
+
+sol_set.save('sol_set.data')
