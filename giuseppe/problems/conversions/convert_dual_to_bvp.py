@@ -112,7 +112,10 @@ class BVPFromDual(BVP):
             p = rho[_p_slice]
             nu = rho[_nu_slice]
 
-            u = np.asarray([_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T)])
+            u = np.vstack((
+                _compute_control(t[0], x[:, 0], lam[:, 0], p, k),
+                _compute_control(t[0], x[:, 0], lam[:, 0], p, k)
+            )).T
 
             _psi = _compute_state_boundary_conditions(t, x, p, k)
             _adj_bc = _compute_adjoint_boundary_conditions(t, x, lam, u, p, nu, k)
@@ -150,7 +153,7 @@ class BVPFromDual(BVP):
             nuf = in_data.p[_nuf_slice]
             k = in_data.k
 
-            u = np.array(_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T))
+            u = np.array([_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T)]).T
 
             return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
 

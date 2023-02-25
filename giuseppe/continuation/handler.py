@@ -8,7 +8,6 @@ from giuseppe.data_classes import Solution, SolutionSet, Annotations
 from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
     BisectionLogarithmicSeries
-from ..numeric_solvers import SciPySolver, AdiffScipySolveBVP
 from ..numeric_solvers import NumericSolver
 from ..utils.exceptions import ContinuationError
 
@@ -65,7 +64,7 @@ class ContinuationHandler:
         self.monitor: Optional[ContinuationDisplayManager] = None
 
     def add_linear_series(self, num_steps: int, target_values: Mapping[Hashable: float],
-                          bisection: Union[bool, int] = False):
+                          bisection: Union[bool, int] = True):
         """
         Add a linear series to the continuation handler
 
@@ -106,7 +105,7 @@ class ContinuationHandler:
         return self
 
     def add_logarithmic_series(self, num_steps: int, target_values: Mapping[Hashable: float],
-                               bisection: Union[bool, int] = False):
+                               bisection: Union[bool, int] = True):
         """
         Add a logarithmic series to the continuation handler
 
@@ -123,7 +122,7 @@ class ContinuationHandler:
            key should be the name of the constant to change
            value is the final value
 
-        bisection : Union[bool, int], default=False
+        bisection : Union[bool, int], default=True
            If True or number, the continuation handler will retry to solve problem with bisected step length if solver
            fails to converge.
 

@@ -1,11 +1,10 @@
 import os
 
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import initialize_guess_w_default_value
+from giuseppe.guess_generation import initialize_guess, auto_guess
 from giuseppe.io import InputOCP, SolutionSet
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
-from giuseppe.problems.ocp import SymOCP
+from giuseppe.numeric_solvers import SciPySolver
+from giuseppe.problems.symbolic import SymDual
 from giuseppe.utils import Timer
 
 os.chdir(os.path.dirname(__file__))  # Set directory to file location
@@ -40,18 +39,14 @@ ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Compilation Time:'):
-    sym_ocp = SymOCP(ocp)
-    sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp)
+    sym_dual = SymDual(ocp, control_method='algebraic')
+    comp_dual = sym_dual.compile()
+    num_solver = SciPySolver(comp_dual)
 
-guess = initialize_guess_w_default_value(comp_dual_ocp)
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = SolutionSet(sym_bvp, seed_sol)
-cont = ContinuationHandler(sol_set)
+guess = auto_guess(comp_dual)
+
+cont = ContinuationHandler(guess, num_solver, tuple(str(constant) for constant in sym_dual.constants))
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
-
-sol_set = cont.run_continuation(num_solver)
+sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')

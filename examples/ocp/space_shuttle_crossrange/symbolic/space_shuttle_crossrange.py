@@ -4,7 +4,7 @@ import numpy as np
 
 from giuseppe.numeric_solvers import SciPySolver
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess import auto_propagate_guess
+from giuseppe.guess_generation import auto_propagate_guess
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.symbolic import SymDual
 from giuseppe.problems.regularization import PenaltyConstraintHandler

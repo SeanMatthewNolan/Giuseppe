@@ -4,10 +4,10 @@ from numpy.typing import ArrayLike
 
 from giuseppe.io import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
-from giuseppe.guess.initialize_guess import initialize_guess, process_dynamic_value
-from giuseppe.guess.propagate_guess import propagate_bvp_guess_from_guess, propagate_ocp_guess_from_guess,\
+from giuseppe.guess_generation.initialize_guess import initialize_guess, process_dynamic_value
+from giuseppe.guess_generation.propagate_guess import propagate_bvp_guess_from_guess, propagate_ocp_guess_from_guess,\
     propagate_dual_guess_from_guess
-from giuseppe.guess.sequential_linear_projection import match_constants_to_boundary_conditions,\
+from giuseppe.guess_generation.sequential_linear_projection import match_constants_to_boundary_conditions,\
     match_states_to_boundary_conditions, match_adjoints
 
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]

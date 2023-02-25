@@ -31,7 +31,7 @@ class SymDifferentialControlHandler:
     def __init__(self, source_prob: SymDual):
         self.source_prob = deepcopy(source_prob)
 
-        self.controls: list[Symbol] = list( self.source_prob.controls)
+        self.controls: list[Symbol] = list(self.source_prob.controls)
 
         self.h_u: SymMatrix = SymMatrix([self.source_prob.hamiltonian]).jacobian(self.source_prob.controls)
         self.h_uu: SymMatrix = self.h_u.jacobian(self.source_prob.controls)
@@ -60,11 +60,11 @@ class CompAlgebraicControlHandler:
 
         self.use_jit_compile = use_jit_compile
         self.use_jit_compile = source_comp_dual.use_jit_compile
-        self.sym_args = (self.source_comp_dual.source_ocp.independent,
-                         self.source_comp_dual.source_ocp.states.flat(),
-                         self.source_comp_dual.source_adjoints.costates.flat(),
-                         self.source_comp_dual.source_ocp.parameters.flat(),
-                         self.source_comp_dual.source_ocp.constants.flat())
+        self.sym_args = (self.source_comp_dual.source_dual.independent,
+                         self.source_comp_dual.source_dual.states.flat(),
+                         self.source_comp_dual.source_dual.costates.flat(),
+                         self.source_comp_dual.source_dual.parameters.flat(),
+                         self.source_comp_dual.source_dual.constants.flat())
         self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
         self.compute_control = self.compile_control()
 

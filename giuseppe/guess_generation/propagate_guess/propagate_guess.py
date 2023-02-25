@@ -7,7 +7,7 @@ from scipy.integrate import solve_ivp
 
 from giuseppe.io import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
-from giuseppe.guess.initialize_guess import initialize_guess, process_static_value, process_dynamic_value
+from giuseppe.guess_generation.initialize_guess import initialize_guess, process_static_value, process_dynamic_value
 
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]

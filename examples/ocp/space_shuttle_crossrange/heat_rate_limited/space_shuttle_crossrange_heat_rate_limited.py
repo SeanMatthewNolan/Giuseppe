@@ -1,25 +1,18 @@
 import os
-import pickle
 
 import numpy as np
 
-import giuseppe
+from giuseppe.numeric_solvers import SciPySolver
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import auto_propagate_guess
-from giuseppe.io import InputOCP, SolutionSet
-from giuseppe.numeric_solvers.bvp import ScipySolveBVP
-from giuseppe.problems.dual import SymDual, SymDualOCP, CompDualOCP
-from giuseppe.problems.ocp import SymOCP
+from giuseppe.guess_generation import auto_propagate_guess
+from giuseppe.problems.input import StrInputProb
+from giuseppe.problems.symbolic import SymDual
 from giuseppe.problems.regularization import PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
-giuseppe.utils.compilation.JIT_COMPILE = True
-
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
-# TODO: WIP Does not fully converge
-
-ocp = InputOCP()
+ocp = StrInputProb()
 
 ocp.set_independent('t')
 
@@ -72,7 +65,7 @@ ocp.add_constant('eps_alpha', 1e-5)
 ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
 ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
 
-ocp.add_constant('eps_q', 0.01)
+ocp.add_constant('eps_q', 0.001)
 ocp.add_constant('q_max', 200)
 
 ocp.add_constant('h_0', 260_000)
@@ -106,31 +99,18 @@ ocp.add_inequality_constraint('path', 'q', upper_limit='q_max',
                               regularizer=PenaltyConstraintHandler('eps_q', method='rat'))
 
 with Timer(prefix='Compilation Time:'):
-    sym_ocp = SymOCP(ocp)
-    sym_dual = SymDual(sym_ocp)
-    sym_bvp = SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    comp_dual_ocp = CompDualOCP(sym_bvp)
-    num_solver = ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8)
+    sym_dual = SymDual(ocp, control_method='differential')
+    comp_dual = sym_dual.compile()
+    num_solver = SciPySolver(comp_dual)
 
-guess = auto_propagate_guess(comp_dual_ocp, control=(20 / 180 * 3.14159, 0), t_span=100)
-with open('guess.data', 'wb') as file:
-    pickle.dump(guess, file)
+guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
 
-seed_sol = num_solver.solve(guess.k, guess)
-print(seed_sol.converged)
-
-with open('seed.data', 'wb') as file:
-    pickle.dump(seed_sol, file)
-
-sol_set = SolutionSet(sym_bvp, seed_sol)
-cont = ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
-cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
-# cont.add_linear_series(100, {'alpha_min': -5 / 180 * 3.14159, 'alpha_max': 20 / 180 * 3.14159}, bisection=True)
-cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
-cont.add_linear_series(200, {'q_max': 100}, bisection=True)
-cont.add_linear_series(200, {'q_max': 70}, bisection=True)
-# cont.add_logarithmic_series(200, {'eps_q': 1e-7}, bisection=True)
-sol_set = cont.run_continuation(num_solver)
+cont = ContinuationHandler(guess, num_solver, tuple(str(constant) for constant in sym_dual.constants))
+cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
+cont.add_linear_series(50, {'q_max': 100})
+cont.add_linear_series(100, {'q_max': 70})
+cont.add_linear_series(90, {'xi': np.pi / 2})
+sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')

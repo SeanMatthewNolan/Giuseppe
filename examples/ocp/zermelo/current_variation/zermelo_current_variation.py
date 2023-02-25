@@ -4,7 +4,7 @@ import giuseppe
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
-zermelo = giuseppe.io.InputOCP()
+zermelo = giuseppe.problems.input.StrInputProb()
 
 zermelo.set_independent('t')
 
@@ -34,18 +34,16 @@ zermelo.add_constraint('terminal', 'x - x_f')
 zermelo.add_constraint('terminal', 'y - y_f')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    sym_ocp = giuseppe.problems.SymOCP(zermelo)
-    sym_dual = giuseppe.problems.SymDual(sym_ocp)
-    sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=False)
-    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=False)
+    sym_dual = giuseppe.problems.symbolic.SymDual(zermelo, control_method='algebraic')
+    comp_dual = sym_dual.compile()
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual)
 
-guess = giuseppe.guess_generators.generate_constant_guess(comp_dual_ocp)
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
+guess = giuseppe.guess_generation.initialize_guess(comp_dual)
+
+cont = giuseppe.continuation.ContinuationHandler(
+        guess, num_solver, tuple(str(constant) for constant in sym_dual.constants))
 cont.add_linear_series(6, {'c': 1})
 
-cont.run_continuation(num_solver)
+sol_set = cont.run_continuation()
 
 sol_set.save('current_variation_sol_set.data')

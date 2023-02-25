@@ -36,6 +36,7 @@ class CompDual(CompOCP, CompAdjoints, Dual):
     def __init__(self, source_dual: SymDual, use_jit_compile: bool = True, cost_quadrature: str = 'simpson'):
         self.source_dual = source_dual
         super().__init__(source_dual, use_jit_compile=use_jit_compile, cost_quadrature=cost_quadrature)
+        del self.source_ocp
         super()._compile_adjoint_information(self.source_dual, self.source_dual)
 
         if self.source_dual.control_handler is not None:

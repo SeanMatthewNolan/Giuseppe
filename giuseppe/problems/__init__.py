@@ -5,4 +5,5 @@ from .ocp import InputOCP, SymOCP, CompOCP, AdiffOCP
 from .input import StrInputProb, AdiffInputProb
 
 from . import conversions
+from . import symbolic
 
