@@ -15,10 +15,14 @@ def justify_str(_str: str, _len: int) -> str:
     -------
 
     """
-    if _len < 0:
-        raise ValueError('Specified length should be greater than 0')
+    if _len <= 3:
+        raise ValueError('Specified length should be greater than 3')
 
     if len(_str) <= _len:
         return _str.center(_len)
     else:
         return _str[:_len - 3] + '...'
+
+
+def stringify_list(_list):
+    return tuple(str(item) for item in _list)

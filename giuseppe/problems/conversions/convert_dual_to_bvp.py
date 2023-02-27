@@ -1,11 +1,12 @@
 from copy import deepcopy
+from typing import Optional
 
 import numpy as np
 
 from giuseppe.utils import make_array_slices
 from giuseppe.utils.compilation import jit_compile
 from giuseppe.utils.typing import NumbaFloat, NumbaArray, NumbaMatrix
-from giuseppe.data_classes import Solution
+from giuseppe.data_classes import Solution, Annotations
 from giuseppe.problems.protocols.bvp import BVP
 from giuseppe.problems.protocols.dual import Dual
 from giuseppe.problems.protocols.control_handlers import AlgebraicControlHandler, DifferentialControlHandler
@@ -41,8 +42,21 @@ class BVPFromDual(BVP):
         self.num_constants: int = self.source_dual.num_constants
 
         self.default_values: np.ndarray = self.source_dual.default_values
+        self.dual_annotations: Optional[Annotations] = self.source_dual.annotations
+
+        if self.dual_annotations is None:
+            self.annotations = None
+        else:
+            self.annotations = Annotations(
+                    independent=self.dual_annotations.independent,
+                    states=(*self.dual_annotations.states, *self.dual_annotations.costates),
+                    parameters=self.dual_annotations.parameters,
+                    constants=self.dual_annotations.constants,
+                    expressions=self.dual_annotations.expressions
+            )
 
         if isinstance(self.source_dual.control_handler, AlgebraicControlHandler):
+
             self.compute_dynamics = self._alg_convert_dynamics()
             self.compute_boundary_conditions = self._alg_convert_boundary_conditions()
 
@@ -50,6 +64,9 @@ class BVPFromDual(BVP):
             self.post_process_data = self._alg_compile_post_process()
 
         elif isinstance(self.source_dual.control_handler, DifferentialControlHandler):
+            if self.dual_annotations is not None:
+                self.annotations.states = (*self.annotations.states, *self.dual_annotations.controls)
+
             self.num_states += _source_num_controls
 
             self.compute_dynamics = self._diff_convert_dynamics()
@@ -124,8 +141,9 @@ class BVPFromDual(BVP):
 
         return compute_boundary_conditions
 
-    @staticmethod
-    def _alg_compile_preprocess():
+    def _alg_compile_preprocess(self):
+        _annotations = self.annotations
+
         def preprocess_data(in_data: Solution) -> Solution:
             t = in_data.t
             x = np.vstack((in_data.x, in_data.lam))
@@ -134,13 +152,16 @@ class BVPFromDual(BVP):
 
             lam, u, nu0, nuf = None, None, None, None
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
+                            converged=in_data.converged, annotations=_annotations)
 
         return preprocess_data
 
     def _alg_compile_post_process(self):
         _x_slice, _lam_slice, _u_slice, _p_slice, _nu0_slice, _nuf_slice = \
             self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
+
+        _annotations = self.dual_annotations
 
         _compute_control = self.source_dual.control_handler.compute_control
 
@@ -155,7 +176,8 @@ class BVPFromDual(BVP):
 
             u = np.array([_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T)]).T
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
+                            converged=in_data.converged, annotations=_annotations)
 
         return post_process_data
 
@@ -212,8 +234,9 @@ class BVPFromDual(BVP):
 
         return compute_boundary_conditions
 
-    @staticmethod
-    def _diff_compile_preprocess():
+    def _diff_compile_preprocess(self):
+        _annotations = self.annotations
+
         def preprocess_data(in_data: Solution) -> Solution:
             t = in_data.t
             x = np.vstack((in_data.x, in_data.lam, in_data.u))
@@ -222,13 +245,16 @@ class BVPFromDual(BVP):
 
             lam, u, nu0, nuf = None, None, None, None
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
+                            converged=in_data.converged, annotations=_annotations)
 
         return preprocess_data
 
     def _diff_compile_post_process(self):
         _x_slice, _lam_slice, _u_slice, _p_slice, _nu0_slice, _nuf_slice = \
             self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
+
+        _annotations = self.dual_annotations
 
         def post_process_data(in_data: Solution) -> Solution:
             t = in_data.t
@@ -240,6 +266,7 @@ class BVPFromDual(BVP):
             nuf = in_data.p[_nuf_slice]
             k = in_data.k
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, converged=in_data.converged)
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
+                            converged=in_data.converged, annotations=_annotations)
 
         return post_process_data

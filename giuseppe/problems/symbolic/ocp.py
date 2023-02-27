@@ -1,20 +1,21 @@
 from copy import deepcopy
-from typing import Optional, Union, Callable
+from typing import Callable
 
 import numpy as np
 from scipy.integrate import simpson, trapezoid
 
 from giuseppe.problems.components.symbolic import SymCost
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.problems.protocols import OCP
+from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, NumbaFloat, NumbaArray, NumbaMatrix
+from giuseppe.utils.strings import stringify_list
 from .bvp import SymBVP
 
 
 class SymOCP(SymBVP):
-    def __init__(self, input_data: Optional[Union[InputOCP, StrInputProb]] = None):
+    def __init__(self, input_data: StrInputProb = None):
         self.controls: SymMatrix = EMPTY_SYM_MATRIX
         self.cost = SymCost()
 
@@ -27,23 +28,35 @@ class SymOCP(SymBVP):
         self.sym_args = (self.independent, self.states.flat(), self.controls.flat(),
                          self.parameters.flat(), self.constants.flat())
 
-    def process_variables_from_input(self, input_data: InputOCP):
-        super().process_variables_from_input(input_data)
+    def _process_variables_from_input(self, input_data: StrInputProb):
+        super()._process_variables_from_input(input_data)
         self.controls = SymMatrix([self.new_sym(control) for control in input_data.controls])
 
-    def process_expr_from_input(self, input_data: InputOCP):
-        super().process_expr_from_input(input_data)
+    def _process_expr_from_input(self, input_data: StrInputProb):
+        super()._process_expr_from_input(input_data)
         self.cost = SymCost(
                 self.sympify(input_data.cost.initial),
                 self.sympify(input_data.cost.path),
                 self.sympify(input_data.cost.terminal)
         )
 
-    def perform_substitutions(self):
-        super().perform_substitutions()
-        self.cost.initial = self.substitute(self.cost.initial)
-        self.cost.path = self.substitute(self.cost.path)
-        self.cost.terminal = self.substitute(self.cost.terminal)
+    def _perform_substitutions(self):
+        super()._perform_substitutions()
+        self.cost.initial = self._substitute(self.cost.initial)
+        self.cost.path = self._substitute(self.cost.path)
+        self.cost.terminal = self._substitute(self.cost.terminal)
+
+    def create_annotations(self):
+        self.annotations: Annotations = Annotations(
+                independent=str(self.independent),
+                states=stringify_list(self.states),
+                controls=stringify_list(self.controls),
+                parameters=stringify_list(self.parameters),
+                constants=stringify_list(self.constants),
+                expressions=stringify_list([expr.sym for expr in self.expressions])
+        )
+
+        return self.annotations
 
     def compile(self, use_jit_compile: bool = True, cost_quadrature: str = 'simpson') -> 'CompOCP':
         return CompOCP(self, use_jit_compile=use_jit_compile, cost_quadrature=cost_quadrature)
@@ -89,6 +102,8 @@ class CompOCP(OCP):
         self.compute_path_cost = _cost_funcs[1]
         self.compute_terminal_cost = _cost_funcs[2]
         self.compute_cost = _cost_funcs[3]
+
+        self.annotations : Annotations = self.source_ocp.annotations
 
     def compile_dynamics(self) -> Callable:
         _compute_dynamics = lambdify(
@@ -144,6 +159,7 @@ class CompOCP(OCP):
                 independent: np.ndarray, states: np.ndarray, controls: np.ndarray, parameters: np.ndarray,
                 constants: np.ndarray
         ) -> float:
+
             initial_cost = compute_initial_cost(independent[0], states[:, 0], parameters, constants)
             terminal_cost = compute_terminal_cost(independent[-1], states[:, -1], parameters, constants)
 

@@ -3,6 +3,7 @@ from typing import Union, Optional
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.problems.protocols import Dual
+from giuseppe.data_classes.annotations import Annotations
 
 from .adjoints import SymAdjoints, CompAdjoints
 from .ocp import SymOCP, CompOCP
@@ -43,3 +44,5 @@ class CompDual(CompOCP, CompAdjoints, Dual):
             self.control_handler = self.source_dual.control_handler.compile(self, use_jit_compile=use_jit_compile)
         else:
             self.control_handler = None
+
+        self.annotations: Annotations = self.source_dual.annotations

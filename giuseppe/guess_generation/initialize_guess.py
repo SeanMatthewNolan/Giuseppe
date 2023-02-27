@@ -1,7 +1,8 @@
 from typing import Union, Optional
+from copy import deepcopy
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import Problem
@@ -101,7 +102,7 @@ def initialize_guess(
 
     """
 
-    data = {'converged': False}
+    data = {'converged': False, 'annotations': deepcopy(prob.annotations)}
 
     if isinstance(t_span, float) or isinstance(t_span, int):
         data['t'] = np.asarray([0., t_span], dtype=float)

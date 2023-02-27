@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Optional
 
 import numpy as np
 
-from giuseppe.data_classes import Solution
+from giuseppe.data_classes import Solution, Annotations
 
 
 @runtime_checkable
@@ -16,9 +16,11 @@ class BVP(Protocol):
     num_constants: int
 
     default_values: np.ndarray
+    annotations: Optional[Annotations]
 
     # TODO add multi-arc support
     num_arcs: int = 1
+
 
     @staticmethod
     def compute_dynamics(

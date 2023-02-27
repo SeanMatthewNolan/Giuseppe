@@ -1,6 +1,8 @@
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Optional
 
 import numpy as np
+
+from giuseppe.data_classes import Annotations
 
 
 @runtime_checkable
@@ -15,6 +17,9 @@ class Adjoints(Protocol):
     num_initial_adjoints: int
     num_terminal_adjoints: int
     num_adjoints: int
+
+    default_values: np.ndarray
+    annotations: Optional[Annotations]
 
     # TODO add multi-arc support
     num_arcs: int = 1

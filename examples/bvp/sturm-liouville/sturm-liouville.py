@@ -3,10 +3,9 @@ import os
 import numpy as np
 
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import initialize_guess_w_default_value
-from giuseppe.io import SolutionSet
-from giuseppe.numeric_solvers.bvp.scipy import ScipySolveBVP
-from giuseppe.problems.symbolic import SymBVP, CompBVP
+from giuseppe.guess_generation import initialize_guess
+from giuseppe.numeric_solvers import SciPySolver
+from giuseppe.problems.symbolic import SymBVP
 from giuseppe.problems.input import StrInputProb
 from giuseppe.utils import Timer
 
@@ -36,19 +35,12 @@ sturm_liouville.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Compilation Time:'):
     comp_bvp = SymBVP(sturm_liouville).compile()
-#     num_solver = ScipySolveBVP(comp_bvp)
+    solver = SciPySolver(comp_bvp)
 
-print(comp_bvp.compute_dynamics(0.,  np.array([0, 1.]), np.array([0.1]), np.array([0, 1, 0., 0., 1.])))
-print(comp_bvp.compute_boundary_conditions(
-        (0., 1.),  (np.array([0., 1.]), np.array([0., -1.])), np.array([1.]), np.array([0, 1, 0., 0., 1.])))
+guess = initialize_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
 
+cont = ContinuationHandler(solver, guess)
+cont.add_linear_series(10, {'a': 100})
+sol_set = cont.run_continuation()
 
-# guess = initialize_guess_w_default_value(comp_bvp, t_span=np.linspace(0, 1, 3))
-# seed_sol = num_solver.solve(guess.k, guess)
-#
-# sol_set = SolutionSet(sym_bvp, seed_sol)
-# cont = ContinuationHandler(sol_set)
-# cont.add_linear_series(10, {'a': 100})
-# sol_set = cont.run_continuation(num_solver)
-#
-# sol_set.save('sol_set.data')
+sol_set.save('sol_set.data')

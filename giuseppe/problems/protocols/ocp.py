@@ -1,8 +1,8 @@
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Optional
 
 import numpy as np
 
-from giuseppe.data_classes import Solution
+from giuseppe.data_classes import Solution, Annotations
 
 
 # TODO Add Vectorized Protocol
@@ -15,10 +15,11 @@ class OCP(Protocol):
     num_parameters: int
     num_constants: int
 
+    default_values: np.ndarray
+    annotations: Optional[Annotations]
+
     # TODO add multi-arc support
     num_arcs: int = 1
-
-    default_values: np.ndarray
 
     @staticmethod
     def compute_dynamics(

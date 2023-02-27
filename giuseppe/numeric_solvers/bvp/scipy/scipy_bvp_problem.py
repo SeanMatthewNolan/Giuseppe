@@ -27,6 +27,8 @@ class SciPyBVP:
             self.compute_boundary_conditions = jit_compile(
                     self.compute_boundary_conditions, (NumbaArray, NumbaArray, NumbaArray, NumbaArray))
 
+        self.annotations = source_bvp.annotations
+
     def _compile_dynamics(self) -> _dyn_type:
 
         bvp_dyn = self.source_bvp.compute_dynamics
@@ -71,4 +73,6 @@ class SciPyBVP:
         t = (tf - t0) * tau + t0
         p = p[:-2]
 
-        return self.source_bvp.post_process_data(Solution(t=t, x=x, p=p, k=constants, converged=scipy_sol.success))
+        return self.source_bvp.post_process_data(
+                Solution(t=t, x=x, p=p, k=constants, converged=scipy_sol.success, annotations=self.annotations)
+        )

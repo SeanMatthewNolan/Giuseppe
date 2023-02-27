@@ -5,10 +5,12 @@ import numpy as np
 
 from giuseppe.problems.components.symbolic import SymCost, SymBoundaryConditions
 from giuseppe.problems.protocols import Adjoints
+from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.conversion import matrix_as_scalar
 from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray, NumbaMatrix
+from giuseppe.utils.strings import stringify_list
 
 from .ocp import SymOCP
 
@@ -16,6 +18,8 @@ from .ocp import SymOCP
 class SymAdjoints(Symbolic):
     def __init__(self, ocp: SymOCP):
         Symbolic.__init__(self)
+
+        self.annotations: Annotations = Annotations()
 
         self.source_ocp: SymOCP = deepcopy(ocp)
         self._sympify_adjoint_information(self.source_ocp)
@@ -58,6 +62,10 @@ class SymAdjoints(Symbolic):
         self.num_initial_adjoints = len(self.initial_adjoints)
         self.num_terminal_adjoints = len(self.terminal_adjoints)
         self.num_adjoints = len(self.adjoints)
+
+        self.annotations.costates = stringify_list(self.costates)
+        self.annotations.initial_adjoints = stringify_list(self.initial_adjoints)
+        self.annotations.terminal_adjoints = stringify_list(self.terminal_adjoints)
 
     def compile(self, use_jit_compile: bool = True) -> 'CompAdjoints':
         return CompAdjoints(self, use_jit_compile=use_jit_compile)

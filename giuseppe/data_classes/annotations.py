@@ -14,3 +14,5 @@ class Annotations:
     costates: Optional[Sequence[Hashable]] = None
     initial_adjoints: Optional[Sequence[Hashable]] = None
     terminal_adjoints: Optional[Sequence[Hashable]] = None
+
+    expressions: Optional[Sequence[Hashable]] = None

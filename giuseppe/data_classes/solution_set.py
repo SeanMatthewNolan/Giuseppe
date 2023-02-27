@@ -5,7 +5,7 @@ import pickle
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence
 from os.path import splitext
-from typing import Optional, overload
+from typing import Optional, overload, Sequence
 
 import bson
 
@@ -14,15 +14,27 @@ from .annotations import Annotations
 
 
 class SolutionSet(MutableSequence):
-    def __init__(self, annotations: Optional[Annotations] = None, solutions: Optional[Iterable[Solution]] = None):
+    def __init__(
+            self,
+            solutions: Optional[Iterable[Solution]] = None,
+            annotations: Optional[Annotations] = None,
+            check_consistency: bool = True,
+    ):
 
         self.solutions: list[Solution] = []
         self.continuation_slices: list[slice] = []
         self.damned_sols: list[Solution] = []  # Pun: solutions which are not converged
 
         self.annotations: Optional[Annotations] = annotations
+        self.check_consistency = check_consistency
 
         if solutions is not None:
+            if isinstance(solutions, Solution):
+                solutions = [solutions]
+
+            if self.annotations is None:
+                self.annotations = solutions[0].annotations
+
             for solution in solutions:
                 if solution.converged:
                     self.solutions.append(solution)
@@ -30,6 +42,8 @@ class SolutionSet(MutableSequence):
                     self.damned_sols.append(solution)
 
     def insert(self, index: int, solution: Solution) -> None:
+        if self.check_consistency:
+            self.perform_consistency_check(solution)
         self.solutions.insert(index, solution)
 
     @overload
@@ -76,6 +90,10 @@ class SolutionSet(MutableSequence):
 
     def damn_sol(self, idx: int = -1):
         self.damned_sols.append(self.solutions.pop(idx))
+
+    def perform_consistency_check(self, solution):
+        if solution.annotations != self.annotations:
+            raise ValueError('Latest solution does not consistent with solution set')
 
     def as_dict(self, arr_to_list: bool = False):
         # TODO Add some more attributes which would be useful with plotting/analysis

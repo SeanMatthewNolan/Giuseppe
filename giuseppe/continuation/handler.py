@@ -28,7 +28,7 @@ class ContinuationHandler:
     constant_names : tuple[Hashable, ...]
     """
 
-    def __init__(self, root: Union[Solution, SolutionSet], numeric_solver: NumericSolver,
+    def __init__(self, numeric_solver: NumericSolver, root: Union[Solution, SolutionSet],
                  constant_names: Optional[Union[Iterable[Hashable, ...], Annotations]] = None):
         """
         Initialize continuation handler
@@ -40,7 +40,7 @@ class ContinuationHandler:
                 root = numeric_solver.solve(root.k, root)
 
                 if not root.converged:
-                    raise RuntimeError('Guess for root solution did not converged!!!')
+                    raise ValueError('Guess for root solution did not converged!!!')
 
             self.solution_set: SolutionSet = SolutionSet(solutions=[root])
 
@@ -55,7 +55,11 @@ class ContinuationHandler:
         self.continuation_series: list[ContinuationSeries] = []
 
         if constant_names is None:
-            self.constant_names: tuple[Hashable, ...] = tuple(range(len(self.solution_set[-1].k)))
+            _root_sol = self.solution_set[0]
+            if _root_sol.annotations is None:
+                self.constant_names: tuple[Hashable, ...] = tuple(range(_root_sol.k))
+            else:
+                self.constant_names = _root_sol.annotations
         elif isinstance(constant_names, Annotations):
             self.constant_names: tuple[Hashable, ...] = tuple(constant_names.constants)
         else:
@@ -146,7 +150,7 @@ class ContinuationHandler:
         self.continuation_series.append(series)
         return self
 
-    def run_continuation(self, display=ProgressBarDisplay()) -> SolutionSet:
+    def run_continuation(self, display: Optional[ContinuationDisplayManager] = ProgressBarDisplay()) -> SolutionSet:
         """
         Run continuation set
 

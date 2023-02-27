@@ -9,6 +9,8 @@ import bson
 from giuseppe.utils.conversion import arrays_to_lists_in_dict, lists_to_arrays_in_dict
 from giuseppe.utils.typing import NPArray
 
+from .annotations import Annotations
+
 
 @dataclass
 class Solution:
@@ -26,6 +28,8 @@ class Solution:
     aux: Optional[dict] = None
 
     converged: bool = False
+
+    annotations: Optional[Annotations] = None
 
     def as_dict(self, arr_to_list: bool = False):
         sol_dict = {
