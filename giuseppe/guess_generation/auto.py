@@ -1,14 +1,17 @@
 from typing import Union, Optional, Callable
 
+import numpy as np
 from numpy.typing import ArrayLike
 
-from giuseppe.io import Solution
+from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess_generation.initialize_guess import initialize_guess
 from giuseppe.guess_generation.sequential_linear_projection import match_constants_to_boundary_conditions, \
     match_states_to_boundary_conditions, match_states, match_adjoints
 
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
+
+DEFAULT_NUM_NODES = 3
 
 
 def auto_guess(
@@ -24,20 +27,18 @@ def auto_guess(
         nuf: Optional[Union[ArrayLike, float]] = None,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
-        fit_state_dynamics: bool = False,
+        fit_state_dynamics: bool = True,
         fit_adjoints: bool = True,
-        fit_constants: bool = True,
+        fit_constants: bool = False,
         quadrature: str = 'linear',
         verbose: bool = False
 ) -> Solution:
 
+    if isinstance(t_span, (float, int)):
+        t_span = np.linspace(0., t_span, DEFAULT_NUM_NODES)
+
     if problem.prob_class in ['bvp', 'ocp']:
         guess = initialize_guess(problem, default_value=default_value, t_span=t_span, x=x, u=u, p=p, k=k)
-
-        if verbose:
-            print(f'Matching states, parameters, and time to boundary conditions:')
-
-        guess = match_states_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
 
         if fit_state_dynamics:
             if verbose:
@@ -45,22 +46,31 @@ def auto_guess(
 
             guess = match_states(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, quadrature=quadrature,
                                  verbose=verbose)
+
+        else:
+            if verbose:
+                print(f'Matching states, parameters, and time to boundary conditions:')
+
+            guess = match_states_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol,
+                                                        verbose=verbose)
 
     elif problem.prob_class == 'dual':
         guess = initialize_guess(problem, default_value=default_value, t_span=t_span, x=x, lam=lam, u=u,
                                  p=p, nu0=nu0, nuf=nuf, k=k)
 
-        if verbose:
-            print(f'Matching states, parameters, and time to boundary conditions:')
-
-        guess = match_states_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
-
         if fit_state_dynamics:
             if verbose:
                 print(f'Matching states, parameters, and time to dynamics:')
 
             guess = match_states(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol, quadrature=quadrature,
                                  verbose=verbose)
+
+        else:
+            if verbose:
+                print(f'Matching states, parameters, and time to boundary conditions:')
+
+            guess = match_states_to_boundary_conditions(problem, guess, rel_tol=rel_tol, abs_tol=abs_tol,
+                                                        verbose=verbose)
 
         if fit_adjoints:
             if verbose:

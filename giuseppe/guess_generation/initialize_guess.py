@@ -104,7 +104,7 @@ def initialize_guess(
 
     data = {'converged': False, 'annotations': deepcopy(prob.annotations)}
 
-    if isinstance(t_span, float) or isinstance(t_span, int):
+    if isinstance(t_span, (float, int)):
         data['t'] = np.asarray([0., t_span], dtype=float)
     else:
         data['t'] = np.asarray(t_span, dtype=float)

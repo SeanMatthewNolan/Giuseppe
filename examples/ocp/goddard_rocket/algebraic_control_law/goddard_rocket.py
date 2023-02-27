@@ -1,5 +1,7 @@
 import os
 
+import numpy as np
+
 import giuseppe
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
@@ -21,7 +23,7 @@ goddard.add_constant('c', 1580.9425279876559)
 goddard.add_constant('h_ref', 23_800)
 
 goddard.add_constant('h_0', 0)
-goddard.add_constant('v_0', 0)
+goddard.add_constant('v_0', 0.1)
 goddard.add_constant('m_0', 3)
 
 goddard.add_constant('m_f', 2.95)
@@ -39,12 +41,14 @@ goddard.add_constraint('terminal', 'm - m_f')
 
 goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
-        regularizer=giuseppe.regularization.ControlConstraintHandler('eps_thrust * h_ref', method='atan'))
+        regularizer=giuseppe.problems.symbolic.regularization.ControlConstraintHandler(
+                'eps_thrust', method='atan'))
 
-comp_goddard = giuseppe.problems.symbolic.SymDual(goddard).compile()
+comp_goddard = giuseppe.problems.symbolic.SymDual(goddard, control_method='algebraic').compile()
 num_solver = giuseppe.numeric_solvers.SciPySolver(comp_goddard)
 
-guess = giuseppe.guess_generation.auto_guess(comp_goddard, t_span=10, verbose=True)
+guess = giuseppe.guess_generation.auto_guess(
+        comp_goddard, t_span=np.linspace(0, 10, 3))
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(10, {'m_f': 1})

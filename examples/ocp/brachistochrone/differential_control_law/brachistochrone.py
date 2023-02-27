@@ -44,7 +44,7 @@ with Timer(prefix='Compilation Time:'):
     comp_dual = SymDual(input_ocp, control_method='differential').compile()
     solver = SciPySolver(comp_dual)
 
-guess = initialize_guess(comp_dual, t_span=0.25, x=np.array([0., 0., 1.]), lam=-0.1, u=-0.5)
+guess = auto_guess(comp_dual, u=-45 / 180 * 3.14159)
 
 cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30})

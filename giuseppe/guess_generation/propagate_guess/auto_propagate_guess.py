@@ -2,7 +2,7 @@ from typing import Union, Optional, Callable
 
 from numpy.typing import ArrayLike
 
-from giuseppe.io import Solution
+from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess_generation.initialize_guess import initialize_guess, process_dynamic_value
 from giuseppe.guess_generation.propagate_guess import propagate_bvp_guess_from_guess, propagate_ocp_guess_from_guess,\
@@ -200,7 +200,7 @@ def auto_propagate_dual_guess(
     if fit_adjoints:
 
         guess = propagate_ocp_guess_from_guess(
-                dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+                dual, t_span, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
         if verbose:
             print(f'Fitting the costates and adjoint parameters:')
@@ -209,7 +209,7 @@ def auto_propagate_dual_guess(
         guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
     else:
         guess = propagate_dual_guess_from_guess(
-                dual, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+                dual, t_span, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
     if match_constants:
         if verbose:

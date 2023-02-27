@@ -8,8 +8,13 @@ os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
 with open('sol_set.data', 'rb') as file:
     sol_set = pickle.load(file)
-
 sol = sol_set[-1]
+
+# with open('guess.data', 'rb') as file:
+#     sol = pickle.load(file)
+
+# with open('seed.data', 'rb') as file:
+#     sol = pickle.load(file)
 
 max_thrust = sol.k[0]
 h_ref = sol.k[4]

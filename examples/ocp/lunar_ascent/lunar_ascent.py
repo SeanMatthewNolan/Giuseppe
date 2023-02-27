@@ -45,17 +45,13 @@ lunar.add_constraint('terminal', 'v_h - v_h_f')
 lunar.add_constraint('terminal', 'v_x - v_x_f')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    sym_ocp = giuseppe.problems.SymOCP(lunar)
-    sym_dual = giuseppe.problems.SymDual(sym_ocp)
-    sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='algebraic')
-    comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=True)
-    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=True)
+    comp_lunar = giuseppe.problems.symbolic.SymDual(lunar, control_method='algebraic').compile()
+    solver = giuseppe.numeric_solvers.SciPySolver(comp_lunar)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=45 / 180 * 3.14159, t_span=T_GUESS)
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
+guess = giuseppe.guess_generation.auto_guess(comp_lunar, u=45 / 180 * 3.14159, t_span=T_GUESS)
+
+cont = giuseppe.continuation.ContinuationHandler(solver, guess)
 cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})
-cont.run_continuation(num_solver)
+sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')

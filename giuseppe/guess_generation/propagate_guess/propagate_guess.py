@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.integrate import solve_ivp
 
-from giuseppe.io import Solution
+from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess_generation.initialize_guess import initialize_guess, process_static_value, process_dynamic_value
 
@@ -111,17 +111,23 @@ def propagate_bvp_guess(
             bvp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k
     )
 
-    return propagate_bvp_guess_from_guess(bvp, guess, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+    return propagate_bvp_guess_from_guess(bvp, t_span, guess, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
 
 def propagate_bvp_guess_from_guess(
         bvp: BVP,
+        t_span: Union[float, ArrayLike],
         input_guess: Solution,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
 ) -> Solution:
     guess = deepcopy(input_guess)
+
+    if isinstance(t_span, (float, int)):
+        t_span = np.asarray([0., t_span], dtype=float)
+    else:
+        t_span = np.asarray(t_span, dtype=float)
 
     if reverse:
         guess.t = np.flip(guess.t)
@@ -131,7 +137,7 @@ def propagate_bvp_guess_from_guess(
 
     ivp_sol: _IVP_SOL = solve_ivp(
             lambda _t, _x: bvp.compute_dynamics(_t, _x, guess.p, guess.k),
-            (guess.t[0], guess.t[-1]), initial_states, atol=abs_tol, rtol=rel_tol)
+            t_span, initial_states, atol=abs_tol, rtol=rel_tol)
     guess.t = ivp_sol.t
     guess.x = ivp_sol.y
 
@@ -157,17 +163,23 @@ def propagate_ocp_guess(
 
     guess = initialize_guess(ocp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k)
 
-    return propagate_ocp_guess_from_guess(ocp, guess, control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+    return propagate_ocp_guess_from_guess(ocp, t_span, guess, control,
+                                          abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
 
 def propagate_ocp_guess_from_guess(
         ocp: OCP,
+        t_span: Union[float, ArrayLike],
         input_guess: Solution,
         control: Union[float, ArrayLike, Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike], None],
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
 ) -> Solution:
+    if isinstance(t_span, (float, int)):
+        t_span = np.asarray([0., t_span], dtype=float)
+    else:
+        t_span = np.asarray(t_span, dtype=float)
 
     guess = deepcopy(input_guess)
 
@@ -194,7 +206,7 @@ def propagate_ocp_guess_from_guess(
         def _compute_dynamics_wrapped(_t, _x):
             return _compute_dynamics(_t, _x, u, p, k)
 
-    ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, (guess.t[0], guess.t[-1]), initial_states,
+    ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, t_span, initial_states,
                                   atol=abs_tol, rtol=rel_tol)
     guess.t = ivp_sol.t
     guess.x = ivp_sol.y
@@ -230,17 +242,24 @@ def propagate_dual_guess(
     guess = initialize_guess(dual, default_value=default_value, t_span=t_span, x=initial_states, lam=initial_costates,
                              p=p, nu0=nu0, nuf=nuf, k=k)
 
-    return propagate_dual_guess_from_guess(dual, guess, control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+    return propagate_dual_guess_from_guess(dual, t_span,
+                                           guess, control, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
 
 
 def propagate_dual_guess_from_guess(
         dual: Dual,
+        t_span: Union[float, ArrayLike],
         input_guess: Solution,
         control: Union[float, ArrayLike, Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike], None],
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
         reverse: bool = False,
 ) -> Solution:
+
+    if isinstance(t_span, (float, int)):
+        t_span = np.asarray([0., t_span], dtype=float)
+    else:
+        t_span = np.asarray(t_span, dtype=float)
 
     guess = deepcopy(input_guess)
     num_states, num_costates, _compute_dynamics, _compute_costate_dynamics = dual.num_states, dual.num_costates,\
@@ -275,7 +294,7 @@ def propagate_dual_guess_from_guess(
             _lam_dot = _compute_costate_dynamics(_t, _x, _lam, u, p, k)
             return np.concatenate((_x_dot, _lam_dot))
 
-    ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, (guess.t[0], guess.t[-1]),
+    ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, t_span,
                                   np.concatenate((initial_states, initial_costates)),
                                   atol=abs_tol, rtol=rel_tol)
     guess.t = ivp_sol.t

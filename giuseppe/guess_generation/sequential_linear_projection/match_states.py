@@ -22,6 +22,7 @@ def match_states(
     quadrature
     rel_tol
     abs_tol
+    verbose
 
     Returns
     -------
@@ -125,12 +126,12 @@ def match_states(
     else:
         raise ValueError(f'Quadrature {quadrature} not valid, must be \"linear\", \"midpoint\", or \"simpson\"')
 
-    adjoints = sequential_linearized_projection(
+    _matched = sequential_linearized_projection(
             _fitting_function, np.concatenate((guess.x.flatten(), guess.p)),
             rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose
     )
 
-    guess.s = adjoints[_x_slice].reshape((_num_states, _num_t))
-    guess.p = adjoints[_p_slice]
+    guess.x = _matched[_x_slice].reshape((_num_states, _num_t))
+    guess.p = _matched[_p_slice]
 
     return guess

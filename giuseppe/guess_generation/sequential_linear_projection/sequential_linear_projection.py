@@ -66,7 +66,7 @@ def sequential_linearized_projection(
     residual_tol = abs(abs_tol + rel_tol * residual)
     if np.all(abs(residual) < residual_tol):
         if verbose:
-            print(f'Residual tolerance already satisfied, forgoing SLP')
+            print(f'Residual tolerance already satisfied, forgoing SLP\n')
         return arr
 
     if verbose:

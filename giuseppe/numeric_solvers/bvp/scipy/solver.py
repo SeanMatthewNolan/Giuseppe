@@ -3,7 +3,7 @@ from typing import Union
 import numpy as np
 from scipy.integrate import solve_bvp
 
-from giuseppe.io import Solution
+from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, Dual
 from giuseppe.problems.conversions import convert_dual_to_bvp
 from .scipy_bvp_problem import SciPyBVP
