@@ -48,7 +48,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_lunar = giuseppe.problems.symbolic.SymDual(lunar, control_method='algebraic').compile()
     solver = giuseppe.numeric_solvers.SciPySolver(comp_lunar)
 
-guess = giuseppe.guess_generation.auto_guess(comp_lunar, u=45 / 180 * 3.14159, t_span=T_GUESS)
+guess = giuseppe.guess_generation.auto_propagate_guess(comp_lunar, control=45 / 180 * 3.14159, t_span=T_GUESS)
 
 cont = giuseppe.continuation.ContinuationHandler(solver, guess)
 cont.add_linear_series(5, {'h_f': 50_000, 'v_h_f': 0, 'v_x_f': 5_780})

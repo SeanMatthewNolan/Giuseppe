@@ -40,8 +40,7 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
 
 guess = giuseppe.guess_generation.initialize_guess(comp_dual)
 
-cont = giuseppe.continuation.ContinuationHandler(
-        guess, num_solver, tuple(str(constant) for constant in sym_dual.constants))
+cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(6, {'c': 1})
 
 sol_set = cont.run_continuation()

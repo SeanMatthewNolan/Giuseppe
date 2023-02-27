@@ -1,6 +1,6 @@
 import giuseppe
 
-zermelo = giuseppe.io.InputOCP()
+zermelo = giuseppe.problems.input.StrInputProb()
 
 zermelo.set_independent('t')
 
@@ -30,22 +30,15 @@ zermelo.add_constraint('terminal', 'x - x_f')
 zermelo.add_constraint('terminal', 'y - y_f')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    sym_ocp = giuseppe.problems.SymOCP(zermelo)
-    sym_dual = giuseppe.problems.SymDual(sym_ocp)
-    sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp, use_jit_compile=False)
-    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, use_jit_compile=False, verbose=False)
+    comp_prob = giuseppe.problems.symbolic.SymDual(zermelo, control_method='differential').compile()
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_prob)
 
-# guess = giuseppe.guess_generators.generate_constant_guess(comp_dual_ocp)
-guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=0, t_span=1)
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
+guess = giuseppe.guess_generation.auto_propagate_guess(comp_prob, control=0, t_span=1)
 
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
+cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(10, {'x_f': 0, 'y_f': 0})
 cont.add_linear_series(6, {'c': -1})
 cont.add_linear_series(6, {'c': 1})
-
-cont.run_continuation(num_solver)
+sol_set = cont.run_continuation()
 
 sol_set.save('current_variation_sol_set.data')
