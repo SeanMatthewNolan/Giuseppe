@@ -6,7 +6,7 @@ from tkinter import ttk
 import numpy as np
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
-from giuseppe.io import Solution
+from giuseppe.data_classes import Solution
 from giuseppe.visualization.components.tk_widgets.data_viewer import TKDataViewer
 from giuseppe.utils.typing import EMPTY_ARRAY
 
