@@ -15,7 +15,7 @@ prob.add_state('x_2', 'delta * x_1 * x_2 - (gamma + l * u) * x_2')
 prob.add_control('u')
 
 prob.add_constant('alpha', 2 / 3)
-prob.add_constant('beta', 4 / 2)
+prob.add_constant('beta', 4 / 3)
 prob.add_constant('gamma', 1)
 prob.add_constant('delta', 1)
 
@@ -26,10 +26,10 @@ prob.add_constant('k', 0.1)
 prob.add_constant('x_1_0', 1)
 prob.add_constant('x_2_0', 1)
 
-prob.add_constant('t_f', 0.1)
+prob.add_constant('t_f', 100)
 
 # prob.add_constant('eps', 1e-2)
-prob.add_constant('eps', 1)
+prob.add_constant('eps', 1e-1)
 prob.add_constant('u_max', 1)
 
 prob.set_cost('0', 'a * u', '-x_1')
@@ -49,20 +49,19 @@ prob.add_inequality_constraint(
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_prob = giuseppe.problems.symbolic.SymDual(prob)
-    comp_dual_ocp = sym_prob.compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual_ocp, verbose=True)
+    comp_dual = sym_prob.compile()
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual)
 
-# guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual_ocp, control=0.5, t_span=1, verbose=True)
-guess = giuseppe.guess_generation.auto_propagate_guess(
-        comp_dual_ocp, control=-0.5, t_span=1, verbose=True, default_value=-0.1)
+# guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual, control=0.5, t_span=1)
+guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual, control=0, t_span=0.1)
 
-guess.save('guess.data')
+num_solver.solve(guess.k, guess)
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
-cont.add_linear_series(10, {'t_f': 1}, bisection=True)
-cont.add_linear_series(100, {'t_f': 5}, bisection=True)
-cont.add_linear_series(100, {'t_f': 7}, bisection=True)
-cont.add_logarithmic_series(30, {'eps': 1e-3}, bisection=True)
+cont.add_linear_series(10, {'t_f': 1})
+cont.add_linear_series(100, {'t_f': 5})
+cont.add_linear_series(100, {'t_f': 7})
+cont.add_logarithmic_series(30, {'eps': 1e-3})
 sol_set = cont.run_continuation()
 
 with open('sol_set.data', 'wb') as file:

@@ -21,7 +21,7 @@ class SciPySolver:
     """
 
     def __init__(self, prob: Union[BVP, Dual], use_jit_compile: bool = True,
-                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: bool = False):
+                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: Union[bool, int] = False):
         """
         Initialize SciPySolver
 
@@ -42,7 +42,7 @@ class SciPySolver:
         self.tol: float = tol
         self.bc_tol: float = bc_tol
         self.max_nodes: int = max_nodes
-        self.verbose: bool = verbose
+        self.verbose: Union[bool, int] = verbose
 
         if prob.prob_class == 'dual':
             prob = convert_dual_to_bvp(prob)

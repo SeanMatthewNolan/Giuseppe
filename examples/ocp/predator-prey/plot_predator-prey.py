@@ -6,13 +6,11 @@ from numpy import arctan
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
-with open('guess.data', 'rb') as file:
-    sol = pickle.load(file)
 
-# with open('sol_set.data', 'rb') as file:
-#     sol_set = pickle.load(file)
-#
-# sol = sol_set[-1]
+with open('sol_set.data', 'rb') as file:
+    sol_set = pickle.load(file)
+
+sol = sol_set[-1]
 
 max_u = sol.k[-1]
 eps = sol.k[-2]

@@ -35,6 +35,7 @@ class SciPyBVP:
 
         def compute_dynamics(tau_vec: np.ndarray, x_vec: np.ndarray, p: np.ndarray, k: np.ndarray) -> np.ndarray:
             t0, tf = p[-2], p[-1]
+            # _p = p[:-2]
             tau_mult = (tf - t0)
             t_vec = tau_vec * tau_mult + t0
 
@@ -50,9 +51,9 @@ class SciPyBVP:
         _bvp_compute_boundary_conditions = self.source_bvp.compute_boundary_conditions
 
         def boundary_conditions(x0: np.ndarray, xf: np.ndarray, p: np.ndarray, k: np.ndarray):
-            _t = np.array((p[-2], p[-1]))
-            _p = p[:-2]
-            return _bvp_compute_boundary_conditions(_t, np.vstack((x0, xf)).T, _p, k)
+            # _t = p[-2:]
+            # _p = p[:-2]
+            return _bvp_compute_boundary_conditions(p[-2:], np.vstack((x0, xf)).T, p[:-2], k)
 
         return boundary_conditions
 

@@ -10,7 +10,6 @@ JIT_COMPILE = True
 CSE = True
 EAGER_COMPILE = True
 PRINT_LAMBDA_FUNCS = False
-NUMBA_CACHE = False
 LAMB_MODS = ['numpy', 'math']
 
 
@@ -44,9 +43,9 @@ def jit_compile(func: Callable, signature: Optional = None):
 
     try:
         if (signature is not None) and EAGER_COMPILE:
-            return numba.njit(signature, cache=NUMBA_CACHE)(func)
+            return numba.njit(signature)(func)
         else:
-            return numba.njit(cache=NUMBA_CACHE)(func)
+            return numba.njit()(func)
 
     except NumbaError as e:
         warn(f'Numba error {e} prevented compilation of function {func}. Uncompiled version will be used.')

@@ -131,7 +131,7 @@ class BVPFromDual(BVP):
 
             u = np.vstack((
                 _compute_control(t[0], x[:, 0], lam[:, 0], p, k),
-                _compute_control(t[0], x[:, 0], lam[:, 0], p, k)
+                _compute_control(t[-1], x[:, -1], lam[:, -1], p, k)
             )).T
 
             _psi = _compute_state_boundary_conditions(t, x, p, k)
@@ -213,7 +213,7 @@ class BVPFromDual(BVP):
 
         _compute_state_boundary_conditions = self.source_dual.compute_boundary_conditions
         _compute_adjoint_boundary_conditions = self.source_dual.compute_adjoint_boundary_conditions
-        _compute_control_boundary_conditions = self.source_dual.control_handler.compute_control_dynamics
+        _compute_control_boundary_conditions = self.source_dual.control_handler.compute_control_boundary_conditions
 
         def compute_boundary_conditions(
                 t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
