@@ -1,7 +1,6 @@
 from typing import Union, Optional
 
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.ocp.input import InputOCP
 from giuseppe.problems.protocols import Dual
 from giuseppe.data_classes.annotations import Annotations
 
@@ -10,7 +9,7 @@ from .ocp import SymOCP, CompOCP
 
 
 class SymDual(SymOCP, SymAdjoints):
-    def __init__(self, input_data: Optional[Union[InputOCP, StrInputProb]] = None,
+    def __init__(self, input_data: Optional[StrInputProb] = None,
                  control_method: Optional[str] = 'differential'):
 
         super().__init__(input_data=input_data)

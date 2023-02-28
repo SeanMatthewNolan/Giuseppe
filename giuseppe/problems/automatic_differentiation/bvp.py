@@ -4,32 +4,27 @@ from warnings import warn
 
 import casadi as ca
 
-from giuseppe.problems.input import AdiffInputProb
-from giuseppe.utils.mixins import Picky
 from giuseppe.utils.typing import SymMatrix
+from .input import AdiffInputProb
 from ..components.adiff import AdiffBoundaryConditions, ca_wrap
 
 
-class AdiffBVP(Picky):
-    SUPPORTED_INPUTS: type = Union[AdiffInputProb]
-
+class AdiffBVP:
     def __init__(self, source_bvp: SUPPORTED_INPUTS):
-        Picky.__init__(self, source_bvp)
-
-        self.src_bvp = deepcopy(source_bvp)
+        self.source_bvp = deepcopy(source_bvp)
 
         self.arg_names = ('t', 'x', 'p', 'k')
 
-        if isinstance(self.src_bvp, AdiffInputProb):
+        if isinstance(self.source_bvp, AdiffInputProb):
             self.comp_bvp = None
 
-            self.independent = self.src_bvp.independent
-            self.states = self.src_bvp.states.states
-            self.parameters = self.src_bvp.parameters
-            self.constants = self.src_bvp.constants.constants
-            self.default_values = self.src_bvp.constants.default_values
-            self.eom = self.src_bvp.states.eoms
-            self.inputConstraints = self.src_bvp.constraints
+            self.independent = self.source_bvp.independent
+            self.states = self.source_bvp.states.states
+            self.parameters = self.source_bvp.parameters
+            self.constants = self.source_bvp.constants.constants
+            self.default_values = self.source_bvp.constants.default_values
+            self.eom = self.source_bvp.states.eoms
+            self.inputConstraints = self.source_bvp.constraints
 
             self.num_states = self.states.numel()
             self.num_parameters = self.parameters.numel()
@@ -39,16 +34,16 @@ class AdiffBVP(Picky):
             self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
             self.ca_boundary_conditions = self.create_boundary_conditions()
         else:
-            if isinstance(self.src_bvp, CompBVP):
-                if self.src_bvp.use_jit_compile:
+            if isinstance(self.source_bvp, CompBVP):
+                if self.source_bvp.use_jit_compile:
                     warn('AdiffDual cannot accept JIT compiled CompDual! Recompiling CompDual without JIT...')
-                    self.comp_bvp: CompBVP = CompBVP(self.src_bvp.src_bvp, use_jit_compile=False)
+                    self.comp_bvp: CompBVP = CompBVP(self.source_bvp.src_bvp, use_jit_compile=False)
                 else:
-                    self.comp_bvp: CompBVP = deepcopy(self.src_bvp)
-                self.constants: SymMatrix = self.src_bvp.src_bvp.constants
-            elif isinstance(self.src_bvp, SymBVP):
-                self.comp_bvp: CompBVP = CompBVP(self.src_bvp, use_jit_compile=False)
-                self.constants: SymMatrix = self.src_bvp.constants
+                    self.comp_bvp: CompBVP = deepcopy(self.source_bvp)
+                self.constants: SymMatrix = self.source_bvp.src_bvp.constants
+            elif isinstance(self.source_bvp, SymBVP):
+                self.comp_bvp: CompBVP = CompBVP(self.source_bvp, use_jit_compile=False)
+                self.constants: SymMatrix = self.source_bvp.constants
 
             self.num_states = self.comp_bvp.num_states
             self.num_parameters = self.comp_bvp.num_parameters

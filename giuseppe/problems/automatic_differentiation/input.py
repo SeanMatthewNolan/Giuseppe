@@ -78,7 +78,7 @@ class ADiffInputCost:
     terminal: Union[ca.SX, ca.MX, float] = 0.0
 
 
-class AdiffInputProb:
+class ADiffInputProb:
     """
     Class to input boundary value problem data as strings primarily for symbolic processing.
     """

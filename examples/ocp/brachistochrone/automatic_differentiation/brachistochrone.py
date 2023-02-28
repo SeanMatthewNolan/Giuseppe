@@ -1,68 +1,76 @@
-import os
-
 import numpy as np
+import casadi as ca
 
-import giuseppe
-from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import generate_constant_guess
-from giuseppe.io import InputOCP, SolutionSet
-from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
-from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
-from giuseppe.problems.ocp import SymOCP, AdiffOCP
-from giuseppe.utils import Timer
+# import giuseppe.guess_generators
+# from giuseppe.continuation import ContinuationHandler
+# from giuseppe.guess_generators import generate_constant_guess
+from giuseppe.problems.automatic_differentiation.input import ADiffInputProb
+# from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
+# from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
+# from giuseppe.problems.ocp import AdiffOCP
+# from giuseppe.utils import Timer
 
-os.chdir(os.path.dirname(__file__))  # Set directory to file location
+input_ocp = ADiffInputProb()
 
-giuseppe.utils.compilation.JIT_COMPILE = True
+# Independent Variable
+t = ca.SX.sym('t', 1)
+input_ocp.set_independent(t)
 
-ocp = InputOCP()
+# Control
+theta = ca.SX.sym('θ', 1)
+input_ocp.add_control(theta)
 
-ocp.set_independent('t')
+# Known Constant Parameters
+g = ca.SX.sym('g', 1)
+input_ocp.add_constant(g, 32.2)
 
-ocp.add_state('x', 'v*cos(theta)')
-ocp.add_state('y', 'v*sin(theta)')
-ocp.add_state('v', '-g*sin(theta)')
+# States
+x = ca.SX.sym('x', 1)
+y = ca.SX.sym('y', 1)
+v = ca.SX.sym('v', 1)
 
-ocp.add_control('theta')
+input_ocp.add_state(x, v * ca.cos(theta))
+input_ocp.add_state(y, v * ca.sin(theta))
+input_ocp.add_state(v, -g * ca.sin(theta))
 
-ocp.add_constant('g', 32.2)
+# Boundary Conditions
+x_0 = ca.SX.sym('x_0', 1)
+y_0 = ca.SX.sym('y_0', 1)
+v_0 = ca.SX.sym('v_0', 1)
+input_ocp.add_constant(x_0, 0)
+input_ocp.add_constant(y_0, 0)
+input_ocp.add_constant(v_0, 0)
 
-ocp.add_constant('x_0', 0)
-ocp.add_constant('y_0', 0)
-ocp.add_constant('v_0', 1)
+x_f = ca.SX.sym('x_f', 1)
+y_f = ca.SX.sym('y_f', 1)
+input_ocp.add_constant(x_f, 1)
+input_ocp.add_constant(y_f, -1)
 
-ocp.add_constant('x_f', 1)
-ocp.add_constant('y_f', -1)
+input_ocp.set_cost(0, 0, t)
 
-ocp.set_cost('0', '1', '0')
+input_ocp.add_constraint('initial', t)
+input_ocp.add_constraint('initial', x - x_0)
+input_ocp.add_constraint('initial', y - y_0)
+input_ocp.add_constraint('initial', v - v_0)
 
-ocp.add_constraint('initial', 't')
-ocp.add_constraint('initial', 'x - x_0')
-ocp.add_constraint('initial', 'y - y_0')
-ocp.add_constraint('initial', 'v - v_0')
+input_ocp.add_constraint('terminal', x - x_f)
+input_ocp.add_constraint('terminal', y - y_f)
 
-ocp.add_constraint('terminal', 'x - x_f')
-ocp.add_constraint('terminal', 'y - y_f')
-
-with Timer(prefix='Compilation Time:'):
-    sym_ocp = SymOCP(ocp)
-    adiff_ocp = AdiffOCP(sym_ocp)
-    adiff_dual = AdiffDual(adiff_ocp)
-    adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual)
-    num_solver = AdiffScipySolveBVP(adiff_dualocp)
-
-guess = generate_constant_guess(
-        adiff_dualocp, t_span=0.25, x=np.array([0., 0., 1.]), lam=-0.1, u=-0.5, nu_0=-0.1, nu_f=-0.1)
-
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = SolutionSet(adiff_dualocp, seed_sol)
-cont = ContinuationHandler(sol_set)
-cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)
-
-with Timer(prefix='Continuation Time:'):
-    for series in cont.continuation_series:
-        for k, last_sol in series:
-            sol_i = num_solver.solve(k, last_sol)
-            sol_set.append(sol_i)
-
-sol_set.save('sol_set.data')
+# with Timer(prefix='Compilation Time:'):
+#     adiff_ocp = AdiffOCP(input_ocp)
+#     adiff_dual = AdiffDual(adiff_ocp)
+#     adiff_bvp = AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
+#     num_solver = AdiffScipySolveBVP(adiff_bvp)
+#
+# if __name__ == '__main__':
+#     guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, t_span=0.25, control=(-np.pi/4,))
+#
+#     seed_sol = num_solver.solve(guess.k, guess)
+#     sol_set = SolutionSet(adiff_bvp, seed_sol)
+#     cont = ContinuationHandler(sol_set)
+#     cont.add_linear_series(10, {'x_f': guess.x[0, -1] + 10, 'y_f': guess.x[1, -1] - 10})
+#     cont.add_linear_series(10, {'x_f': 100, 'y_f': -25})
+#
+#     sol_set = cont.run_continuation(num_solver)
+#
+#     sol_set.save('sol_set.data')
