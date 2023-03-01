@@ -4,6 +4,7 @@ from .bvp import BVP
 from .ocp import OCP
 from .adjoints import Adjoints
 from .control_handlers import AlgebraicControlHandler, DifferentialControlHandler
+from .regularizer import Regularizer
 from .dual import Dual
 
 Problem = Union[BVP, OCP, Adjoints, Dual]

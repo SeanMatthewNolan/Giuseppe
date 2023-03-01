@@ -7,10 +7,10 @@ import numpy as np
 from sympy import Symbol, topological_sort
 
 from giuseppe.problems.input.string import StrInputProb, StrInputInequalityConstraints
-from giuseppe.problems.protocols import BVP
+from giuseppe.problems.protocols.bvp import BVPSeparableBC
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
-from giuseppe.utils.mixins import Symbolic
+from giuseppe.problems.symbolic.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SymExpr, NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.utils.strings import stringify_list
 
@@ -122,7 +122,7 @@ class SymBVP(Symbolic):
         return CompBVP(self, use_jit_compile=use_jit_compile)
 
 
-class CompBVP(BVP):
+class CompBVP(BVPSeparableBC):
     def __init__(self, source_bvp: SymBVP, use_jit_compile: bool = True):
         self.use_jit_compile = use_jit_compile
         self.source_bvp = deepcopy(source_bvp)
@@ -159,12 +159,24 @@ class CompBVP(BVP):
         return compute_dynamics
 
     def compile_boundary_conditions(self):
-        compute_initial_boundary_conditions = lambdify(
+        _compute_initial_boundary_conditions = lambdify(
                 self.sym_args, tuple(self.source_bvp.boundary_conditions.initial.flat()),
                 use_jit_compile=self.use_jit_compile)
-        compute_terminal_boundary_conditions = lambdify(
+        _compute_terminal_boundary_conditions = lambdify(
                 self.sym_args, tuple(self.source_bvp.boundary_conditions.terminal.flat()),
                 use_jit_compile=self.use_jit_compile)
+
+        def compute_initial_boundary_conditions(
+                initial_independent: float, initial_states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+            return np.asarray(_compute_initial_boundary_conditions(
+                    initial_independent, initial_states, parameters, constants))
+
+        def compute_terminal_boundary_conditions(
+                terminal_independent: float, initial_states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+            return np.asarray(_compute_terminal_boundary_conditions(
+                    terminal_independent, initial_states, parameters, constants))
 
         def compute_boundary_conditions(
                 independent: np.ndarray, states: np.ndarray,
@@ -178,6 +190,12 @@ class CompBVP(BVP):
             return np.concatenate((_bc_0, _bc_f))
 
         if self.use_jit_compile:
+            compute_initial_boundary_conditions = jit_compile(
+                    compute_initial_boundary_conditions, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+            )
+            compute_terminal_boundary_conditions = jit_compile(
+                    compute_terminal_boundary_conditions, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+            )
             compute_boundary_conditions = jit_compile(
                     compute_boundary_conditions, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
             )

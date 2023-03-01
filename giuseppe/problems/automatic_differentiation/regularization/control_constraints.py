@@ -2,7 +2,7 @@ from typing import Union, Tuple, TYPE_CHECKING, TypeVar
 
 import casadi as ca
 
-from giuseppe.problems.regularization.generic import Regularizer
+from giuseppe.problems.protocols.generic import Regularizer
 from giuseppe.utils.typing import Symbol, SymExpr
 
 if TYPE_CHECKING:

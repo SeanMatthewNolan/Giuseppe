@@ -6,8 +6,7 @@ from giuseppe.numeric_solvers import SciPySolver
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generation import auto_propagate_guess
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.symbolic import SymDual
-from giuseppe.problems.regularization import PenaltyConstraintHandler
+from giuseppe.problems.symbolic import SymDual, PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location

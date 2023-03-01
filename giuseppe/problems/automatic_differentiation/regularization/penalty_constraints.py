@@ -2,7 +2,7 @@ from typing import Union, TYPE_CHECKING, TypeVar
 
 import casadi as ca
 
-from giuseppe.problems.regularization.generic import Regularizer
+from giuseppe.problems.protocols.generic import Regularizer
 
 if TYPE_CHECKING:
     from giuseppe.problems import AdiffOCP

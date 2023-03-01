@@ -6,8 +6,7 @@ from giuseppe.numeric_solvers import SciPySolver
 from giuseppe.continuation import ContinuationHandler
 from giuseppe.guess_generation import auto_propagate_guess
 from giuseppe.problems.input import StrInputProb
-from giuseppe.problems.symbolic import SymDual
-from giuseppe.problems.regularization import PenaltyConstraintHandler
+from giuseppe.problems.symbolic import SymDual, PenaltyConstraintHandler
 from giuseppe.utils import Timer
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
@@ -86,12 +85,11 @@ ocp.add_constraint('terminal', 'gamma - gamma_f')
 
 ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
                               regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
-# ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
-#                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
+ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
+                              regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
-with Timer(prefix='Compilation Time:'):
-    comp_dual = SymDual(ocp, control_method='differential').compile()
-    solver = SciPySolver(comp_dual)
+comp_dual = SymDual(ocp, control_method='differential').compile()
+solver = SciPySolver(comp_dual)
 
 guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
 

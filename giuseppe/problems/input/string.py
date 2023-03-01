@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from giuseppe.problems.regularization import Regularizer
+from giuseppe.problems.protocols import Regularizer
 
 
 @dataclass

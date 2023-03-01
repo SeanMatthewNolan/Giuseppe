@@ -8,13 +8,13 @@ from giuseppe.utils.conversion import ca_vec2arr, ca_mat2arr
 
 
 @dataclass
-class AdiffBoundaryConditions:
+class ADiffBoundaryConditions:
     initial: ca.Function
     terminal: ca.Function
 
 
 @dataclass
-class AdiffCost:
+class ADiffCost:
     initial: ca.Function
     path: ca.Function
     terminal: ca.Function

@@ -38,11 +38,10 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
-with Timer(prefix='Compilation Time:'):
+with Timer(prefix='Setup Time:'):
     comp_dual = SymDual(ocp, control_method='algebraic').compile()
     num_solver = SciPySolver(comp_dual)
-
-guess = auto_guess(comp_dual, u=-45/180 * 3.14159)
+    guess = auto_guess(comp_dual, u=-45/180 * 3.14159)
 
 cont = ContinuationHandler(num_solver, guess)
 cont.add_linear_series(5, {'x_f': 30, 'y_f': -30}, bisection=True)

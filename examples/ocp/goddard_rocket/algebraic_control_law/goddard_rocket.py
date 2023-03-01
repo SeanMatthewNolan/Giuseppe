@@ -41,7 +41,7 @@ goddard.add_constraint('terminal', 'm - m_f')
 
 goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
-        regularizer=giuseppe.problems.symbolic.regularization.ControlConstraintHandler(
+        regularizer=giuseppe.problems.symbolic.ControlConstraintHandler(
                 'eps_thrust * h_ref', method='atan'))
 
 comp_goddard = giuseppe.problems.symbolic.SymDual(goddard, control_method='algebraic').compile()

@@ -4,7 +4,7 @@ import giuseppe
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
-goddard = giuseppe.io.InputOCP()
+goddard = giuseppe.problems.input.StrInputProb()
 
 goddard.set_independent('t')
 
@@ -39,22 +39,16 @@ goddard.add_constraint('terminal', 'm - m_f')
 
 goddard.add_inequality_constraint(
         'control', 'thrust', lower_limit='0', upper_limit='max_thrust',
-        regularizer=giuseppe.regularization.PenaltyConstraintHandler('eps_thrust * h_ref', method='sec'))
+        regularizer=giuseppe.problems.symbolic.PenaltyConstraintHandler('eps_thrust * h_ref', method='sec'))
 
-with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    sym_ocp = giuseppe.problems.SymOCP(goddard)
-    sym_dual = giuseppe.problems.SymDual(sym_ocp)
-    sym_bvp = giuseppe.problems.SymDualOCP(sym_ocp, sym_dual, control_method='differential')
-    comp_dual_ocp = giuseppe.problems.CompDualOCP(sym_bvp)
-    num_solver = giuseppe.numeric_solvers.ScipySolveBVP(comp_dual_ocp, bc_tol=1e-8, tol=1e-5)
+with giuseppe.utils.Timer(prefix='Setup Time:'):
+    comp_dual_ocp = giuseppe.problems.symbolic.SymDual(goddard, control_method='differential').compile()
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual_ocp, bc_tol=1e-8, tol=1e-5)
+    guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual_ocp, control=150)
 
-guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp, control=150)
-seed_sol = num_solver.solve(guess.k, guess)
-sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
-
-cont = giuseppe.continuation.ContinuationHandler(sol_set)
+cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(10, {'m_f': 1})
 cont.add_logarithmic_series(40, {'eps_thrust': 3e-6}, bisection=True)
-sol_set = cont.run_continuation(num_solver)
+sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')

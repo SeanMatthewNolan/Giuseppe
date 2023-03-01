@@ -4,12 +4,12 @@ from warnings import warn
 
 import casadi as ca
 
-from giuseppe.utils.mixins import Picky
-from .symbolic import SymOCP
-from ..input import AdiffInputProb
-from ..components.adiff import AdiffBoundaryConditions, AdiffCost
-from ..ocp.adiff import AdiffOCP
-from ..ocp.compiled import CompOCP
+from giuseppe.problems.symbolic.mixins import Picky
+from giuseppe.problems.dual.symbolic import SymOCP
+from giuseppe.problems.input import AdiffInputProb
+from giuseppe.problems.automatic_differentiation.regularization import AdiffBoundaryConditions, AdiffCost
+from giuseppe.problems.ocp.adiff import AdiffOCP
+from giuseppe.problems.ocp.compiled import CompOCP
 
 
 class AdiffDual(Picky):

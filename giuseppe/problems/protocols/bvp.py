@@ -21,7 +21,6 @@ class BVP(Protocol):
     # TODO add multi-arc support
     num_arcs: int = 1
 
-
     @staticmethod
     def compute_dynamics(
             independent: float, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
@@ -41,3 +40,18 @@ class BVP(Protocol):
     @staticmethod
     def post_process_data(data: Solution) -> Solution:
         return data
+
+
+@runtime_checkable
+class BVPSeparableBC(BVP, Protocol):
+    @staticmethod
+    def compute_initial_boundary_conditions(
+            initial_independent: float, initial_states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
+    ) -> np.ndarray:
+        ...
+
+    @staticmethod
+    def compute_terminal_boundary_conditions(
+            terminal_independent: float, terminal_states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
+    ) -> np.ndarray:
+        ...

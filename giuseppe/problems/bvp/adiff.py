@@ -5,9 +5,9 @@ from warnings import warn
 import casadi as ca
 
 from giuseppe.problems.input import AdiffInputProb
-from giuseppe.utils.mixins import Picky
+from giuseppe.problems.symbolic.mixins import Picky
 from giuseppe.utils.typing import SymMatrix
-from ..components.adiff import AdiffBoundaryConditions, ca_wrap
+from giuseppe.problems.automatic_differentiation.regularization import AdiffBoundaryConditions, ca_wrap
 
 
 class AdiffBVP(Picky):

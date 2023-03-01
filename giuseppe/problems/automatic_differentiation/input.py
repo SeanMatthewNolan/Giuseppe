@@ -4,7 +4,7 @@ from typing import Optional, Union
 import casadi as ca
 import numpy as np
 
-from giuseppe.problems.regularization import Regularizer
+from giuseppe.problems.protocols import Regularizer
 
 
 class ADiffInputState:

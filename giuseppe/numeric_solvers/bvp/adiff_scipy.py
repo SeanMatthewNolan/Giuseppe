@@ -11,8 +11,8 @@ from giuseppe.data_classes import Solution
 from ...problems.bvp import AdiffBVP
 from ...problems.dual import AdiffDualOCP
 from ...problems.dual.adiff import AdiffDiffControlHandler
-from ...problems.components.adiff import maybe_expand
-from ...utils.mixins import Picky
+from giuseppe.problems.automatic_differentiation.regularization import maybe_expand
+from giuseppe.problems.symbolic.mixins import Picky
 from ...utils.typing import NPArray
 
 _scipy_bvp_sol = TypeVar('_scipy_bvp_sol')
