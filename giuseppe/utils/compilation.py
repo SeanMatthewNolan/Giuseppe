@@ -7,8 +7,8 @@ from sympy import lambdify as sympy_lambdify, Expr
 from sympy.utilities.iterables import flatten
 
 JIT_COMPILE = True
-CSE = True
-EAGER_COMPILE = True
+CSE = True            # Compilation faster when true because Numba does not have to perform
+EAGER_COMPILE = True  # As of 3/1/23 Eager compilation appears actually faster overall
 PRINT_LAMBDA_FUNCS = False
 LAMB_MODS = ['numpy', 'math']
 

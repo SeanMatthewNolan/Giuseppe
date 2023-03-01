@@ -88,10 +88,10 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
-comp_dual = SymDual(ocp, control_method='differential').compile()
-solver = SciPySolver(comp_dual)
-
-guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
+with Timer('Setup Time: '):
+    comp_dual = SymDual(ocp, control_method='differential').compile()
+    solver = SciPySolver(comp_dual)
+    guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
 
 cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
