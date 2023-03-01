@@ -2,7 +2,7 @@ from typing import Union, Tuple
 
 import sympy
 
-from giuseppe.problems.components.input import InputInequalityConstraint
+from giuseppe.problems.input.string import StrInputInequalityConstraint
 from giuseppe.utils.typing import Symbol, SymExpr
 
 from .generic import SymRegularizer, Problem
@@ -20,7 +20,7 @@ class PenaltyConstraintHandler(SymRegularizer):
         else:
             raise ValueError(f'method \'{method}\' not implemented')
 
-    def apply(self, prob: Problem, constraint: InputInequalityConstraint, position: str) -> Problem:
+    def apply(self, prob: Problem, constraint: StrInputInequalityConstraint, position: str) -> Problem:
 
         expr = prob.sympify(constraint.expr)
         lower_limit = prob.sympify(constraint.lower_limit)

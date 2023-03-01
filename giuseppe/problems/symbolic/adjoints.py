@@ -3,7 +3,6 @@ from typing import Callable
 
 import numpy as np
 
-from giuseppe.problems.components.symbolic import SymCost, SymBoundaryConditions
 from giuseppe.problems.protocols import Adjoints
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
@@ -12,7 +11,8 @@ from giuseppe.utils.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.utils.strings import stringify_list
 
-from .ocp import SymOCP
+from .bvp import SymBoundaryConditions
+from .ocp import SymCost, SymOCP
 
 
 class SymAdjoints(Symbolic):

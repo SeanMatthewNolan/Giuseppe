@@ -2,8 +2,8 @@ from typing import Union, Tuple
 
 import sympy
 
-from giuseppe.problems.components.input import InputInequalityConstraint
 from giuseppe.utils.typing import Symbol, SymExpr
+from giuseppe.problems.input.string import StrInputInequalityConstraint
 
 from .generic import SymRegularizer, Problem
 
@@ -30,7 +30,7 @@ class ControlConstraintHandler(SymRegularizer):
 
     # TODO: Add technique to compute real control automatically
     # TODO: Explore one-sided control functions
-    def apply(self, prob: Problem, control_constraint: InputInequalityConstraint, position: str) -> Problem:
+    def apply(self, prob: Problem, control_constraint: StrInputInequalityConstraint, position: str) -> Problem:
         if position not in ['control', 'path']:
             raise ValueError(f'Location of control constraint regularizer should be \'control\' or \'path\'')
 

@@ -174,7 +174,7 @@ class ADiffInputProb:
 
         Returns
         -------
-        self : AdiffInputBVP
+        self : ADiffInputBVP
             returns the problem object
 
         """
