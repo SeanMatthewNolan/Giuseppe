@@ -21,7 +21,7 @@ from giuseppe.utils.typing import EMPTY_ARRAY
 
 from ..initialize_guess import initialize_guess
 from ..propagate_guess import propagate_guess
-from ..sequential_linear_projection import match_states_to_boundary_conditions, match_adjoints,\
+from ..sequential_linearized_projection import match_states_to_boundary_conditions, match_adjoints,\
     match_constants_to_boundary_conditions, match_adjoints_to_boundary_conditions
 
 
