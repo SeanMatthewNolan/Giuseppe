@@ -1,4 +1,4 @@
-from typing import Union, Protocol, runtime_checkable
+from typing import Union, Protocol, runtime_checkable, Optional
 
 import numpy as np
 from scipy.integrate import solve_bvp
@@ -19,21 +19,21 @@ class NumericSolver(Protocol):
 
     """
 
-    def solve(self, constants: np.ndarray, guess: Solution) -> Solution:
+    def solve(self, guess: Solution, constants: Optional[np.ndarray] = None) -> Solution:
         """
-        Solve pre-loaded problem
+        Solve BVP (or dualized OCP) with instance of ScipySolveBVP
 
         Parameters
         ----------
-        constants : np.ndarray
-            array of constants which define the problem numerically
-        guess : Solution or DualOCPSol
+        guess : Solution
             previous solution (or approximate solution) to serve as guess for BVP solver
+        constants : np.ndarray, optional
+            array of constants which define the problem numerically, if not given solver will use constants from guess
 
         Returns
         -------
         solution : Solution
-            solution to the problem for given constants
+            solution to the BVP for given constants
 
         """
         ...

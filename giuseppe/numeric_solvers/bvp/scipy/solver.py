@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 from scipy.integrate import solve_bvp
@@ -49,16 +49,16 @@ class SciPySolver:
 
         self.prob: SciPyBVP = SciPyBVP(prob, use_jit_compile=use_jit_compile)
 
-    def solve(self, constants: np.ndarray, guess: Solution) -> Solution:
+    def solve(self, guess: Solution, constants: Optional[np.ndarray] = None) -> Solution:
         """
         Solve BVP (or dualized OCP) with instance of ScipySolveBVP
 
         Parameters
         ----------
-        constants : np.ndarray
-            array of constants which define the problem numerically
-        guess : Solution or DualOCPSol
+        guess : Solution
             previous solution (or approximate solution) to serve as guess for BVP solver
+        constants : np.ndarray, optional
+            array of constants which define the problem numerically, if not given solver will use constants from guess
 
         Returns
         -------
@@ -68,11 +68,15 @@ class SciPySolver:
         """
 
         tau_guess, x_guess, p_guess = self.prob.preprocess(guess)
-        k = constants
+
+        if constants is None:
+            constants = guess.k
+
+        constants = np.asarray(constants)
 
         sol: _scipy_bvp_sol = solve_bvp(
-                lambda tau, x, p: self.prob.compute_dynamics(tau, x, p, k),
-                lambda x0, xf, p: self.prob.compute_boundary_conditions(x0, xf, p, k),
+                lambda tau, x, p: self.prob.compute_dynamics(tau, x, p, constants),
+                lambda x0, xf, p: self.prob.compute_boundary_conditions(x0, xf, p, constants),
                 tau_guess, x_guess, p_guess,
                 tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
         )

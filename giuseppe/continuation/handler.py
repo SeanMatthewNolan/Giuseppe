@@ -37,7 +37,7 @@ class ContinuationHandler:
 
         if isinstance(root, Solution):
             if not root.converged:
-                root = numeric_solver.solve(root.k, root)
+                root = numeric_solver.solve(root)
 
                 if not root.converged:
                     raise ValueError('Guess for root solution did not converged!!!')
@@ -172,7 +172,7 @@ class ContinuationHandler:
                 for series in self.continuation_series:
                     display.start_cont_series(series)
                     for k, last_sol in series:
-                        self.solution_set.append(self.numeric_solver.solve(k, last_sol))
+                        self.solution_set.append(self.numeric_solver.solve(last_sol, constants=k))
                         display.log_step()
                     display.end_cont_series()
             return self.solution_set

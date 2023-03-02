@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike
 
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import Dual
-from giuseppe.numeric_solvers.bvp import SciPySolver
+from giuseppe.numeric_solvers import NumericSolver
 
 from giuseppe.visualization.components.tk_widgets.range_selector import TKRangeSelector
 from giuseppe.visualization.components.tk_widgets.control_editor import TKControlEditor
@@ -39,7 +39,7 @@ class InteractiveGuessGenerator(tk.Tk):
             init_guess: Optional[Solution] = None,
             num_data_viewers: int = 3,
             inter_func: str = 'pchip',
-            num_solver: Optional[SciPySolver] = None
+            num_solver: Optional[NumericSolver] = None
     ):
         super().__init__()
 
@@ -274,7 +274,7 @@ class InteractiveGuessGenerator(tk.Tk):
 
     def solve(self):
         if self.num_solver is not None:
-            _sol = self.num_solver.solve(self._guess.k, self._guess)
+            _sol = self.num_solver.solve(self._guess)
             if _sol.converged:
                 self.guess = _sol
                 self.solve_status_label['text'] = StatusLabels.CONVERGED.value
