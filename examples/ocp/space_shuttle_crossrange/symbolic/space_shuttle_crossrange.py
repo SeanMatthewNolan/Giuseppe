@@ -54,7 +54,7 @@ ocp.add_constant('eps_alpha', 1e-5)
 ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
 ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
 
-ocp.add_constant('eps_beta', 1e-10)
+ocp.add_constant('eps_beta', 1e-5)
 ocp.add_constant('beta_min', -85 / 180 * 3.1419)
 ocp.add_constant('beta_max', 85 / 180 * 3.1419)
 
@@ -91,10 +91,10 @@ ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limi
 with Timer('Setup Time: '):
     comp_dual = SymDual(ocp, control_method='differential').compile()
     solver = SciPySolver(comp_dual)
-    guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
+    guess = auto_propagate_guess(comp_dual, control=(15/180*3.14159, 0), t_span=100)
 
 cont = ContinuationHandler(solver, guess)
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'xi': np.pi / 2})
 sol_set = cont.run_continuation()

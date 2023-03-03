@@ -9,6 +9,9 @@ from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess_generation.initialize_guess import initialize_guess, process_static_value, process_dynamic_value
 
+
+# DEFAULT_MAX_STEP_FRAC = 4.
+
 _IVP_SOL = TypeVar('_IVP_SOL')
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]
 
@@ -22,6 +25,7 @@ def propagate_guess(
         control: Optional[Union[float, ArrayLike, CONTROL_FUNC]] = None,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         p: Optional[Union[float, ArrayLike]] = None,
         k: Optional[Union[float, ArrayLike]] = None,
         nu0: Optional[ArrayLike] = None,
@@ -79,16 +83,19 @@ def propagate_guess(
     if problem.prob_class == 'bvp':
         guess = propagate_bvp_guess(
                 problem, t_span, initial_states,
-                p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
+                p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step,
+                reverse=reverse, default_value=default_value)
     elif problem.prob_class == 'ocp':
         guess = propagate_ocp_guess(
                 problem, t_span, initial_states, control,
-                p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
+                p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step,
+                reverse=reverse, default_value=default_value)
     elif problem.prob_class == 'dual':
         guess = propagate_dual_guess(
                 problem, t_span, initial_states, initial_costates, control,
                 p=p, nu0=nu0, nuf=nuf, k=k,
-                abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, default_value=default_value)
+                abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step,
+                reverse=reverse, default_value=default_value)
     else:
         raise RuntimeError(f'Cannot process problem of class {type(problem)}')
 
@@ -104,6 +111,7 @@ def propagate_bvp_guess(
         default_value: float = 1.,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         reverse: bool = False,
 ) -> Solution:
 
@@ -111,7 +119,8 @@ def propagate_bvp_guess(
             bvp, default_value=default_value, t_span=t_span, x=initial_states, p=p, k=k
     )
 
-    return propagate_bvp_guess_from_guess(bvp, t_span, guess, abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse)
+    return propagate_bvp_guess_from_guess(bvp, t_span, guess,
+                                          abs_tol=abs_tol, rel_tol=rel_tol, reverse=reverse, max_step=max_step)
 
 
 def propagate_bvp_guess_from_guess(
@@ -120,6 +129,7 @@ def propagate_bvp_guess_from_guess(
         input_guess: Solution,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         reverse: bool = False,
 ) -> Solution:
     guess = deepcopy(input_guess)
@@ -129,6 +139,12 @@ def propagate_bvp_guess_from_guess(
     else:
         t_span = np.asarray(t_span, dtype=float)
 
+    # if max_step is None:
+    #     max_step = (t_span[-1] - t_span[0]) / DEFAULT_MAX_STEP_FRAC
+
+    if max_step is None:
+        max_step = np.inf
+
     if reverse:
         guess.t = np.flip(guess.t)
         initial_states = guess.x[:, -1]
@@ -137,7 +153,7 @@ def propagate_bvp_guess_from_guess(
 
     ivp_sol: _IVP_SOL = solve_ivp(
             lambda _t, _x: bvp.compute_dynamics(_t, _x, guess.p, guess.k),
-            t_span, initial_states, atol=abs_tol, rtol=rel_tol)
+            t_span, initial_states, atol=abs_tol, rtol=rel_tol, max_step=max_step)
     guess.t = ivp_sol.t
     guess.x = ivp_sol.y
 
@@ -158,6 +174,7 @@ def propagate_ocp_guess(
         default_value: float = 1.,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         reverse: bool = False,
 ) -> Solution:
 
@@ -174,12 +191,19 @@ def propagate_ocp_guess_from_guess(
         control: Union[float, ArrayLike, Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike], None],
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         reverse: bool = False,
 ) -> Solution:
     if isinstance(t_span, (float, int)):
         t_span = np.asarray([0., t_span], dtype=float)
     else:
         t_span = np.asarray(t_span, dtype=float)
+
+    # if max_step is None:
+    #     max_step = (t_span[-1] - t_span[0]) / DEFAULT_MAX_STEP_FRAC
+
+    if max_step is None:
+        max_step = np.inf
 
     guess = deepcopy(input_guess)
 
@@ -207,7 +231,8 @@ def propagate_ocp_guess_from_guess(
             return _compute_dynamics(_t, _x, u, p, k)
 
     ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, t_span, initial_states,
-                                  atol=abs_tol, rtol=rel_tol)
+                                  atol=abs_tol, rtol=rel_tol, max_step=max_step)
+
     guess.t = ivp_sol.t
     guess.x = ivp_sol.y
 
@@ -236,6 +261,7 @@ def propagate_dual_guess(
         default_value: float = 1.,
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         reverse: bool = False,
 ) -> Solution:
 
@@ -253,13 +279,19 @@ def propagate_dual_guess_from_guess(
         control: Union[float, ArrayLike, Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike], None],
         abs_tol: float = 1e-4,
         rel_tol: float = 1e-4,
+        max_step: Optional[float] = None,
         reverse: bool = False,
 ) -> Solution:
-
     if isinstance(t_span, (float, int)):
         t_span = np.asarray([0., t_span], dtype=float)
     else:
         t_span = np.asarray(t_span, dtype=float)
+
+    # if max_step is None:
+    #     max_step = (t_span[-1] - t_span[0]) / DEFAULT_MAX_STEP_FRAC
+
+    if max_step is None:
+        max_step = np.inf
 
     guess = deepcopy(input_guess)
     num_states, num_costates, _compute_dynamics, _compute_costate_dynamics = dual.num_states, dual.num_costates,\
@@ -296,7 +328,7 @@ def propagate_dual_guess_from_guess(
 
     ivp_sol: _IVP_SOL = solve_ivp(_compute_dynamics_wrapped, t_span,
                                   np.concatenate((initial_states, initial_costates)),
-                                  atol=abs_tol, rtol=rel_tol)
+                                  atol=abs_tol, rtol=rel_tol, max_step=max_step)
     guess.t = ivp_sol.t
     guess.x = ivp_sol.y[:num_states, :]
     guess.lam = ivp_sol.y[num_states:num_states + num_costates, :]

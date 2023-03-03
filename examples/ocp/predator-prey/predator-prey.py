@@ -55,8 +55,6 @@ with giuseppe.utils.Timer(prefix='Compilation Time:'):
 # guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual, control=0.5, t_span=1)
 guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual, control=0, t_span=0.1)
 
-num_solver.solve(guess.k, guess)
-
 cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(10, {'t_f': 1})
 cont.add_linear_series(100, {'t_f': 5})
