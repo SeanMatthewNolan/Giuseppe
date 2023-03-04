@@ -11,7 +11,7 @@ from .gauss_newton import gauss_newton
 
 def match_constants_to_boundary_conditions(
         prob: Union[BVP, OCP, Dual], guess: Solution, rel_tol: float = 1e-4, abs_tol: float = 1e-4,
-        verbose: bool = False
+        use_adjoint_bcs: bool = False, verbose: bool = False
 ) -> Solution:
     """
     Projects the constant array of a guess to the problem's boundary conditions to get the closest match
@@ -26,6 +26,7 @@ def match_constants_to_boundary_conditions(
        absolute tolerance
     rel_tol : float, default=1e-4
        relative tolerance
+    use_adjoint_bcs : bool, default=False
     verbose : bool, default=False
 
     Returns
@@ -38,11 +39,21 @@ def match_constants_to_boundary_conditions(
     _compute_boundary_conditions = prob.compute_boundary_conditions
     _t, _x, _p = guess.t, guess.x, guess.p
 
-    def _constraint_function(_k: np.ndarray):
-        return _compute_boundary_conditions(_t, _x, _p, _k)
+    if use_adjoint_bcs and isinstance(prob, Dual):
+        _compute_adjoint_boundary_conditions = prob.compute_adjoint_boundary_conditions
+        _u, _lam, _nu = guess.u, guess.lam, np.concatenate((guess.nu0, guess.nuf))
+
+        def _constraint_function(_k: np.ndarray):
+            return np.concatenate((
+                _compute_boundary_conditions(_t, _x, _p, _k),
+                _compute_adjoint_boundary_conditions(_t, _x, _lam, _u, _p, _nu, _k)
+            ))
+    else:
+        def _constraint_function(_k: np.ndarray):
+            return _compute_boundary_conditions(_t, _x, _p, _k)
 
     guess.k = gauss_newton(_constraint_function, guess.k,
-                                               rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+                           rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
     return guess
 
 
@@ -168,8 +179,7 @@ def match_adjoints_to_boundary_conditions(
     _slp_guess = np.concatenate(_slp_guess)
 
     # Application of Gauss-Newton
-    out = gauss_newton(_constraint_function, _slp_guess, rel_tol=rel_tol,
-                                           abs_tol=abs_tol, verbose=verbose)
+    out = gauss_newton(_constraint_function, _slp_guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
 
     # Assigning fitted values to guess to output
     matched_lam = out[_lam_slice].reshape((_num_costates, _num_boundaries))

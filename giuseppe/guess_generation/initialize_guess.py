@@ -1,3 +1,4 @@
+import copy
 from typing import Union, Optional
 from copy import deepcopy
 
@@ -151,3 +152,48 @@ def initialize_guess(
         data['nuf'] = process_static_value(nuf, prob.num_terminal_adjoints)
 
     return Solution(**data)
+
+
+def initialize_guess_from_partial_solution(
+        prob: Problem,
+        partial_solution: Solution,
+        default_value: float = 1.,
+) -> Solution:
+
+    guess = initialize_guess(prob, default_value=default_value)
+
+    if partial_solution.t is not None:
+        guess.t = copy.copy(partial_solution.t)
+
+    if partial_solution.x is not None:
+        guess.x = copy.copy(partial_solution.x)
+
+    if partial_solution.p is not None:
+        guess.p = copy.copy(partial_solution.p)
+
+    if partial_solution.k is not None:
+        guess.k = copy.copy(partial_solution.k)
+
+    if partial_solution.u is not None:
+        guess.u = copy.copy(partial_solution.u)
+
+    if partial_solution.p is not None:
+        guess.p = copy.copy(partial_solution.p)
+
+    if partial_solution.lam is not None:
+        guess.lam = copy.copy(partial_solution.lam)
+
+    if partial_solution.nu0 is not None:
+        guess.nu0 = copy.copy(partial_solution.nu0)
+
+    if partial_solution.nuf is not None:
+        guess.nuf = copy.copy(partial_solution.nuf)
+
+    if partial_solution.aux is not None:
+        guess.aux = copy.copy(partial_solution.aux)
+
+    return guess
+
+
+
+

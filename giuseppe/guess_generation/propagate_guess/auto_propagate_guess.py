@@ -82,21 +82,21 @@ def auto_propagate_guess(
     if problem.prob_class == 'bvp':
         guess = auto_propagate_bvp_guess(
                 problem, t_span, initial_states,
-                p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse, default_value=default_value,
-                match_constants=match_constants, verbose=verbose
+                p=p, k=k, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse,
+                default_value=default_value, match_constants=match_constants, verbose=verbose
         )
     elif problem.prob_class == 'ocp':
         guess = auto_propagate_ocp_guess(
                 problem, t_span, initial_states, control,
-                p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse, default_value=default_value,
-                verbose=verbose
+                p=p,  k=k, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse,
+                match_constants=match_constants, default_value=default_value, verbose=verbose
         )
     elif problem.prob_class == 'dual':
         guess = auto_propagate_dual_guess(
                 problem, t_span, initial_states, initial_costates, control,
                 p=p, nu0=nu0, nuf=nuf, k=k,
                 abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse, default_value=default_value,
-                fit_adjoints=fit_adjoints, quadrature=quadrature, verbose=verbose
+                match_constants=match_constants, fit_adjoints=fit_adjoints, quadrature=quadrature, verbose=verbose
         )
     else:
         raise RuntimeError(f'Cannot process problem of class {type(problem)}')
@@ -161,7 +161,7 @@ def auto_propagate_ocp_guess(
     if verbose:
         print(f'Propagating the dynamics in time\n')
     guess = propagate_ocp_guess_from_guess(
-        ocp, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse)
+        ocp, t_span, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse)
 
     if match_constants:
         if verbose:
@@ -204,16 +204,10 @@ def auto_propagate_dual_guess(
         print(f'Propagating the dynamics in time\n')
 
     if fit_adjoints:
-
         guess = propagate_ocp_guess_from_guess(
             dual, t_span, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step,
             reverse=reverse)
 
-        if verbose:
-            print(f'Fitting the costates and adjoint parameters:')
-
-        guess.lam = process_dynamic_value(guess.lam[:, 0], guess.x.shape)
-        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
     else:
         guess = propagate_dual_guess_from_guess(
             dual, t_span, guess, control=control, abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step,
@@ -224,5 +218,12 @@ def auto_propagate_dual_guess(
             print(f'Matching the constants to the boundary conditions:')
 
         guess = match_constants_to_boundary_conditions(dual, guess, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+
+    if fit_adjoints:
+        if verbose:
+            print(f'Fitting the costates and adjoint parameters:')
+
+        guess.lam = process_dynamic_value(guess.lam[:, 0], guess.x.shape)
+        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
 
     return guess

@@ -9,7 +9,7 @@ from giuseppe.utils.numerical_derivatives.finite_difference\
 # TODO Explore options based on stability (linear vs. nonlinear)
 def gauss_newton(
         func: ArrayFunction, arr: np.ndarray, max_steps: int = 20,
-        abs_tol: float = 1e-6, rel_tol: float = 1e-6,
+        abs_tol: float = 1e-6, rel_tol: float = 1e-8,
         jacobian_function: Union[str, Callable] = 'central',
         use_line_search: bool = True, line_search_alpha: float = 1e-4, line_search_reduction_ratio: float = 0.5,
         verbose: bool = False,
