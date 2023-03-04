@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.guess_generation.initialize_guess import initialize_guess
-from giuseppe.guess_generation.sequential_linearized_projection import match_constants_to_boundary_conditions, \
+from giuseppe.guess_generation.gauss_newton import match_constants_to_boundary_conditions, \
     match_states_to_boundary_conditions, match_states, match_adjoints
 
 CONTROL_FUNC = Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]

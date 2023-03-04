@@ -6,7 +6,7 @@ import numpy as np
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual
 from giuseppe.utils import make_array_slices
-from .sequential_linear_projection import sequential_linearized_projection
+from .gauss_newton import gauss_newton
 
 
 def match_states(
@@ -126,7 +126,7 @@ def match_states(
     else:
         raise ValueError(f'Quadrature {quadrature} not valid, must be \"linear\", \"midpoint\", or \"simpson\"')
 
-    _matched = sequential_linearized_projection(
+    _matched = gauss_newton(
             _fitting_function, np.concatenate((guess.x.flatten(), guess.p)),
             rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose
     )

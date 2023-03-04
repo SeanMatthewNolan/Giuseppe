@@ -6,7 +6,7 @@ import numpy as np
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, OCP, Dual, Adjoints
 from giuseppe.utils import make_array_slices
-from .sequential_linear_projection import sequential_linearized_projection
+from .gauss_newton import gauss_newton
 
 
 def match_constants_to_boundary_conditions(
@@ -41,7 +41,7 @@ def match_constants_to_boundary_conditions(
     def _constraint_function(_k: np.ndarray):
         return _compute_boundary_conditions(_t, _x, _p, _k)
 
-    guess.k = sequential_linearized_projection(_constraint_function, guess.k,
+    guess.k = gauss_newton(_constraint_function, guess.k,
                                                rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
     return guess
 
@@ -87,7 +87,7 @@ def match_states_to_boundary_conditions(
 
         return _compute_boundary_conditions(_t, _x, _p, _k)
 
-    # Converting supplied guess to initial vector for SLP method
+    # Converting supplied guess to initial vector for Gauss-Newton method
     _idx_t = tuple(np.linspace(0, guess.t.shape[0] - 1, _num_boundaries, dtype=int))
     _idx_x = tuple(np.linspace(0, guess.x.shape[1] - 1, _num_boundaries, dtype=int))
     _slp_guess = []
@@ -98,8 +98,8 @@ def match_states_to_boundary_conditions(
     _slp_guess.append(guess.p)
     _slp_guess = np.concatenate(_slp_guess)
 
-    # Application of SLP
-    out = sequential_linearized_projection(_constraint_function, _slp_guess, rel_tol=rel_tol,
+    # Application of Gauss-Newton
+    out = gauss_newton(_constraint_function, _slp_guess, rel_tol=rel_tol,
                                            abs_tol=abs_tol, verbose=verbose)
 
     # Assigning fitted values to guess to output
@@ -158,7 +158,7 @@ def match_adjoints_to_boundary_conditions(
 
         return _compute_adjoint_boundary_conditions(_t, _x, _lam, _u, _p, _nu, _k)
 
-    # Converting supplied guess to initial vector for SLP method
+    # Converting supplied guess to initial vector for Gauss-Newton method
     _idx_lam = tuple(np.linspace(0, guess.lam.shape[1] - 1, _num_boundaries, dtype=int))
     _slp_guess = []
     for _idx in _idx_lam:
@@ -167,8 +167,8 @@ def match_adjoints_to_boundary_conditions(
     _slp_guess.append(guess.nuf)
     _slp_guess = np.concatenate(_slp_guess)
 
-    # Application of SLP
-    out = sequential_linearized_projection(_constraint_function, _slp_guess, rel_tol=rel_tol,
+    # Application of Gauss-Newton
+    out = gauss_newton(_constraint_function, _slp_guess, rel_tol=rel_tol,
                                            abs_tol=abs_tol, verbose=verbose)
 
     # Assigning fitted values to guess to output

@@ -7,9 +7,9 @@ from giuseppe.utils.numerical_derivatives.finite_difference\
 
 
 # TODO Explore options based on stability (linear vs. nonlinear)
-def sequential_linearized_projection(
+def gauss_newton(
         func: ArrayFunction, arr: np.ndarray, max_steps: int = 20,
-        abs_tol: float = 1e-4, rel_tol: float = 1e-4,
+        abs_tol: float = 1e-6, rel_tol: float = 1e-6,
         jacobian_function: Union[str, Callable] = 'central',
         use_line_search: bool = True, line_search_alpha: float = 1e-4, line_search_reduction_ratio: float = 0.5,
         verbose: bool = False,
@@ -26,9 +26,9 @@ def sequential_linearized_projection(
         both serves as the initial guess and the array of default values
     max_steps : int, default=8
         maximum number of steps the iterative solver will take
-    abs_tol : float, default=1e-4
+    abs_tol : float, default=1e-6
         absolute tolerance
-    rel_tol : float, default=1e-4
+    rel_tol : float, default=1e-6
         relative tolerance
     jacobian_function : str, Callable, default='central'
         String inputs of 'central', 'forward', or 'backward' specify corresponding numerical derivatives to be taken
@@ -74,9 +74,11 @@ def sequential_linearized_projection(
 
     for step_num in range(1, max_steps + 1):
         sensitivity = compute_jacobian(func, arr)
-        p_inv_sensitivity = np.linalg.pinv(sensitivity)
 
-        raw_step = p_inv_sensitivity @ residual
+        # p_inv_sensitivity = np.linalg.pinv(sensitivity)
+        # raw_step = p_inv_sensitivity @ residual
+
+        raw_step = np.linalg.lstsq(sensitivity, residual, rcond=None)[0]
 
         if np.all(abs(raw_step) < step_tol):
             if verbose:

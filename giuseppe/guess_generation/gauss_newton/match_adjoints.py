@@ -5,7 +5,7 @@ import numpy as np
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import Dual
 from giuseppe.utils import make_array_slices
-from .sequential_linear_projection import sequential_linearized_projection
+from .gauss_newton import gauss_newton
 
 
 def match_adjoints(
@@ -128,7 +128,7 @@ def match_adjoints(
     else:
         raise ValueError(f'Quadrature {quadrature} not valid, must be \"linear\", \"midpoint\", or \"simpson\"')
 
-    adjoints = sequential_linearized_projection(
+    adjoints = gauss_newton(
             _fitting_function, np.concatenate((guess.lam.flatten(), guess.nu0, guess.nuf)),
             rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose
     )
