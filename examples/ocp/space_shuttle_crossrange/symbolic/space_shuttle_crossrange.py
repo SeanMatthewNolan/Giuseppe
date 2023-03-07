@@ -93,11 +93,6 @@ with Timer('Setup Time: '):
     solver = SciPySolver(comp_dual)
     guess = auto_propagate_guess(comp_dual, control=(15/180*3.14159, 0), t_span=100)
 
-old_solver = SciPySolver(comp_dual, perform_vectorize=False)
-
-sol_old = old_solver.solve(guess)
-sol_new = solver.solve(guess)
-
 cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})

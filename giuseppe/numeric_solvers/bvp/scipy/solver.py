@@ -21,7 +21,8 @@ class SciPySolver:
     """
 
     def __init__(self, prob: Union[BVP, Dual], use_jit_compile: bool = True, perform_vectorize: bool = True,
-                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, verbose: Union[bool, int] = False):
+                 tol: float = 0.001, bc_tol: float = 0.001, max_nodes: int = 1000, node_buffer: int = 20,
+                 verbose: Union[bool, int] = False):
         """
         Initialize SciPySolver
 
@@ -42,6 +43,7 @@ class SciPySolver:
         self.tol: float = tol
         self.bc_tol: float = bc_tol
         self.max_nodes: int = max_nodes
+        self.node_buffer: int = node_buffer
         self.verbose: Union[bool, int] = verbose
 
         if prob.prob_class == 'dual':
@@ -73,12 +75,13 @@ class SciPySolver:
             constants = guess.k
 
         constants = np.asarray(constants)
+        max_nodes = max(self.max_nodes, len(tau_guess) + self.node_buffer)
 
         sol: _scipy_bvp_sol = solve_bvp(
                 lambda tau, x, p: self.prob.compute_dynamics(tau, x, p, constants),
                 lambda x0, xf, p: self.prob.compute_boundary_conditions(x0, xf, p, constants),
                 tau_guess, x_guess, p_guess,
-                tol=self.tol, bc_tol=self.bc_tol, max_nodes=self.max_nodes, verbose=self.verbose
+                tol=self.tol, bc_tol=self.bc_tol, max_nodes=max_nodes, verbose=self.verbose
         )
 
         return self.prob.post_process(sol, constants)
