@@ -30,7 +30,8 @@ def auto_propagate_guess(
         default_value: float = 1.,
         match_constants: bool = True,
         fit_adjoints: bool = True,
-        quadrature: str = 'linear',
+        quadrature: str = 'trapezoidal',
+        condition_adjoints: bool = False,
         verbose: bool = False
 ) -> Solution:
 
@@ -71,7 +72,7 @@ def auto_propagate_guess(
         input_value used if no input_value is given
     match_constants: bool, default=True
     fit_adjoints: bool, default=True
-    quadrature: str, default='linear'
+    quadrature: str, default='simpson'
     verbose : bool, default=False
 
     Returns
@@ -96,7 +97,8 @@ def auto_propagate_guess(
                 problem, t_span, initial_states, initial_costates, control,
                 p=p, nu0=nu0, nuf=nuf, k=k,
                 abs_tol=abs_tol, rel_tol=rel_tol, max_step=max_step, reverse=reverse, default_value=default_value,
-                match_constants=match_constants, fit_adjoints=fit_adjoints, quadrature=quadrature, verbose=verbose
+                match_constants=match_constants, fit_adjoints=fit_adjoints, condition_adjoints=condition_adjoints,
+                quadrature=quadrature, verbose=verbose
         )
     else:
         raise RuntimeError(f'Cannot process problem of class {type(problem)}')
@@ -189,6 +191,7 @@ def auto_propagate_dual_guess(
         match_constants: bool = True,
         fit_adjoints: bool = True,
         quadrature: str = 'simpson',
+        condition_adjoints: bool = False,
         verbose: bool = False
 ) -> Solution:
 
@@ -224,6 +227,7 @@ def auto_propagate_dual_guess(
             print(f'Fitting the costates and adjoint parameters:')
 
         guess.lam = process_dynamic_value(guess.lam[:, 0], guess.x.shape)
-        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+        guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol,
+                               condition_adjoints=condition_adjoints, verbose=verbose)
 
     return guess

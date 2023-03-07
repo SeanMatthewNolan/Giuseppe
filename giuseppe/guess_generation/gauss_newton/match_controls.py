@@ -4,13 +4,12 @@ from copy import deepcopy
 import numpy as np
 
 from giuseppe.data_classes import Solution
-from giuseppe.problems.protocols import BVP, OCP, Dual
-from giuseppe.utils import make_array_slices
+from giuseppe.problems.protocols import OCP, Dual
 from .gauss_newton import gauss_newton
 
 
-def match_states(
-        prob: Union[BVP, OCP, Dual], guess: Solution, quadrature: str = 'trapezoidal',
+def match_controls_to_primal(
+        prob: Union[OCP, Dual], guess: Solution, quadrature: str = 'trapezoidal',
         rel_tol: float = 1e-4, abs_tol: float = 1e-4, verbose: bool = False
 ) -> Solution:
     """
@@ -28,32 +27,23 @@ def match_states(
     -------
 
     """
-    _num_states = prob.num_states
-    _num_parameters = prob.num_parameters
+    _num_controls = prob.num_controls
 
     _compute_boundary_conditions = prob.compute_boundary_conditions
-
-    if prob.prob_class == 'bvp':
-        def _compute_dynamics(_t_i, _x_i, _, _p, _k):
-            return prob.compute_dynamics(_t_i, _x_i, _p, _k)
-    else:
-        _compute_dynamics = prob.compute_dynamics
+    _compute_dynamics = prob.compute_dynamics
 
     guess = deepcopy(guess)
-    _t, _u, _k = guess.t, guess.u, guess.k
+    _t, _x, _p, _k = guess.t, guess.x, guess.p, guess.k
 
     _num_t = len(_t)
     if _num_t < 2:
         raise RuntimeError('Please provide guess with at least 2 points')
     _h_arr = np.diff(_t)
 
-    _x_slice, _p_slice = make_array_slices((_num_t * _num_states, _num_parameters))
-
     if quadrature.lower() == 'trapezoidal':
 
-        def _fitting_function(_states_and_parameters: np.ndarray) -> np.ndarray:
-            _x = _states_and_parameters[_x_slice].reshape((_num_states, _num_t))
-            _p = _states_and_parameters[_p_slice]
+        def _fitting_function(_u_flat: np.ndarray) -> np.ndarray:
+            _u = _u_flat.reshape((_num_controls, _num_t))
 
             res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
 
@@ -70,13 +60,12 @@ def match_states(
 
     elif quadrature.lower() == 'midpoint':
         _t_mid = (_t[:-1] + _t[1:]) / 2
-        _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
+        _x_mid = (_x[:, :-1] + _x[:, 1:]) / 2
 
-        def _fitting_function(_states_and_parameters: np.ndarray) -> np.ndarray:
-            _x = _states_and_parameters[_x_slice].reshape((_num_states, _num_t))
-            _p = _states_and_parameters[_p_slice]
+        def _fitting_function(_u_flat: np.ndarray) -> np.ndarray:
+            _u = _u_flat.reshape((_num_controls, _num_t))
 
-            _x_mid = (_x[:, :-1] + _x[:, 1:]) / 2
+            _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
             res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
 
@@ -92,14 +81,12 @@ def match_states(
             return np.concatenate((res_bc, res_dyn.flatten()))
 
     elif quadrature.lower() == 'simpson':
-        _compute_dynamics = prob.compute_dynamics
-
         _t_mid = (_t[:-1] + _t[1:]) / 2
-        _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
-        def _fitting_function(_states_and_parameters: np.ndarray) -> np.ndarray:
-            _x = _states_and_parameters[_x_slice].reshape((_num_states, _num_t))
-            _p = _states_and_parameters[_p_slice]
+        def _fitting_function(_u_flat: np.ndarray) -> np.ndarray:
+            _u = _u_flat.reshape((_num_controls, _num_t))
+
+            _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
             res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
 
@@ -127,11 +114,58 @@ def match_states(
         raise ValueError(f'Quadrature {quadrature} not valid, must be \"trapezoidal\", \"midpoint\", or \"simpson\"')
 
     _matched = gauss_newton(
-            _fitting_function, np.concatenate((guess.x.flatten(), guess.p)),
+            _fitting_function, guess.u.flatten(),
             rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose
     )
 
-    guess.x = _matched[_x_slice].reshape((_num_states, _num_t))
-    guess.p = _matched[_p_slice]
+    guess.u = _matched.reshape((_num_controls, _num_t))
 
     return guess
+
+
+def match_controls_to_control_law(
+        prob: Dual, guess: Solution,
+        rel_tol: float = 1e-4, abs_tol: float = 1e-4, verbose: bool = False
+) -> Solution:
+    """
+
+    Parameters
+    ----------
+    prob
+    guess
+    quadrature
+    rel_tol
+    abs_tol
+    verbose
+
+    Returns
+    -------
+
+    """
+    _num_controls = prob.num_controls
+
+    _compute_control_law = prob.compute_control_law
+
+    guess = deepcopy(guess)
+    _t, _x, _lam, _p, _k = guess.t, guess.x, guess.lam, guess.p, guess.k
+
+    _num_t = len(_t)
+    if _num_t < 2:
+        raise RuntimeError('Please provide guess with at least 2 points')
+    _h_arr = np.diff(_t)
+
+    def _fitting_function(_u_flat: np.ndarray) -> np.ndarray:
+        _u = _u_flat.reshape((_num_controls, _num_t))
+
+        _dh_du = np.array([
+            _compute_control_law(_t_i, _x_i, _lam_i, _u_i, _p, _k)
+            for _t_i, _x_i, _lam_i, _u_i in zip(_t, _x.T, _lam.T, _u.T)
+        ]).T
+
+        return _dh_du.flatten()
+
+    _matched = gauss_newton(_fitting_function, guess.u.flatten(), rel_tol=rel_tol, abs_tol=abs_tol, verbose=verbose)
+    guess.u = _matched.reshape((_num_controls, _num_t))
+
+    return guess
+

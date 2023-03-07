@@ -30,7 +30,7 @@ def auto_guess(
         fit_state_dynamics: bool = True,
         fit_adjoints: bool = True,
         fit_constants: bool = False,
-        quadrature: str = 'linear',
+        quadrature: str = 'trapezoidal',
         verbose: bool = False
 ) -> Solution:
 

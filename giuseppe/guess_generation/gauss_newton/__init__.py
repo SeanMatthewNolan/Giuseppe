@@ -2,4 +2,6 @@ from .gauss_newton import gauss_newton
 from .match_to_boundary_conditions import match_constants_to_boundary_conditions, match_states_to_boundary_conditions,\
     match_adjoints_to_boundary_conditions
 from .match_states import match_states
+from .match_primal import match_primal, match_primal_and_constant_control
 from .match_adjoints import match_adjoints
+from .match_controls import match_controls_to_primal, match_controls_to_control_law

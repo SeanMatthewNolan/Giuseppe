@@ -9,24 +9,10 @@ from .gauss_newton import gauss_newton
 
 
 def match_adjoints(
-        prob: Dual, guess: Solution, quadrature: str = 'linear', rel_tol: float = 1e-4, abs_tol: float = 1e-4,
-        verbose: bool = False
+        prob: Dual, guess: Solution, quadrature: str = 'trapezoidal', rel_tol: float = 1e-4, abs_tol: float = 1e-4,
+        condition_adjoints: bool = False, verbose: bool = False
 ) -> Solution:
-    """
 
-    Parameters
-    ----------
-    prob
-    guess
-    quadrature
-    rel_tol
-    abs_tol
-    verbose
-
-    Returns
-    -------
-
-    """
     _num_costates = prob.num_costates
     _num_adjoints = prob.num_adjoints
 
@@ -42,9 +28,15 @@ def match_adjoints(
         raise RuntimeError('Please provide guess with at least 2 points')
     _h_arr = np.diff(_t)
 
+    if condition_adjoints:
+        _dx = np.diff(_x)
+        _dx_dt = _dx / _h_arr
+        conditioning = np.fmax(np.mean(np.abs(_dx_dt), axis=1), rel_tol)
+        rel_tol = 1.
+
     _lam_slice, _nu_slice = make_array_slices((_num_t * _num_costates, _num_adjoints))
 
-    if quadrature.lower() == 'linear':
+    if quadrature.lower() == 'trapezoidal':
 
         def _fitting_function(_adjoints: np.ndarray) -> np.ndarray:
             _lam = _adjoints[_lam_slice].reshape((_num_costates, _num_t))
@@ -60,6 +52,9 @@ def match_adjoints(
             _delta_lam = np.diff(_lam)
 
             res_dyn = _delta_lam - _h_arr * (_lam_dot[:, :-1] + _lam_dot[:, 1:]) / 2
+
+            if condition_adjoints:
+                res_dyn = res_dyn.T * conditioning
 
             return np.concatenate((res_bc, res_dyn.flatten()))
 
@@ -84,6 +79,9 @@ def match_adjoints(
             _delta_lam = np.diff(_lam)
 
             res_dyn = _delta_lam - _h_arr * _lam_dot
+
+            if condition_adjoints:
+                res_dyn = res_dyn.T * conditioning
 
             return np.concatenate((res_bc, res_dyn.flatten()))
 
@@ -123,10 +121,13 @@ def match_adjoints(
             res_dyn = _delta_lam \
                 - _h_arr * ((_lam_dot_nodes[:, :-1] + _lam_dot_nodes[:, 1:]) / 6 + 2 / 3 * _lam_dot_mid)
 
+            if condition_adjoints:
+                res_dyn = res_dyn.T * conditioning
+
             return np.concatenate((res_bc, res_dyn.flatten()))
 
     else:
-        raise ValueError(f'Quadrature {quadrature} not valid, must be \"linear\", \"midpoint\", or \"simpson\"')
+        raise ValueError(f'Quadrature {quadrature} not valid, must be \"trapezoidal\", \"midpoint\", or \"simpson\"')
 
     adjoints = gauss_newton(
             _fitting_function, np.concatenate((guess.lam.flatten(), guess.nu0, guess.nuf)),
