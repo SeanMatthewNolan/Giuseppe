@@ -125,8 +125,8 @@ class BisectionLinearSeries(LinearSeries):
                 self.num_steps += 1
                 next_constants = self._generate_next_constants()
 
-                print(f'Last continuation {self.generate_mapping_str(self.solution_set[-1].k[self.constant_indices])}'
-                      f' did not converge. Bisecting next step (depth = {self.bisection_counter})')
+                # print(f'Last continuation {self.generate_mapping_str(self.solution_set[-1].k[self.constant_indices])}'
+                #       f' did not converge. Bisecting next step (depth = {self.bisection_counter})')
 
             else:
                 raise ContinuationError('Bisection limit exceeded!')
