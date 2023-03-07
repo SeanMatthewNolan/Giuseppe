@@ -111,7 +111,7 @@ robot.add_inequality_constraint(
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_robot = giuseppe.problems.symbolic.SymDual(robot, control_method='differential').compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_robot, verbose=2, max_nodes=800, node_buffer=10)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_robot, verbose=0, max_nodes=0, node_buffer=10)
 
 
 def ctrl2reg(u: np.array) -> np.array:
@@ -143,7 +143,9 @@ cont.add_linear_series(100, {'t_f': t_f})
 cont.add_linear_series(100, {'x_f': x_f, 'vx_f': vx_f})
 cont.add_linear_series(100, {'y_f': y_f, 'vy_f': vy_f})
 cont.add_linear_series(100, {'tha_f': tha_f, 'om_f': om_f})
-cont.add_logarithmic_series(200, {'eps_T': 1e-3, 'eps_u': 1e-3})
+cont.add_logarithmic_series(100, {'eps_T': 1e-2, 'eps_u': 5e-2})
+cont.add_logarithmic_series(150, {'eps_T': 1e-3, 'eps_u': 5e-3})
+cont.add_logarithmic_series(350, {'eps_T': 1e-4, 'eps_u': 5e-4})
 
 sol_set = cont.run_continuation()
 
