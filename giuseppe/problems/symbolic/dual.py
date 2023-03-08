@@ -1,9 +1,9 @@
 from typing import Optional
 
-from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.protocols import Dual
 from giuseppe.data_classes.annotations import Annotations
 
+from .input import StrInputProb
 from .adjoints import SymAdjoints, CompAdjoints
 from .ocp import SymOCP, CompOCP
 

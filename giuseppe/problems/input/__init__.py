@@ -1,1 +1,4 @@
-from .string import StrInputProb
+from ..symbolic import input as string
+
+StrInputProb = string.StrInputProb
+SymInputProb = StrInputProb

@@ -5,13 +5,13 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.integrate import simpson, trapezoid
 
-from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.protocols import OCP
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, NumbaFloat, NumbaArray, NumbaMatrix, SymExpr, SYM_ZERO
 from giuseppe.utils.strings import stringify_list
 from .bvp import SymBVP
+from .input import StrInputProb
 
 
 @dataclass

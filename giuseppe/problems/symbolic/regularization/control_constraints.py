@@ -3,8 +3,8 @@ from typing import Union, Tuple
 import sympy
 
 from giuseppe.utils.typing import Symbol, SymExpr
-from giuseppe.problems.input.string import StrInputInequalityConstraint
 
+from ..input import StrInputInequalityConstraint
 from .generic import SymRegularizer, Problem
 
 

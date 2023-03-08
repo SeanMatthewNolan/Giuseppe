@@ -6,7 +6,6 @@ from typing import Optional, Union
 import numpy as np
 from sympy import Symbol, topological_sort
 
-from giuseppe.problems.input.string import StrInputProb, StrInputInequalityConstraints
 from giuseppe.problems.protocols.bvp import BVP
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
@@ -14,6 +13,7 @@ from giuseppe.problems.symbolic.mixins import Symbolic
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SymExpr, NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.utils.strings import stringify_list
 
+from .input import StrInputProb, StrInputInequalityConstraints
 
 class SymNamedExpr:
     def __init__(self, sym):
