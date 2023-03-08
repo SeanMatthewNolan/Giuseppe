@@ -50,13 +50,13 @@ ocp.add_constant('s_ref', 2690)
 
 ocp.add_constant('xi', 0)
 
-ocp.add_constant('eps_alpha', 1e-5)
-ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
-ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
+ocp.add_constant('eps_alpha', 1e-7)
+ocp.add_constant('alpha_min', -90 / 180 * 3.1419)
+ocp.add_constant('alpha_max', 90 / 180 * 3.1419)
 
-ocp.add_constant('eps_beta', 1e-5)
-ocp.add_constant('beta_min', -85 / 180 * 3.1419)
-ocp.add_constant('beta_max', 85 / 180 * 3.1419)
+ocp.add_constant('eps_beta', 1e-7)
+ocp.add_constant('beta_min', -90 / 180 * 3.1419)
+ocp.add_constant('beta_max', 90 / 180 * 3.1419)
 
 ocp.add_constant('h_0', 260_000)
 ocp.add_constant('phi_0', 0)
@@ -97,6 +97,8 @@ cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'xi': np.pi / 2})
+cont.add_linear_series(90, {'beta_min': -70 / 180 * 3.14159, 'beta_max': 70 / 180 * 3.14159})
+cont.add_logarithmic_series(90, {'eps_alpha': 1e-10, 'eps_beta': 1e-10})
 sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')

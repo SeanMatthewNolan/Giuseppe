@@ -60,12 +60,16 @@ ocp.add_constant('s_ref', 2690)
 
 ocp.add_constant('xi', 0)
 
-ocp.add_constant('eps_alpha', 1e-5)
-ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
-ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
+ocp.add_constant('eps_alpha', 1e-7)
+ocp.add_constant('alpha_min', -90 / 180 * 3.1419)
+ocp.add_constant('alpha_max', 90 / 180 * 3.1419)
 
-ocp.add_constant('eps_q', 1e-5)
-ocp.add_constant('q_max', 200)
+ocp.add_constant('eps_beta', 1e-7)
+ocp.add_constant('beta_min', -90 / 180 * 3.1419)
+ocp.add_constant('beta_max', 90 / 180 * 3.1419)
+
+ocp.add_constant('eps_q', 1e-3)
+ocp.add_constant('q_max', 160)
 
 ocp.add_constant('h_0', 260_000)
 ocp.add_constant('phi_0', 0)
@@ -81,19 +85,21 @@ ocp.add_constant('gamma_f', -5 / 180 * np.pi)
 ocp.set_cost('0', '0', '-phi * cos(xi) - theta  * sin(xi)')
 
 ocp.add_constraint('initial', 't')
-ocp.add_constraint('initial', '(h - h_0) / h_0')
+ocp.add_constraint('initial', 'h - h_0')
 ocp.add_constraint('initial', 'phi - phi_0')
 ocp.add_constraint('initial', 'theta - theta_0')
-ocp.add_constraint('initial', '(v - v_0) / v_0')
+ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('initial', 'gamma - gamma_0')
 ocp.add_constraint('initial', 'psi - psi_0')
 
-ocp.add_constraint('terminal', '(h - h_f) / h_f')
-ocp.add_constraint('terminal', '(v - v_f) / v_f')
+ocp.add_constraint('terminal', 'h - h_f')
+ocp.add_constraint('terminal', 'v - v_f')
 ocp.add_constraint('terminal', 'gamma - gamma_f')
 
 ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
                               regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
+ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
+                              regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 ocp.add_inequality_constraint('path', 'q', upper_limit='q_max',
                               regularizer=PenaltyConstraintHandler('eps_q', method='rat'))
 
@@ -106,9 +112,8 @@ guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
 
 cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
-cont.add_linear_series(50, {'q_max': 100})
-cont.add_linear_series(500, {'q_max': 70})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
+cont.add_linear_series(250, {'q_max': 70})
 cont.add_linear_series(90, {'xi': np.pi / 2})
 sol_set = cont.run_continuation()
 
