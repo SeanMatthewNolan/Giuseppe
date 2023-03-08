@@ -33,15 +33,14 @@ sturm_liouville.add_constraint('initial', 'yp - a * k')
 sturm_liouville.add_constraint('terminal', 'x - x_f')
 sturm_liouville.add_constraint('terminal', 'y - y_f')
 
-comp_bvp = SymBVP(sturm_liouville).compile(use_jit_compile=False)
-ad_bvp = ADiffBVP(comp_bvp)
+ad_bvp = ADiffBVP(SymBVP(sturm_liouville))
 
-# solver = SciPySolver(ad_bvp, use_jit_compile=False)
-#
-# guess = initialize_guess(ad_bvp, t_span=np.linspace(0, 1, 3))
-#
-# cont = ContinuationHandler(solver, guess)
-# cont.add_linear_series(10, {'a': 100})
-# sol_set = cont.run_continuation()
-#
-# sol_set.save('sol_set.data')
+solver = SciPySolver(ad_bvp, use_jit_compile=False)
+
+guess = initialize_guess(ad_bvp, t_span=np.linspace(0, 1, 3))
+
+cont = ContinuationHandler(solver, guess)
+cont.add_linear_series(10, {'a': 100})
+sol_set = cont.run_continuation()
+
+sol_set.save('sol_set.data')

@@ -30,11 +30,13 @@ def ca_wrap(name: str, ca_args: Iterable, function: Callable, func_args: Iterabl
     else:
         expression = (function(*func_args),)
 
-    return ca.Function(name,
-                       ca_args,
-                       (ca.vcat(expression),),
-                       ca_arg_names,
-                       (out_name,))
+    return ca.Function(
+            name,
+            ca_args,
+            (ca.vcat(expression),),
+            ca_arg_names,
+            (out_name,)
+    )
 
 
 def lambdify_ca(fun: ca.Function):

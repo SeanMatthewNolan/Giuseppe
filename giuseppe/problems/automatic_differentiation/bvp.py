@@ -8,12 +8,12 @@ from numba.core.registry import CPUDispatcher
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.problems.protocols import BVP
 from .input import ADiffInputProb
-from giuseppe.problems.automatic_differentiation.components import ADiffBoundaryConditions, ca_wrap
+from .utils import ca_wrap, lambdify_ca
 from ..symbolic.bvp import SymBVP
 
 
 class ADiffBVP(BVP):
-    def __init__(self, source_bvp: Union[ADiffInputProb, BVP]):
+    def __init__(self, source_bvp: Union[ADiffInputProb, SymBVP, BVP]):
         self.source_bvp = deepcopy(source_bvp)
 
         self.arg_names = ('t', 'x', 'p', 'k')
@@ -32,8 +32,9 @@ class ADiffBVP(BVP):
             self.num_constants = self.constants.numel()
 
             self.args = (self.independent, self.states, self.parameters, self.constants)
-            self.compute_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
-            self.compute_boundary_conditions = self.create_boundary_conditions()
+            self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
+            self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
+                = self.create_boundary_conditions()
 
         elif isinstance(self.source_bvp, (BVP, SymBVP)):
             if isinstance(self.source_bvp, SymBVP):
@@ -42,6 +43,8 @@ class ADiffBVP(BVP):
             if isinstance(self.source_bvp.compute_dynamics, CPUDispatcher) \
                     or isinstance(self.source_bvp.compute_boundary_conditions, CPUDispatcher):
                 warn('ADiffBVP cannot accept JIT compiled BVP! Please don\'t JIT compile in this case')
+
+            self.annotations = source_bvp.annotations
 
             if isinstance(self.source_bvp.compute_dynamics, CPUDispatcher):
                 self.source_bvp.compute_dynamics = self.source_bvp.compute_dynamics.py_func
@@ -65,25 +68,34 @@ class ADiffBVP(BVP):
             self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]
             self.iter_args.insert(0, self.args[0])  # Insert time separately b/c not wrapped in list
 
-            self.compute_dynamics = self.wrap_dynamics()
-            self.compute_boundary_conditions = self.wrap_boundary_conditions()
+            self.ca_dynamics = self.wrap_dynamics()
+            self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
+                = self.wrap_boundary_conditions()
 
         else:
             raise ValueError('Need a source BVP')
 
+        self.compute_dynamics = lambdify_ca(self.ca_dynamics)
+        self.compute_initial_boundary_conditions = lambdify_ca(self.ca_initial_boundary_conditions)
+        self.compute_terminal_boundary_conditions = lambdify_ca(self.ca_terminal_boundary_conditions)
+
     def wrap_dynamics(self):
         return ca_wrap('f', self.args, self.source_bvp.compute_dynamics, self.iter_args, self.arg_names, 'dx_dt')
-
-    def wrap_boundary_conditions(self):
-        return ca_wrap('Psi', self.iter_args, self.source_bvp.compute_boundary_conditions, self.iter_args,
-                       self.arg_names)
 
     def create_boundary_conditions(self):
         initial_boundary_conditions = ca.Function('Psi_0', self.args, (self.input_constraints.initial,),
                                                   self.arg_names, ('Psi_0',))
         terminal_boundary_conditions = ca.Function('Psi_f', self.args, (self.input_constraints.terminal,),
                                                    self.arg_names, ('Psi_f',))
-        return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
+        return initial_boundary_conditions, terminal_boundary_conditions
+
+    def wrap_boundary_conditions(self):
+        initial_boundary_conditions = ca_wrap('Psi_0', self.args, self.source_bvp.compute_initial_boundary_conditions,
+                                              self.iter_args, self.arg_names)
+        terminal_boundary_conditions = ca_wrap('Psi_f', self.args, self.source_bvp.compute_terminal_boundary_conditions,
+                                               self.iter_args, self.arg_names)
+        return initial_boundary_conditions, terminal_boundary_conditions
+
 
     # def wrap_boundary_conditions(self):
     #     initial_boundary_conditions = ca_wrap('Psi_0', self.args, self.source_bvp.boundary_conditions.initial,
