@@ -31,7 +31,8 @@ def match_states(
     _num_states = prob.num_states
     _num_parameters = prob.num_parameters
 
-    _compute_boundary_conditions = prob.compute_boundary_conditions
+    _compute_initial_boundary_conditions = prob.compute_initial_boundary_conditions
+    _compute_terminal_boundary_conditions = prob.compute_terminal_boundary_conditions
 
     if prob.prob_class == 'bvp':
         def _compute_dynamics(_t_i, _x_i, _, _p, _k):
@@ -55,7 +56,10 @@ def match_states(
             _x = _states_and_parameters[_x_slice].reshape((_num_states, _num_t))
             _p = _states_and_parameters[_p_slice]
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
 
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
@@ -78,7 +82,10 @@ def match_states(
 
             _x_mid = (_x[:, :-1] + _x[:, 1:]) / 2
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
 
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
@@ -101,7 +108,10 @@ def match_states(
             _x = _states_and_parameters[_x_slice].reshape((_num_states, _num_t))
             _p = _states_and_parameters[_p_slice]
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
 
             _x_dot_nodes = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)

@@ -93,13 +93,21 @@ class CompAdjoints(Adjoints):
         self.default_values: np.ndarray = sym_ocp.default_values
 
         self.sym_args = {
-            'dynamic': (sym_ocp.independent, sym_ocp.states.flat(),
-                        sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
-                        sym_ocp.parameters.flat(), sym_ocp.constants.flat()),
-            'static' : (sym_ocp.independent, sym_ocp.states.flat(),
-                        sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
-                        sym_ocp.parameters.flat(), sym_adjoints.adjoints.flat(),
-                        sym_ocp.constants.flat())
+            'dynamic'  : (sym_ocp.independent, sym_ocp.states.flat(),
+                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), sym_ocp.constants.flat()),
+            'static'   : (sym_ocp.independent, sym_ocp.states.flat(),
+                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), sym_adjoints.adjoints.flat(),
+                          sym_ocp.constants.flat()),
+            'initial'  : (sym_ocp.independent, sym_ocp.states.flat(),
+                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), sym_adjoints.initial_adjoints.flat(),
+                          sym_ocp.constants.flat()),
+            'terminal' : (sym_ocp.independent, sym_ocp.states.flat(),
+                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), sym_adjoints.terminal_adjoints.flat(),
+                          sym_ocp.constants.flat())
         }
 
         self.args_numba_signature = {
@@ -133,12 +141,28 @@ class CompAdjoints(Adjoints):
         return compute_costate_dynamics
 
     def _compile_adjoint_boundary_conditions(self, sym_adjoints: SymAdjoints) -> tuple:
-        compute_initial_adjoint_boundary_conditions = lambdify(
-                self.sym_args['static'], tuple(sym_adjoints.adjoint_boundary_conditions.initial.flat()),
+        _compute_initial_adjoint_boundary_conditions = lambdify(
+                self.sym_args['initial'], tuple(sym_adjoints.adjoint_boundary_conditions.initial.flat()),
                 use_jit_compile=self.use_jit_compile)
-        compute_terminal_adjoint_boundary_conditions = lambdify(
-                self.sym_args['static'], tuple(sym_adjoints.adjoint_boundary_conditions.terminal.flat()),
+        _compute_terminal_adjoint_boundary_conditions = lambdify(
+                self.sym_args['terminal'], tuple(sym_adjoints.adjoint_boundary_conditions.terminal.flat()),
                 use_jit_compile=self.use_jit_compile)
+
+        def compute_initial_adjoint_boundary_conditions(
+                independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                parameters: np.ndarray, initial_adjoints: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+            return np.asarray(_compute_initial_adjoint_boundary_conditions(
+                    independent, states, costates, controls,
+                    parameters, initial_adjoints, constants))
+
+        def compute_terminal_adjoint_boundary_conditions(
+                independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                parameters: np.ndarray, terminal_adjoints: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+            return np.asarray(_compute_terminal_adjoint_boundary_conditions(
+                    independent, states, costates, controls,
+                    parameters, terminal_adjoints, constants))
 
         def compute_adjoint_boundary_conditions(
                 independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
@@ -156,6 +180,14 @@ class CompAdjoints(Adjoints):
             return np.concatenate((_initial_adjoint_bcs, _terminal_adjoint_bcs))
 
         if self.use_jit_compile:
+            compute_initial_adjoint_boundary_conditions = jit_compile(
+                    compute_initial_adjoint_boundary_conditions,
+                    (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
+            )
+            compute_terminal_adjoint_boundary_conditions = jit_compile(
+                    compute_terminal_adjoint_boundary_conditions,
+                    (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray)
+            )
             compute_adjoint_boundary_conditions = jit_compile(
                     compute_adjoint_boundary_conditions,
                     (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray, NumbaArray)

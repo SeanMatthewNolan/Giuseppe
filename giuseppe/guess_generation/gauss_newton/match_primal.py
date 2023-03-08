@@ -31,7 +31,8 @@ def match_primal(
     _num_states = prob.num_states
     _num_parameters = prob.num_parameters
 
-    _compute_boundary_conditions = prob.compute_boundary_conditions
+    _compute_initial_boundary_conditions = prob.compute_initial_boundary_conditions
+    _compute_terminal_boundary_conditions = prob.compute_terminal_boundary_conditions
 
     if prob.prob_class == 'bvp':
         def _compute_dynamics(_t_i, _x_i, _, _p, _k):
@@ -54,14 +55,17 @@ def match_primal(
     if quadrature.lower() == 'trapezoidal':
 
         def _fitting_function(_z: np.ndarray) -> np.ndarray:
-            _t_0, _t_f = _z[0], _z[-1]
+            _t0, _tf = _z[0], _z[-1]
             _x = _z[_x_slice].reshape((_num_states, _num_t))
             _p = _z[_p_slice]
 
-            _delta_t = (_t_f - _t_0)
-            _t = _delta_t * _tau + _t_0
+            _delta_t = (_tf - _t0)
+            _t = _delta_t * _tau + _t0
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t0, _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_tf, _x[:, -1], _p, _k),
+            ))
 
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
@@ -79,17 +83,20 @@ def match_primal(
         _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
         def _fitting_function(_z: np.ndarray) -> np.ndarray:
-            _t_0, _t_f = _z[0], _z[-1]
+            _t0, _tf = _z[0], _z[-1]
             _x = _z[_x_slice].reshape((_num_states, _num_t))
             _p = _z[_p_slice]
 
-            _delta_t = (_t_f - _t_0)
-            _t = _delta_t * _tau + _t_0
-            _t_mid = _delta_t * _tau_mid + _t_0
+            _delta_t = (_tf - _t0)
+            _t = _delta_t * _tau + _t0
+            _t_mid = _delta_t * _tau_mid + _t0
 
             _x_mid = (_x[:, :-1] + _x[:, 1:]) / 2
 
-            res_bc = _compute_boundary_conditions(_input_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t0, _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_tf, _x[:, -1], _p, _k),
+            ))
 
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
@@ -109,15 +116,18 @@ def match_primal(
         _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
         def _fitting_function(_z: np.ndarray) -> np.ndarray:
-            _t_0, _t_f = _z[0], _z[-1]
+            _t0, _tf = _z[0], _z[-1]
             _x = _z[_x_slice].reshape((_num_states, _num_t))
             _p = _z[_p_slice]
 
-            _delta_t = (_t_f - _t_0)
-            _t = _delta_t * _tau + _t_0
-            _t_mid = _delta_t * _tau_mid + _t_0
+            _delta_t = (_tf - _t0)
+            _t = _delta_t * _tau + _t0
+            _t_mid = _delta_t * _tau_mid + _t0
 
-            res_bc = _compute_boundary_conditions(_input_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t0, _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_tf, _x[:, -1], _p, _k),
+            ))
 
             _x_dot_nodes = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
@@ -177,7 +187,8 @@ def match_primal_and_constant_control(
     _num_controls = prob.num_controls
     _num_parameters = prob.num_parameters
 
-    _compute_boundary_conditions = prob.compute_boundary_conditions
+    _compute_initial_boundary_conditions = prob.compute_initial_boundary_conditions
+    _compute_terminal_boundary_conditions = prob.compute_terminal_boundary_conditions
 
     if prob.prob_class == 'bvp':
         def _compute_dynamics(_t_i, _x_i, _, _p, _k):
@@ -186,7 +197,7 @@ def match_primal_and_constant_control(
         _compute_dynamics = prob.compute_dynamics
 
     guess = deepcopy(guess)
-    _input_t, _u, _k = guess.t, guess.u, guess.k
+    _input_t, _k = guess.t, guess.k
 
     _num_t = len(_input_t)
     if _num_t < 2:
@@ -209,7 +220,10 @@ def match_primal_and_constant_control(
             _delta_t = (_t_f - _t_0)
             _t = _delta_t * _tau + _t_0
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
 
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u, _p, _k)
@@ -237,7 +251,10 @@ def match_primal_and_constant_control(
 
             _x_mid = (_x[:, :-1] + _x[:, 1:]) / 2
 
-            res_bc = _compute_boundary_conditions(_input_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
 
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u, _p, _k)
@@ -265,7 +282,10 @@ def match_primal_and_constant_control(
             _t = _delta_t * _tau + _t_0
             _t_mid = _delta_t * _tau_mid + _t_0
 
-            res_bc = _compute_boundary_conditions(_input_t, _x, _p, _k)
+            res_bc = np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
 
             _x_dot_nodes = np.array([
                 _compute_dynamics(_t_i, _x_i, _u, _p, _k)

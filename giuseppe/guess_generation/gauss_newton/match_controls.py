@@ -29,7 +29,6 @@ def match_controls_to_primal(
     """
     _num_controls = prob.num_controls
 
-    _compute_boundary_conditions = prob.compute_boundary_conditions
     _compute_dynamics = prob.compute_dynamics
 
     guess = deepcopy(guess)
@@ -45,8 +44,6 @@ def match_controls_to_primal(
         def _fitting_function(_u_flat: np.ndarray) -> np.ndarray:
             _u = _u_flat.reshape((_num_controls, _num_t))
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
-
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
                 for _t_i, _x_i, _u_i in zip(_t, _x.T, _u.T)
@@ -56,7 +53,7 @@ def match_controls_to_primal(
 
             res_dyn = _delta_x - _h_arr * (_x_dot[:, :-1] + _x_dot[:, 1:]) / 2
 
-            return np.concatenate((res_bc, res_dyn.flatten()))
+            return res_dyn.flatten()
 
     elif quadrature.lower() == 'midpoint':
         _t_mid = (_t[:-1] + _t[1:]) / 2
@@ -67,8 +64,6 @@ def match_controls_to_primal(
 
             _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
-
             _x_dot = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
                 for _t_i, _x_i, _u_i in zip(_t, _x_mid.T, _u_mid.T)
@@ -78,7 +73,7 @@ def match_controls_to_primal(
 
             res_dyn = _delta_x - _h_arr * _x_dot
 
-            return np.concatenate((res_bc, res_dyn.flatten()))
+            return res_dyn.flatten()
 
     elif quadrature.lower() == 'simpson':
         _t_mid = (_t[:-1] + _t[1:]) / 2
@@ -88,19 +83,17 @@ def match_controls_to_primal(
 
             _u_mid = (_u[:, :-1] + _u[:, 1:]) / 2
 
-            res_bc = _compute_boundary_conditions(_t, _x, _p, _k)
-
             _x_dot_nodes = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
                 for _t_i, _x_i, _u_i in zip(_t, _x.T, _u.T)
             ]).T
 
             _x_dot_diff = np.diff(_x_dot_nodes)
-            _x_mid = (_x[:, :-1] + _x[:, 1:]) / 2 - _h_arr / 8 * np.diff(_x_dot_nodes)
+            _x_mid_simp = (_x[:, :-1] + _x[:, 1:]) / 2 - _h_arr / 8 * np.diff(_x_dot_nodes)
 
             _x_dot_mid = np.array([
                 _compute_dynamics(_t_i, _x_i, _u_i, _p, _k)
-                for _t_i, _x_i, _u_i in zip(_t_mid, _x_mid.T, _u_mid.T)
+                for _t_i, _x_i, _u_i in zip(_t_mid, _x_mid_simp.T, _u_mid.T)
             ]).T
 
             _delta_x = np.diff(_x)
@@ -108,7 +101,7 @@ def match_controls_to_primal(
             res_dyn = _delta_x \
                 - _h_arr * ((_x_dot_nodes[:, :-1] + _x_dot_nodes[:, 1:]) / 6 + 2 / 3 * _x_dot_mid)
 
-            return np.concatenate((res_bc, res_dyn.flatten()))
+            return res_dyn.flatten()
 
     else:
         raise ValueError(f'Quadrature {quadrature} not valid, must be \"trapezoidal\", \"midpoint\", or \"simpson\"')
@@ -133,7 +126,6 @@ def match_controls_to_control_law(
     ----------
     prob
     guess
-    quadrature
     rel_tol
     abs_tol
     verbose
@@ -168,4 +160,3 @@ def match_controls_to_control_law(
     guess.u = _matched.reshape((_num_controls, _num_t))
 
     return guess
-

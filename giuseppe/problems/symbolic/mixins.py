@@ -1,5 +1,3 @@
-from typing import Union, get_args, get_origin
-
 from sympy import Symbol, sympify
 
 from giuseppe.utils.typing import SymExpr

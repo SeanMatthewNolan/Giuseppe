@@ -48,12 +48,16 @@ class SciPyBVP:
         return compute_dynamics
 
     def _compile_boundary_conditions(self) -> _bc_type:
-        _bvp_compute_boundary_conditions = self.source_bvp.compute_boundary_conditions
+        _bvp_compute_initial_boundary_conditions = self.source_bvp.compute_initial_boundary_conditions
+        _bvp_compute_terminal_boundary_conditions = self.source_bvp.compute_terminal_boundary_conditions
 
         def boundary_conditions(x0: np.ndarray, xf: np.ndarray, p: np.ndarray, k: np.ndarray):
             # _t = p[-2:]
             # _p = p[:-2]
-            return _bvp_compute_boundary_conditions(p[-2:], np.vstack((x0, xf)).T, p[:-2], k)
+            return np.concatenate((
+                _bvp_compute_initial_boundary_conditions(p[-2], x0, p[:-2], k),
+                _bvp_compute_terminal_boundary_conditions(p[-1], xf, p[:-2], k),
+            ))
 
         return boundary_conditions
 

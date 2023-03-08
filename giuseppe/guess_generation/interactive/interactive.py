@@ -206,13 +206,20 @@ class InteractiveGuessGenerator(tk.Tk):
             viewer.update()
 
     def compute_bc_res(self):
-        _bc_res = self.prob.compute_boundary_conditions(self._guess.t, self._guess.x, self._guess.p, self._guess.k)
-        _adj_bc_res = self.prob.compute_adjoint_boundary_conditions(
-                self._guess.t, self._guess.x, self._guess.lam, self._guess.u,
-                self._guess.p, np.concatenate((self._guess.nu0, self._guess.nuf)), self._guess.k)
-
-        self.initial_bc_res = _bc_res
-        self.terminal_bc_res = _bc_res
+        self.initial_bc_res = np.concatenate((
+            self.prob.compute_initial_boundary_conditions(
+                    self._guess.t[0], self._guess.x[:, 0], self._guess.p, self._guess.k),
+            self.prob.compute_initial_adjoint_boundary_conditions(
+                    self._guess.t[0], self._guess.x[:, 0], self._guess.lam[:, 0], self._guess.u[:, 0],
+                    self._guess.p, self._guess.nu0, self._guess.k)
+        ))
+        self.terminal_bc_res = np.concatenate((
+            self.prob.compute_terminal_boundary_conditions(
+                    self._guess.t[-1], self._guess.x[:, -1], self._guess.p, self._guess.k),
+            self.prob.compute_terminal_adjoint_boundary_conditions(
+                    self._guess.t[-1], self._guess.x[:, -1], self._guess.lam[:, -1], self._guess.u[:, -1],
+                    self._guess.p, self._guess.nuf, self._guess.k)
+        ))
         self.total_bc_res_norm = np.linalg.norm(np.concatenate((self.initial_bc_res, self.terminal_bc_res)))
 
     def generate_control_func(self) -> Callable[[float, ArrayLike, ArrayLike, ArrayLike], ArrayLike]:

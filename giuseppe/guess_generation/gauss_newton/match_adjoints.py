@@ -14,9 +14,11 @@ def match_adjoints(
 ) -> Solution:
 
     _num_costates = prob.num_costates
-    _num_adjoints = prob.num_adjoints
+    _num_initial_adjoints = prob.num_initial_adjoints
+    _num_terminal_adjoints = prob.num_terminal_adjoints
 
-    _compute_adjoint_boundary_conditions = prob.compute_adjoint_boundary_conditions
+    _compute_initial_adjoint_boundary_conditions = prob.compute_initial_adjoint_boundary_conditions
+    _compute_terminal_adjoint_boundary_conditions = prob.compute_terminal_adjoint_boundary_conditions
     _compute_costate_dynamics = prob.compute_costate_dynamics
     _compute_hamiltonian = prob.compute_hamiltonian
 
@@ -34,15 +36,20 @@ def match_adjoints(
         conditioning = np.fmax(np.mean(np.abs(_dx_dt), axis=1), rel_tol)
         rel_tol = 1.
 
-    _lam_slice, _nu_slice = make_array_slices((_num_t * _num_costates, _num_adjoints))
+    _lam_slice, _nu0_slice, _nuf_slice = make_array_slices(
+            (_num_t * _num_costates, _num_initial_adjoints, _num_terminal_adjoints))
 
     if quadrature.lower() == 'trapezoidal':
 
         def _fitting_function(_adjoints: np.ndarray) -> np.ndarray:
             _lam = _adjoints[_lam_slice].reshape((_num_costates, _num_t))
-            _nu = _adjoints[_nu_slice]
+            _nu0 = _adjoints[_nu0_slice]
+            _nuf = _adjoints[_nuf_slice]
 
-            res_bc = _compute_adjoint_boundary_conditions(_t, _x, _lam, _u, _p, _nu, _k)
+            res_bc = np.concatenate((
+                _compute_initial_adjoint_boundary_conditions(_t[0], _x[:, 0], _lam[:, 0], _u[:, 0], _p, _nu0, _k),
+                _compute_terminal_adjoint_boundary_conditions(_t[-1], _x[:, -1], _lam[:, -1], _u[:, -1], _p, _nuf, _k),
+            ))
 
             _lam_dot = np.array([
                 _compute_costate_dynamics(_t_i, _x_i, _lam_i, _u_i, _p, _k)
@@ -65,11 +72,15 @@ def match_adjoints(
 
         def _fitting_function(_adjoints: np.ndarray) -> np.ndarray:
             _lam = _adjoints[_lam_slice].reshape((_num_costates, _num_t))
-            _nu = _adjoints[_nu_slice]
+            _nu0 = _adjoints[_nu0_slice]
+            _nuf = _adjoints[_nuf_slice]
 
             _lam_mid = (_lam[:, :-1] + _lam[:, 1:]) / 2
 
-            res_bc = _compute_adjoint_boundary_conditions(_t, _x, _lam, _u, _p, _nu, _k)
+            res_bc = np.concatenate((
+                _compute_initial_adjoint_boundary_conditions(_t[0], _x[:, 0], _lam[:, 0], _u[:, 0], _p, _nu0, _k),
+                _compute_terminal_adjoint_boundary_conditions(_t[-1], _x[:, -1], _lam[:, -1], _u[:, -1], _p, _nuf, _k),
+            ))
 
             _lam_dot = np.array([
                 _compute_costate_dynamics(_t_i, _x_i, _lam_i, _u_i, _p, _k)
@@ -99,9 +110,13 @@ def match_adjoints(
 
         def _fitting_function(_adjoints: np.ndarray) -> np.ndarray:
             _lam = _adjoints[_lam_slice].reshape((_num_costates, _num_t))
-            _nu = _adjoints[_nu_slice]
+            _nu0 = _adjoints[_nu0_slice]
+            _nuf = _adjoints[_nuf_slice]
 
-            res_bc = _compute_adjoint_boundary_conditions(_t, _x, _lam, _u, _p, _nu, _k)
+            res_bc = np.concatenate((
+                _compute_initial_adjoint_boundary_conditions(_t[0], _x[:, 0], _lam[:, 0], _u[:, 0], _p, _nu0, _k),
+                _compute_terminal_adjoint_boundary_conditions(_t[-1], _x[:, -1], _lam[:, -1], _u[:, -1], _p, _nuf, _k),
+            ))
 
             _lam_dot_nodes = np.array([
                 _compute_costate_dynamics(_t_i, _x_i, _lam_i, _u_i, _p, _k)
@@ -135,7 +150,7 @@ def match_adjoints(
     )
 
     guess.lam = adjoints[_lam_slice].reshape((_num_costates, _num_t))
-    guess.nu0 = adjoints[_nu_slice][:prob.num_initial_adjoints]
-    guess.nuf = adjoints[_nu_slice][prob.num_initial_adjoints:]
+    guess.nu0 = adjoints[_nu0_slice]
+    guess.nuf = adjoints[_nuf_slice]
 
     return guess

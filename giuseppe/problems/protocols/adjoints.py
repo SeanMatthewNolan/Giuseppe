@@ -21,9 +21,6 @@ class Adjoints(Protocol):
     default_values: np.ndarray
     annotations: Optional[Annotations]
 
-    # TODO add multi-arc support
-    num_arcs: int = 1
-
     @staticmethod
     def compute_costate_dynamics(
             independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
@@ -32,8 +29,15 @@ class Adjoints(Protocol):
         ...
 
     @staticmethod
-    def compute_adjoint_boundary_conditions(
-            independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+    def compute_initial_adjoint_boundary_conditions(
+            independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+            parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray
+    ) -> np.ndarray:
+        ...
+
+    @staticmethod
+    def compute_terminal_adjoint_boundary_conditions(
+            independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
             parameters: np.ndarray, adjoints: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...

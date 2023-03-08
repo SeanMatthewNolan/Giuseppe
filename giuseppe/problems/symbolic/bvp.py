@@ -7,7 +7,7 @@ import numpy as np
 from sympy import Symbol, topological_sort
 
 from giuseppe.problems.input.string import StrInputProb, StrInputInequalityConstraints
-from giuseppe.problems.protocols.bvp import BVPSeparableBC
+from giuseppe.problems.protocols.bvp import BVP
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
 from giuseppe.problems.symbolic.mixins import Symbolic
@@ -122,7 +122,7 @@ class SymBVP(Symbolic):
         return CompBVP(self, use_jit_compile=use_jit_compile)
 
 
-class CompBVP(BVPSeparableBC):
+class CompBVP(BVP):
     def __init__(self, source_bvp: SymBVP, use_jit_compile: bool = True):
         self.use_jit_compile = use_jit_compile
         self.source_bvp = deepcopy(source_bvp)
@@ -182,10 +182,8 @@ class CompBVP(BVPSeparableBC):
                 independent: np.ndarray, states: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
 
-            _bc_0 = np.asarray(
-                    compute_initial_boundary_conditions(independent[0], states[:, 0], parameters, constants))
-            _bc_f = np.asarray(
-                    compute_terminal_boundary_conditions(independent[-1], states[:, -1], parameters, constants))
+            _bc_0 = compute_initial_boundary_conditions(independent[0], states[:, 0], parameters, constants)
+            _bc_f = compute_terminal_boundary_conditions(independent[-1], states[:, -1], parameters, constants)
 
             return np.concatenate((_bc_0, _bc_f))
 

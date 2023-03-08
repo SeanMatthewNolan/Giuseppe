@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Optional
 
 from giuseppe.problems.input import StrInputProb
 from giuseppe.problems.protocols import Dual

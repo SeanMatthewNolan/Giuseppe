@@ -5,7 +5,7 @@ import numpy as np
 
 from giuseppe.utils import make_array_slices
 from giuseppe.utils.compilation import jit_compile
-from giuseppe.utils.typing import NumbaFloat, NumbaArray, NumbaMatrix
+from giuseppe.utils.typing import NumbaFloat, NumbaArray
 from giuseppe.data_classes import Solution, Annotations
 from giuseppe.problems.protocols.bvp import BVP
 from giuseppe.problems.protocols.dual import Dual
@@ -58,7 +58,8 @@ class BVPFromDual(BVP):
         if isinstance(self.source_dual.control_handler, AlgebraicControlHandler):
 
             self.compute_dynamics = self._alg_convert_dynamics()
-            self.compute_boundary_conditions = self._alg_convert_boundary_conditions()
+            self.compute_initial_boundary_conditions, self.compute_terminal_boundary_conditions \
+                = self._alg_convert_boundary_conditions()
 
             self.preprocess_data = self._alg_compile_preprocess()
             self.post_process_data = self._alg_compile_post_process()
@@ -70,7 +71,8 @@ class BVPFromDual(BVP):
             self.num_states += _source_num_controls
 
             self.compute_dynamics = self._diff_convert_dynamics()
-            self.compute_boundary_conditions = self._diff_convert_boundary_conditions()
+            self.compute_initial_boundary_conditions, self.compute_terminal_boundary_conditions \
+                = self._diff_convert_boundary_conditions()
 
             self.preprocess_data = self._diff_compile_preprocess()
             self.post_process_data = self._diff_compile_post_process()
@@ -82,8 +84,11 @@ class BVPFromDual(BVP):
             self.compute_dynamics = jit_compile(
                     self.compute_dynamics, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
             )
-            self.compute_boundary_conditions = jit_compile(
-                    self.compute_boundary_conditions, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
+            self.compute_initial_boundary_conditions = jit_compile(
+                    self.compute_initial_boundary_conditions, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+            )
+            self.compute_terminal_boundary_conditions = jit_compile(
+                    self.compute_terminal_boundary_conditions, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
             )
 
     def _alg_convert_dynamics(self):
@@ -112,34 +117,51 @@ class BVPFromDual(BVP):
         return compute_dynamics
 
     def _alg_convert_boundary_conditions(self):
-        _x_slice, _lam_slice, _u_slice, _p_slice, _nu_slice = \
-            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu_slice
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu0_slice, _nuf_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
 
-        _compute_state_boundary_conditions = self.source_dual.compute_boundary_conditions
-        _compute_adjoint_boundary_conditions = self.source_dual.compute_adjoint_boundary_conditions
         _compute_control = self.source_dual.control_handler.compute_control
+        _compute_initial_boundary_conditions = self.source_dual.compute_initial_boundary_conditions
+        _compute_initial_adjoint_boundary_conditions = self.source_dual.compute_initial_adjoint_boundary_conditions
 
-        def compute_boundary_conditions(
-                t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+        def compute_initial_boundary_conditions(
+                t: float, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            x = y[_x_slice, :]
-            lam = y[_lam_slice, :]
+            x = y[_x_slice]
+            lam = y[_lam_slice]
 
             p = rho[_p_slice]
-            nu = rho[_nu_slice]
+            nu0 = rho[_nu0_slice]
 
-            u = np.vstack((
-                _compute_control(t[0], x[:, 0], lam[:, 0], p, k),
-                _compute_control(t[-1], x[:, -1], lam[:, -1], p, k)
-            )).T
+            u = _compute_control(t, x, lam, p, k)
 
-            _psi = _compute_state_boundary_conditions(t, x, p, k)
-            _adj_bc = _compute_adjoint_boundary_conditions(t, x, lam, u, p, nu, k)
+            _psi = _compute_initial_boundary_conditions(t, x, p, k)
+            _adj_bc = _compute_initial_adjoint_boundary_conditions(t, x, lam, u, p, nu0, k)
 
             return np.concatenate((_psi, _adj_bc))
 
-        return compute_boundary_conditions
+        _compute_terminal_boundary_conditions = self.source_dual.compute_terminal_boundary_conditions
+        _compute_terminal_adjoint_boundary_conditions = self.source_dual.compute_terminal_adjoint_boundary_conditions
+
+        def compute_terminal_boundary_conditions(
+                t: float, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+        ) -> np.ndarray:
+
+            x = y[_x_slice]
+            lam = y[_lam_slice]
+
+            p = rho[_p_slice]
+            nuf = rho[_nuf_slice]
+
+            u = _compute_control(t, x, lam, p, k)
+
+            _psi = _compute_terminal_boundary_conditions(t, x, p, k)
+            _adj_bc = _compute_terminal_adjoint_boundary_conditions(t, x, lam, u, p, nuf, k)
+
+            return np.concatenate((_psi, _adj_bc))
+
+        return compute_initial_boundary_conditions, compute_terminal_boundary_conditions
 
     def _alg_compile_preprocess(self):
         _annotations = self.annotations
@@ -208,31 +230,49 @@ class BVPFromDual(BVP):
         return compute_dynamics
 
     def _diff_convert_boundary_conditions(self):
-        _x_slice, _lam_slice, _u_slice, _p_slice, _nu_slice = \
-            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu_slice
+        _x_slice, _lam_slice, _u_slice, _p_slice, _nu0_slice, _nuf_slice = \
+            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
 
-        _compute_state_boundary_conditions = self.source_dual.compute_boundary_conditions
-        _compute_adjoint_boundary_conditions = self.source_dual.compute_adjoint_boundary_conditions
+        _compute_initial_boundary_conditions = self.source_dual.compute_initial_boundary_conditions
+        _compute_initial_adjoint_boundary_conditions = self.source_dual.compute_initial_adjoint_boundary_conditions
         _compute_control_boundary_conditions = self.source_dual.control_handler.compute_control_boundary_conditions
 
-        def compute_boundary_conditions(
-                t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+        def compute_initial_boundary_conditions(
+                t: float, y: np.ndarray, rho: np.ndarray, k: np.ndarray
         ) -> np.ndarray:
 
-            x = y[_x_slice, :]
-            lam = y[_lam_slice, :]
-            u = y[_u_slice, :]
+            x = y[_x_slice]
+            lam = y[_lam_slice]
+            u = y[_u_slice]
 
             p = rho[_p_slice]
-            nu = rho[_nu_slice]
+            nu0 = rho[_nu0_slice]
 
-            _psi = _compute_state_boundary_conditions(t, x, p, k)
-            _adj_bc = _compute_adjoint_boundary_conditions(t, x, lam, u, p, nu, k)
-            _dh_du = _compute_control_boundary_conditions(t[0], x[:, 0], lam[:, 0], u[:, 0], p, k)
+            _psi = _compute_initial_boundary_conditions(t, x, p, k)
+            _adj_bc = _compute_initial_adjoint_boundary_conditions(t, x, lam, u, p, nu0, k)
+            _dh_du = _compute_control_boundary_conditions(t, x, lam, u, p, k)
 
             return np.concatenate((_psi, _adj_bc, _dh_du))
 
-        return compute_boundary_conditions
+        _compute_terminal_boundary_conditions = self.source_dual.compute_terminal_boundary_conditions
+        _compute_terminal_adjoint_boundary_conditions = self.source_dual.compute_terminal_adjoint_boundary_conditions
+
+        def compute_terminal_boundary_conditions(
+                t: float, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+        ) -> np.ndarray:
+            x = y[_x_slice]
+            lam = y[_lam_slice]
+            u = y[_u_slice]
+
+            p = rho[_p_slice]
+            nuf = rho[_nuf_slice]
+
+            _psi = _compute_terminal_boundary_conditions(t, x, p, k)
+            _adj_bc = _compute_terminal_adjoint_boundary_conditions(t, x, lam, u, p, nuf, k)
+
+            return np.concatenate((_psi, _adj_bc))
+
+        return compute_initial_boundary_conditions, compute_terminal_boundary_conditions
 
     def _diff_compile_preprocess(self):
         _annotations = self.annotations
