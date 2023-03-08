@@ -9,7 +9,7 @@ from sympy import Symbol, topological_sort
 from giuseppe.problems.protocols.bvp import BVP
 from giuseppe.data_classes.annotations import Annotations
 from giuseppe.utils.compilation import lambdify, jit_compile
-from giuseppe.problems.symbolic.mixins import Symbolic
+from giuseppe.problems.symbolic.utils import Symbolic
 from giuseppe.utils.typing import SymMatrix, EMPTY_SYM_MATRIX, SYM_NULL, SymExpr, NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.utils.strings import stringify_list
 

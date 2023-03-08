@@ -12,7 +12,7 @@ from ...problems.bvp import AdiffBVP
 from ...problems.dual import AdiffDualOCP
 from ...problems.dual.adiff import AdiffDiffControlHandler
 from giuseppe.problems.automatic_differentiation.regularization import maybe_expand
-from giuseppe.problems.symbolic.mixins import Picky
+from giuseppe.problems.symbolic.utils import Picky
 from ...utils.typing import NPArray
 
 _scipy_bvp_sol = TypeVar('_scipy_bvp_sol')

@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 
 from giuseppe.utils import make_array_slices
-from giuseppe.utils.compilation import jit_compile
+from giuseppe.utils.compilation import jit_compile, check_if_can_jit_compile
 from giuseppe.utils.typing import NumbaFloat, NumbaArray
 from giuseppe.data_classes import Solution, Annotations
 from giuseppe.problems.protocols.bvp import BVP
@@ -21,6 +21,8 @@ def convert_dual_to_bvp(dual_prob: Dual) -> 'BVPFromDual':
 class BVPFromDual(BVP):
     def __init__(self, source_dual: Dual, use_jit_compile: bool = True):
         self.source_dual = deepcopy(source_dual)
+
+        self.use_jit_compile = check_if_can_jit_compile(use_jit_compile, self.source_dual)
 
         _source_num_states = self.source_dual.num_states
         _source_num_costates = self.source_dual.num_costates
@@ -80,7 +82,7 @@ class BVPFromDual(BVP):
         else:
             raise ValueError('Cannot convert Dual to BVP without valid control handler')
 
-        if use_jit_compile:
+        if self.use_jit_compile:
             self.compute_dynamics = jit_compile(
                     self.compute_dynamics, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
             )

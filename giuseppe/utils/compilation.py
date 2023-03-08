@@ -50,3 +50,12 @@ def jit_compile(func: Callable, signature: Optional = None):
     except NumbaError as e:
         warn(f'Numba error {e} prevented compilation of function {func}. Uncompiled version will be used.')
         return func
+
+
+def check_if_can_jit_compile(_use_jit_compile_flag, source):
+    if _use_jit_compile_flag:
+        if hasattr(source, 'use_jit_compile'):
+            if source.use_jit_compile:
+                return True
+
+    return False

@@ -4,7 +4,7 @@ from warnings import warn
 
 import casadi as ca
 
-from giuseppe.problems.symbolic.mixins import Picky
+from giuseppe.problems.symbolic.utils import Picky
 from giuseppe.utils.typing import SymMatrix
 from giuseppe.problems.input import AdiffInputProb
 from giuseppe.problems.components.adiffInput import InputAdiffCost, InputAdiffConstraints,\

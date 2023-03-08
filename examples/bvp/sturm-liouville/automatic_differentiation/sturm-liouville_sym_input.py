@@ -35,7 +35,7 @@ sturm_liouville.add_constraint('terminal', 'y - y_f')
 
 ad_bvp = ADiffBVP(SymBVP(sturm_liouville))
 
-solver = SciPySolver(ad_bvp, use_jit_compile=False)
+solver = SciPySolver(ad_bvp)
 
 guess = initialize_guess(ad_bvp, t_span=np.linspace(0, 1, 3))
 

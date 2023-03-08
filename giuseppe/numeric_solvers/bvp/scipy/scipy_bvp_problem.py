@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from giuseppe.utils.compilation import jit_compile
+from giuseppe.utils.compilation import jit_compile, check_if_can_jit_compile
 from giuseppe.utils.typing import NumbaArray, NumbaMatrix
 
 import numpy as np
@@ -16,7 +16,7 @@ from .scipy_types import _scipy_bvp_sol, _dyn_type, _bc_type
 class SciPyBVP:
     def __init__(self, source_bvp: BVP, use_jit_compile: bool = True):
         self.source_bvp = deepcopy(source_bvp)
-        self.use_jit_compile = use_jit_compile
+        self.use_jit_compile = check_if_can_jit_compile(use_jit_compile, self.source_bvp)
 
         self.compute_dynamics = self._compile_dynamics()
         self.compute_boundary_conditions = self._compile_boundary_conditions()

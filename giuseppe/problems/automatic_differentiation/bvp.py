@@ -9,7 +9,7 @@ from giuseppe.data_classes.annotations import Annotations
 from giuseppe.problems.protocols import BVP
 from .input import ADiffInputProb
 from .utils import ca_wrap, lambdify_ca
-from ..symbolic.bvp import SymBVP
+from ..symbolic.bvp import SymBVP, StrInputProb
 
 
 class ADiffBVP(BVP):
@@ -36,7 +36,10 @@ class ADiffBVP(BVP):
             self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
                 = self.create_boundary_conditions()
 
-        elif isinstance(self.source_bvp, (BVP, SymBVP)):
+        elif isinstance(self.source_bvp, (BVP, SymBVP, StrInputProb)):
+            if isinstance(self.source_bvp, StrInputProb):
+                self.source_bvp = SymBVP(self.source_bvp)
+
             if isinstance(self.source_bvp, SymBVP):
                 self.source_bvp = self.source_bvp.compile(use_jit_compile=False)
 
@@ -95,18 +98,3 @@ class ADiffBVP(BVP):
         terminal_boundary_conditions = ca_wrap('Psi_f', self.args, self.source_bvp.compute_terminal_boundary_conditions,
                                                self.iter_args, self.arg_names)
         return initial_boundary_conditions, terminal_boundary_conditions
-
-
-    # def wrap_boundary_conditions(self):
-    #     initial_boundary_conditions = ca_wrap('Psi_0', self.args, self.source_bvp.boundary_conditions.initial,
-    #                                           self.iter_args, self.arg_names)
-    #     terminal_boundary_conditions = ca_wrap('Psi_f', self.args, self.source_bvp.boundary_conditions.terminal,
-    #                                            self.iter_args, self.arg_names)
-    #     return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
-    #
-    # def create_boundary_conditions(self):
-    #     initial_boundary_conditions = ca.Function('Psi_0', self.args, (self.inputConstraints.initial,),
-    #                                               self.arg_names, ('Psi_0',))
-    #     terminal_boundary_conditions = ca.Function('Psi_f', self.args, (self.inputConstraints.terminal,),
-    #                                                self.arg_names, ('Psi_f',))
-    #     return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
