@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional, Union
+from typing import Callable, Iterable, Union, Optional, Tuple
 
 import casadi as ca
-import numpy as np
 
 from giuseppe.utils.conversion import ca_vec2arr, ca_mat2arr
 
@@ -52,3 +51,7 @@ def maybe_expand(fun: ca.Function):
     except RuntimeError:
         out_fun = fun
     return out_fun
+
+
+def get_names(_vec: Union[ca.SX, ca.MX]) -> Tuple[str, ...]:
+    return tuple(_vec[idx].name() for idx in range(_vec.numel()))

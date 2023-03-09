@@ -5,6 +5,9 @@ import casadi as ca
 import numpy as np
 
 from giuseppe.problems.protocols import Regularizer
+from giuseppe.data_classes.annotations import Annotations
+
+from .utils import get_names
 
 
 class ADiffInputState:
@@ -85,12 +88,12 @@ class ADiffInputProb:
 
     def __init__(self, dtype: Union[type(ca.SX), type(ca.MX)] = ca.SX):
         """
-        Initialize AdiffInputProb
+        Initialize ADiffInputProb
         """
         self.dtype = dtype
-        self.independent = None
+        self.independent: Union[ca.SX, ca.MX] = dtype()
         self.states: ADiffInputState = ADiffInputState(dtype=dtype)
-        self.parameters: Optional[ca.SX, ca.MX] = dtype()
+        self.parameters: Union[ca.SX, ca.MX] = dtype()
         self.constants: ADiffInputConstant = ADiffInputConstant(dtype=dtype)
         self.constraints: ADiffInputConstraints = ADiffInputConstraints(dtype=dtype)
         self.inequality_constraints: ADiffInputInequalityConstraints = ADiffInputInequalityConstraints()
@@ -196,3 +199,16 @@ class ADiffInputProb:
                  terminal: Union[ca.SX, ca.MX, float]):
         self.cost = ADiffInputCost(initial, path, terminal)
         return self
+
+    def create_annotations(self) -> Annotations:
+        annotations = Annotations(
+                independent=self.independent.name(),
+                states=get_names(self.states.states),
+                parameters=get_names(self.parameters),
+                constants=get_names(self.constants.constants)
+        )
+
+        if self.controls.numel() > 0:
+            annotations.controls = get_names(self.controls)
+
+        return annotations

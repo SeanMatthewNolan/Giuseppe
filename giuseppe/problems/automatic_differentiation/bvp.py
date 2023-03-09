@@ -27,12 +27,14 @@ class ADiffBVP(BVP):
             self.eom = self.source_bvp.states.eoms
             self.input_constraints = self.source_bvp.constraints
 
+            self.annotations: Annotations = self.source_bvp.create_annotations()
+
             self.num_states = self.states.numel()
             self.num_parameters = self.parameters.numel()
             self.num_constants = self.constants.numel()
 
             self.args = (self.independent, self.states, self.parameters, self.constants)
-            self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, 'dx_dt')
+            self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, ('dx_dt',))
             self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
                 = self.create_boundary_conditions()
 

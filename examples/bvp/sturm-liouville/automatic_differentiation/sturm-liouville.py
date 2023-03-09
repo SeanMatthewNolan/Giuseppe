@@ -31,11 +31,11 @@ sturm_liouville.add_constant(y_f, 0.)
 sturm_liouville.add_constant(a, 1.)
 
 # State Variables
-y = ca.SX.sym()
-yp = ca.SX.sym()
+y = ca.SX.sym('y', 1)
+yp = ca.SX.sym('yp', 1)
 
 # Parameters
-k = ca.SX.sym()
+k = ca.SX.sym('k', 1)
 
 sturm_liouville.add_state(y, yp)
 sturm_liouville.add_state(yp, -k**2 * y)
@@ -51,12 +51,14 @@ sturm_liouville.add_constraint('terminal', y - y_f)
 
 ad_bvp = ADiffBVP(sturm_liouville)
 
+x_dot = ad_bvp.compute_dynamics(0, np.array([0., 1.]), np.array([1.]), ad_bvp.default_values)
+
 solver = SciPySolver(ad_bvp)
 
-# guess = initialize_guess(ad_bvp, t_span=np.linspace(0, 1, 3))
-#
-# cont = ContinuationHandler(solver, guess)
-# cont.add_linear_series(10, {'a': 100})
-# sol_set = cont.run_continuation()
-#
-# sol_set.save('sol_set.data')
+guess = initialize_guess(ad_bvp, t_span=np.linspace(0, 1, 3))
+
+cont = ContinuationHandler(solver, guess)
+cont.add_linear_series(10, {'a': 100})
+sol_set = cont.run_continuation()
+
+sol_set.save('sol_set.data')
