@@ -47,4 +47,8 @@ class BVP(Protocol):
 
 @runtime_checkable
 class VectorizedBVP(BVP, Protocol):
-    ...
+    @staticmethod
+    def compute_dynamics_vectorized(
+            independent: np.ndarray, states: np.ndarray, parameters: np.ndarray, constants: np.ndarray
+    ) -> np.ndarray:
+        ...
