@@ -91,6 +91,20 @@ ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limi
 
 adiff_ocp = ADiffOCP(ocp)
 
+x0, u0, p, k = np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),\
+    adiff_ocp.default_values
 x_dot = adiff_ocp.compute_dynamics(
         0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),
         adiff_ocp.default_values)
+psi_0 = adiff_ocp.compute_initial_boundary_conditions(
+        0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([]),
+        adiff_ocp.default_values
+)
+
+from giuseppe.problems.automatic_differentiation import ADiffDual
+
+lam0, nu0, nuf = np.ones_like(x0), np.ones((7,)), np.ones((3,))
+adiff_dual = ADiffDual(ocp)
+lam_dot = adiff_dual.compute_costate_dynamics(0, x0, lam0, u0, p, k)
+u_dot = adiff_dual.control_handler.compute_control_dynamics(0, x0, lam0, u0, p, k)
+dh_du = adiff_dual.control_handler.compute_control_boundary_conditions(0, x0, lam0, u0, p, k)

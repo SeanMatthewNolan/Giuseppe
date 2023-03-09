@@ -98,6 +98,7 @@ class ADiffOCP(OCP):
             self.iter_bc_args.insert(0, self.bc_args[0])  # Insert time separately b/c not wrapped in list
 
             self.ca_dynamics = self.wrap_dynamics()
+
             self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
                 = self.wrap_boundary_conditions()
 

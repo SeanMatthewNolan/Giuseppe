@@ -1,14 +1,12 @@
 from copy import deepcopy
 from typing import Union
-from warnings import warn
 
 import casadi as ca
 
-from giuseppe.data_classes.annotations import Annotations
 from giuseppe.problems.protocols import OCP, Adjoints
-from .input import ADiffInputProb, ADiffInputInequalityConstraints
+from .input import ADiffInputProb
 from .ocp import ADiffOCP
-from .utils import ca_wrap, lambdify_ca
+from .utils import lambdify_ca, get_names
 from ..symbolic.ocp import SymOCP, StrInputProb
 
 
@@ -30,6 +28,7 @@ class ADiffAdjoints(Adjoints):
         self.num_costates = self.num_states + self.num_parameters
         self.num_initial_adjoints = self.source_ocp.ca_initial_boundary_conditions.size_out(0)[0]
         self.num_terminal_adjoints = self.source_ocp.ca_terminal_boundary_conditions.size_out(0)[0]
+        self.num_adjoints = self.num_initial_adjoints + self.num_terminal_adjoints
 
         self.independent = self.source_ocp.independent
         self.states = self.source_ocp.states
@@ -37,10 +36,14 @@ class ADiffAdjoints(Adjoints):
         self.parameters = self.source_ocp.parameters
         self.constants = self.source_ocp.constants
 
-        self.costates = self.dtype.sym('lam', self.num_costates)
+        self.costates = self.dtype.sym('_lam', self.num_costates)
         self.initial_adjoints = self.dtype.sym('_nu_0', self.num_initial_adjoints)
         self.terminal_adjoints = self.dtype.sym('_nu_f', self.num_terminal_adjoints)
         self.states_and_parameters = ca.vcat((self.states, self.parameters))
+
+        self.annotations.costates = get_names(self.costates)
+        self.annotations.nu0 = get_names(self.initial_adjoints)
+        self.annotations.nuf = get_names(self.terminal_adjoints)
 
         self.arg_names = {
             'ocp_dynamic' : self.source_ocp.dyn_arg_names,
@@ -55,17 +58,19 @@ class ADiffAdjoints(Adjoints):
             'ocp_bc'      : self.source_ocp.bc_args,
             'adj_initial' : (self.independent, self.states, self.costates, self.controls, self.parameters,
                              self.initial_adjoints, self.constants),
-            'adj_dynamic' : (self.independent, self.states, self.costates, self.controls, self.parameters, self.constants),
+            'adj_dynamic' : (self.independent, self.states, self.costates, self.controls, self.parameters,
+                             self.constants),
             'adj_terminal': (self.independent, self.states, self.costates, self.controls, self.parameters,
                              self.terminal_adjoints, self.constants)
         }
 
         psi_0 = self.source_ocp.ca_initial_boundary_conditions(*self.args['ocp_bc'])
         psi_f = self.source_ocp.ca_terminal_boundary_conditions(*self.args['ocp_bc'])
-        phi_0 = self.source_ocp.ca_terminal_cost(*self.args['ocp_bc'])
-        phi_f = self.source_ocp.ca_initial_cost(*self.args['ocp_bc'])
+        phi_0 = self.source_ocp.ca_initial_cost(*self.args['ocp_bc'])
+        phi_f = self.source_ocp.ca_terminal_cost(*self.args['ocp_bc'])
         lagrangian = self.source_ocp.ca_path_cost(*self.args['ocp_dynamic'])
         f = self.source_ocp.eom
+
         hamiltonian = lagrangian + ca.dot(self.costates, f)
         dh_dxp = ca.jacobian(hamiltonian, self.states_and_parameters)
         dh_du = ca.jacobian(hamiltonian, self.controls)
@@ -110,12 +115,16 @@ class ADiffAdjoints(Adjoints):
                 (ca.vertcat(adj1, adj2),),
                 self.arg_names['adj_initial'], ('Psi_0_adj',)
         )
-        self.terminal_adjoint_boundary_conditions = ca.Function(
+        self.ca_terminal_adjoint_boundary_conditions = ca.Function(
                 'Psi_f_adj', self.args['adj_terminal'],
                 (ca.vertcat(adj3, adj4),),
                 self.arg_names['adj_terminal'], ('Psi_f_adj',)
         )
 
-        self.compute_hamiltonian = lambdify_ca(self.ca_hamiltonian)
         self.compute_costate_dynamics = lambdify_ca(self.ca_costate_dynamics)
 
+        self.compute_hamiltonian = lambdify_ca(self.ca_hamiltonian)
+        self.compute_control_law = lambdify_ca(self.ca_dh_du)
+
+        self.compute_initial_adjoint_boundary_conditions = lambdify_ca(self.ca_initial_adjoint_boundary_conditions)
+        self.compute_terminal_adjoint_boundary_conditions = lambdify_ca(self.ca_terminal_adjoint_boundary_conditions)

@@ -3,8 +3,6 @@ import numpy as np
 
 import giuseppe
 
-giuseppe.utils.compilation.JIT_COMPILE = True
-
 ocp = giuseppe.problems.automatic_differentiation.ADiffInputProb(dtype=ca.SX)
 
 # Independent Variables
@@ -45,17 +43,17 @@ eps_alpha = ca.SX.sym('ε_α', 1)
 alpha_min = ca.SX.sym('α_min', 1)
 alpha_max = ca.SX.sym('α_max', 1)
 
-ocp.add_constant(eps_alpha, 1e-5)
-ocp.add_constant(alpha_min, -80 / 180 * 3.1419)
-ocp.add_constant(alpha_max, 80 / 180 * 3.1419)
+ocp.add_constant(eps_alpha, 1e-7)
+ocp.add_constant(alpha_min, -90 / 180 * 3.1419)
+ocp.add_constant(alpha_max, 90 / 180 * 3.1419)
 
 eps_beta = ca.SX.sym('ε_β', 1)
 beta_min = ca.SX.sym('β_min', 1)
 beta_max = ca.SX.sym('β_max', 1)
 
-ocp.add_constant(eps_beta, 1e-10)
-ocp.add_constant(beta_min, -85 / 180 * 3.1419)
-ocp.add_constant(beta_max, 85 / 180 * 3.1419)
+ocp.add_constant(eps_beta, 1e-7)
+ocp.add_constant(beta_min, -90 / 180 * 3.1419)
+ocp.add_constant(beta_max, 90 / 180 * 3.1419)
 
 # Add Controls
 alpha = ca.SX.sym('α', 1)
@@ -133,38 +131,33 @@ ocp.add_inequality_constraint(
         'path', alpha, lower_limit=alpha_min, upper_limit=alpha_max,
         regularizer=giuseppe.problems.automatic_differentiation.regularization.ADiffPenaltyConstraintHandler(
                 eps_alpha, method='sec'))
-# ocp.add_inequality_constraint('path', beta, lower_limit=beta_min, upper_limit=beta_max,
-#                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(
-#                                   eps_alpha, method='sec'))
+ocp.add_inequality_constraint(
+        'path', beta, lower_limit=beta_min, upper_limit=beta_max,
+        regularizer=giuseppe.problems.automatic_differentiation.regularization.ADiffPenaltyConstraintHandler(
+                eps_beta, method='sec'))
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    adiff_ocp = giuseppe.problems.automatic_differentiation.ADiffOCP(ocp)
+    adiff_dual = giuseppe.problems.automatic_differentiation.ADiffDual(ocp)
 
-x0, u0, p, k = np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),\
-    adiff_ocp.default_values
-x_dot = adiff_ocp.compute_dynamics(
-        0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),
-        adiff_ocp.default_values)
-psi_0 = adiff_ocp.compute_initial_boundary_conditions(
-        0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([]),
-        adiff_ocp.default_values
-)
-
-from giuseppe.problems.automatic_differentiation import ADiffAdjoints
-
+x0, u0, p, k = np.array([260_000, 100., 100., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),\
+    adiff_dual.default_values
+x_dot = adiff_dual.compute_dynamics(12., x0, u0, p, k)
+psi_0 = adiff_dual.compute_initial_boundary_conditions(12., x0, p, k)
+psi_f = adiff_dual.compute_terminal_boundary_conditions(12., x0, p, k)
 lam0, nu0, nuf = np.ones_like(x0), np.ones((7,)), np.ones((3,))
-adiff_adjoints = ADiffAdjoints(ocp)
-lam_dot = adiff_adjoints.compute_costate_dynamics(0, x0, lam0, u0, p, k)
+lam_dot = adiff_dual.compute_costate_dynamics(100, x0, lam0, u0, p, k)
+adj_bc0 = adiff_dual.compute_initial_adjoint_boundary_conditions(100, x0, lam0, u0, p, nu0, k)
+adj_bcf = adiff_dual.compute_terminal_adjoint_boundary_conditions(100, x0, lam0, u0, p, nuf, k)
 
-# if __name__ == '__main__':
-#     guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
-#     seed_sol = num_solver.solve(guess.k, guess)
-#     sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
-#
-#     cont = giuseppe.continuation.ContinuationHandler(sol_set)
-#     cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
-#     cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
-#     cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
-#     sol_set = cont.run_continuation(num_solver)
-#
-#     sol_set.save('sol_set.data')
+solver = giuseppe.numeric_solvers.SciPySolver(adiff_dual)
+guess = giuseppe.guess_generation.auto_propagate_guess(adiff_dual, control=(15/180*3.14159, 0), t_span=100)
+
+cont = giuseppe.continuation.ContinuationHandler(solver, guess)
+cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
+cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
+cont.add_linear_series(90, {'ξ': np.pi / 2})
+cont.add_linear_series(90, {'β_min': -70 / 180 * 3.14159, 'β_max': 70 / 180 * 3.14159})
+cont.add_logarithmic_series(90, {'ε_α': 1e-10, 'ε_β': 1e-10})
+sol_set = cont.run_continuation()
+
+sol_set.save('sol_set.data')
