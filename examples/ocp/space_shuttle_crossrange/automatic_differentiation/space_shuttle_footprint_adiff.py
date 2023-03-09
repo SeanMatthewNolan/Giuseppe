@@ -1,23 +1,18 @@
 import os
-import pickle
 
 import numpy as np
 
-import giuseppe
+from giuseppe.numeric_solvers import SciPySolver
 from giuseppe.continuation import ContinuationHandler
-from giuseppe.guess_generators import auto_propagate_guess
-from giuseppe.io import InputOCP, SolutionSet
-from giuseppe.numeric_solvers.bvp import AdiffScipySolveBVP
-from giuseppe.problems.dual import AdiffDual, AdiffDualOCP
-from giuseppe.problems.ocp import SymOCP, AdiffOCP
-from giuseppe.problems.regularization import PenaltyConstraintHandler
+from giuseppe.guess_generation import auto_propagate_guess
+from giuseppe.problems.input import StrInputProb
+from giuseppe.problems.symbolic import SymDual, PenaltyConstraintHandler, SymOCP
+from giuseppe.problems.automatic_differentiation import ADiffOCP
 from giuseppe.utils import Timer
-
-giuseppe.utils.compilation.JIT_COMPILE = True
 
 os.chdir(os.path.dirname(__file__))  # Set directory to current location
 
-ocp = InputOCP()
+ocp = StrInputProb()
 
 ocp.set_independent('t')
 
@@ -56,13 +51,13 @@ ocp.add_constant('s_ref', 2690)
 
 ocp.add_constant('xi', 0)
 
-ocp.add_constant('eps_alpha', 1e-5)
-ocp.add_constant('alpha_min', -80 / 180 * 3.1419)
-ocp.add_constant('alpha_max', 80 / 180 * 3.1419)
+ocp.add_constant('eps_alpha', 1e-7)
+ocp.add_constant('alpha_min', -90 / 180 * 3.1419)
+ocp.add_constant('alpha_max', 90 / 180 * 3.1419)
 
-ocp.add_constant('eps_beta', 1e-10)
-ocp.add_constant('beta_min', -85 / 180 * 3.1419)
-ocp.add_constant('beta_max', 85 / 180 * 3.1419)
+ocp.add_constant('eps_beta', 1e-7)
+ocp.add_constant('beta_min', -90 / 180 * 3.1419)
+ocp.add_constant('beta_max', 90 / 180 * 3.1419)
 
 ocp.add_constant('h_0', 260_000)
 ocp.add_constant('phi_0', 0)
@@ -91,32 +86,11 @@ ocp.add_constraint('terminal', 'gamma - gamma_f')
 
 ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
                               regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
-# ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
-#                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec))
+ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
+                              regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
-with Timer(prefix='Compilation Time:'):
-    sym_ocp = SymOCP(ocp)
-    adiff_ocp = AdiffOCP(sym_ocp)
-    adiff_dual = AdiffDual(adiff_ocp)
-    adiff_dualocp = AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
-    num_solver = AdiffScipySolveBVP(adiff_dualocp, bc_tol=1e-8)
+adiff_ocp = ADiffOCP(ocp)
 
-guess = auto_propagate_guess(adiff_dualocp, control=(20 / 180 * 3.14159, 0), t_span=100)
-with open('guess.data', 'wb') as file:
-    pickle.dump(guess, file)
-
-seed_sol = num_solver.solve(guess.k, guess)
-print(seed_sol.converged)
-
-with open('seed.data', 'wb') as file:
-    pickle.dump(seed_sol, file)
-
-sol_set = SolutionSet(adiff_dualocp, seed_sol)
-cont = ContinuationHandler(sol_set)
-cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000}, bisection=True)
-cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159}, bisection=True)
-# cont.add_linear_series(100, {'alpha_min': -5 / 180 * 3.14159, 'alpha_max': 20 / 180 * 3.14159}, bisection=True)
-cont.add_linear_series(90, {'xi': np.pi / 2}, bisection=True)
-sol_set = cont.run_continuation(num_solver)
-
-sol_set.save('sol_set.data')
+x_dot = adiff_ocp.compute_dynamics(
+        0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),
+        adiff_ocp.default_values)

@@ -130,7 +130,7 @@ ocp.add_constraint('terminal', v - v_f)
 ocp.add_constraint('terminal', γ - γ_f)
 
 ocp.add_inequality_constraint('path', alpha, lower_limit=alpha_min, upper_limit=alpha_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(
+                              regularizer=giuseppe.regularization.ADiffPenaltyConstraintHandler(
                                       eps_alpha, method='sec'))
 # ocp.add_inequality_constraint('path', beta, lower_limit=beta_min, upper_limit=beta_max,
 #                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(

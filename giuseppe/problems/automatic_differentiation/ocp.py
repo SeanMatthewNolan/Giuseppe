@@ -1,161 +1,157 @@
 from copy import deepcopy
-from typing import Union
+from typing import Union, Optional
 from warnings import warn
 
 import casadi as ca
+from numba.core.registry import CPUDispatcher
 
-from giuseppe.problems.symbolic.utils import Picky
-from giuseppe.utils.typing import SymMatrix
-from giuseppe.problems.input import AdiffInputProb
-from giuseppe.problems.components.adiffInput import InputAdiffCost, InputAdiffConstraints,\
-    InputAdiffInequalityConstraints
-from giuseppe.problems.ocp.compiled import CompOCP
-from giuseppe.problems.ocp.symbolic import SymOCP
-from giuseppe.problems.automatic_differentiation.regularization import AdiffBoundaryConditions, AdiffCost, ca_wrap
+from giuseppe.data_classes.annotations import Annotations
+from giuseppe.problems.protocols import OCP
+from .input import ADiffInputProb, ADiffInputInequalityConstraints
+from .utils import ca_wrap, lambdify_ca
+from ..symbolic.ocp import SymOCP, StrInputProb
 
 
-class AdiffOCP(Picky):
-    SUPPORTED_INPUTS: type = Union[AdiffInputProb, SymOCP, CompOCP]
+class ADiffOCP(OCP):
+    def __init__(self, source_ocp: Union[ADiffInputProb, SymOCP, OCP, StrInputProb]):
+        self.source_ocp = deepcopy(source_ocp)
 
-    def __init__(self, source_ocp: SUPPORTED_INPUTS):
-        Picky.__init__(self, source_ocp)
-        self.src_ocp = deepcopy(source_ocp)
+        self.dyn_arg_names = ('t', 'x', 'u', 'p', 'k')
+        self.bc_arg_names = ('t', 'x', 'p', 'k')
 
-        self.arg_names = ('t', 'x', 'u', 'p', 'k')
+        if isinstance(self.source_ocp, ADiffInputProb):
+            self.independent = self.source_ocp.independent
+            self.states = self.source_ocp.states.states
+            self.controls = self.source_ocp.controls
+            self.parameters = self.source_ocp.parameters
+            self.constants = self.source_ocp.constants.constants
+            self.default_values = self.source_ocp.constants.default_values
+            self.eom = self.source_ocp.states.eoms
+            self.input_constraints = self.source_ocp.constraints
+            self.input_cost = self.source_ocp.cost
 
-        if isinstance(self.src_ocp, AdiffInputProb):
-            self.dtype = self.src_ocp.dtype
-            self.comp_ocp = None
-            self.independent = self.src_ocp.independent
-            self.states = self.src_ocp.states.states
-            self.controls = self.src_ocp.controls
-            self.parameters = self.src_ocp.parameters
-            self.constants = self.src_ocp.constants.constants
+            self.annotations: Annotations = self.source_ocp.create_annotations()
 
-            self.default_values = self.src_ocp.constants.default_values
-            self.eom = self.src_ocp.states.eoms
-            self.inputConstraints = self.src_ocp.constraints
-            self.inputCost = self.src_ocp.cost
+            self.num_states = self.states.numel()
+            self.num_controls = self.controls.numel()
+            self.num_parameters = self.parameters.numel()
+            self.num_constants = self.constants.numel()
 
             self.unregulated_controls = self.controls
-            self.ca_pseudo2control = ca.Function('u', (self.controls, self.constants),
-                                                 (self.controls,), ('u_reg', 'k'), ('u',))
-            self.ca_control2pseudo = ca.Function('u', (self.unregulated_controls, self.constants),
-                                                 (self.unregulated_controls,), ('u', 'k'), ('u_reg',))
-            self.process_inequality_constraints(self.src_ocp.inequality_constraints)
+            self.ca_pseudo2control = ca.Function(
+                    'u', (self.controls, self.constants),
+                    (self.controls,), ('u_reg', 'k'), ('u',))
+            self.ca_control2pseudo = ca.Function(
+                    'u', (self.unregulated_controls, self.constants),
+                    (self.unregulated_controls,), ('u', 'k'), ('u_reg',))
+            self.process_inequality_constraints(self.source_ocp.inequality_constraints)
 
-            self.num_states = self.states.shape[0]
-            self.num_controls = self.controls.shape[0]
-            self.num_parameters = self.parameters.shape[0]
-            self.num_constants = self.constants.shape[0]
+            self.dyn_args = (self.independent, self.states, self.controls, self.parameters, self.constants)
+            self.bc_args = (self.independent, self.states, self.parameters, self.constants)
 
-            self.args = (self.independent, self.states, self.controls, self.parameters, self.constants)
-            self.ca_dynamics = ca.Function('f', self.args, (self.eom,), self.arg_names, ('dx_dt',))
-            self.ca_boundary_conditions = self.create_boundary_conditions()
-            self.ca_cost = self.create_cost()
+            self.ca_dynamics = ca.Function('f', self.dyn_args, (self.eom,), self.dyn_arg_names, ('dx_dt',))
+            self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
+                = self.create_boundary_conditions()
+            self.ca_compute_initial_cost, self.ca_compute_path_cost, self.ca_compute_terminal_cost = self.create_cost()
 
-        else:
+        elif isinstance(self.source_ocp, (OCP, SymOCP, StrInputProb)):
             self.dtype = ca.SX
-            if isinstance(self.src_ocp, CompOCP):
-                if self.src_ocp.use_jit_compile:
-                    warn('AdiffDual cannot accept JIT compiled CompDual! Recompiling CompDual without JIT...')
-                    self.comp_ocp: CompOCP = CompOCP(self.src_ocp.src_ocp, use_jit_compile=False)
-                else:
-                    self.comp_ocp: CompOCP = deepcopy(self.src_ocp)
-                self.constants: SymMatrix = self.src_ocp.src_ocp.constants
-            else:
-                self.comp_ocp: CompOCP = CompOCP(self.src_ocp, use_jit_compile=False)
-                self.constants: SymMatrix = self.src_ocp.constants
 
-            self.num_states = self.comp_ocp.num_states
-            self.num_parameters = self.comp_ocp.num_parameters
-            self.num_constants = self.comp_ocp.num_constants
-            self.num_controls = self.comp_ocp.num_controls
+            if isinstance(self.source_ocp, StrInputProb):
+                self.source_ocp = SymOCP(self.source_ocp)
 
-            self.default_values = self.comp_ocp.default_values
+            if isinstance(self.source_ocp, SymOCP):
+                self.source_ocp = self.source_ocp.compile(use_jit_compile=False)
 
-            # Convert sympy symbolic args to CasADi symbolic args
-            self.independent = self.sym2ca_sym(self.src_ocp.sym_args[0])
-            self.states = self.sym2ca_sym(self.src_ocp.sym_args[1])
-            self.controls = self.sym2ca_sym(self.src_ocp.sym_args[2])
-            self.parameters = self.sym2ca_sym(self.src_ocp.sym_args[3])
-            self.constants = self.sym2ca_sym(self.src_ocp.sym_args[4])
+            if isinstance(self.source_ocp.compute_dynamics, CPUDispatcher) \
+                    or isinstance(self.source_ocp.compute_boundary_conditions, CPUDispatcher):
+                warn('ADiffBVP cannot accept JIT compiled BVP! Please don\'t JIT compile in this case')
 
-            self.args = (self.independent, self.states, self.controls, self.parameters, self.constants)
-            self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]
-            self.iter_args.insert(0, self.args[0])  # Insert time separately b/c not wrapped in list
+            self.annotations = self.source_ocp.annotations
 
-            self.ca_dynamics, self.eom = self.wrap_dynamics()
-            self.ca_boundary_conditions, self.inputConstraints = self.wrap_boundary_conditions()
-            self.ca_cost, self.inputCost = self.wrap_cost()
+            if isinstance(self.source_ocp.compute_dynamics, CPUDispatcher):
+                self.source_ocp.compute_dynamics = self.source_ocp.compute_dynamics.py_func
 
-    def sym2ca_sym(self, sympy_sym):
-        """
+            if isinstance(self.source_ocp.compute_boundary_conditions, CPUDispatcher):
+                self.source_ocp.compute_boundary_conditions = self.source_ocp.compute_boundary_conditions.py_func
 
-        Parameters
-        ----------
-        sympy_sym
-            A sympy scalar or vector
+            self.num_states = self.source_ocp.num_states
+            self.num_controls = self.source_ocp.num_controls
+            self.num_parameters = self.source_ocp.num_parameters
+            self.num_constants = self.source_ocp.num_constants
+            self.default_values = self.source_ocp.default_values
 
-        Returns
-        -------
-        ca_sym
-            A CasADi symbolic vector
+            self.independent = self.dtype.sym(self.annotations.independent, 1)
+            self.states = self.dtype.sym(str(self.annotations.states), self.num_states)
+            self.controls = self.dtype.sym(str(self.annotations.controls), self.num_controls)
+            self.parameters = self.dtype.sym(str(self.annotations.parameters), self.num_parameters)
+            self.constants = self.dtype.sym(str(self.annotations.constants), self.num_constants)
 
-        """
-        if hasattr(sympy_sym, '__len__'):
-            length = len(sympy_sym)
+            self.dyn_args = (self.independent, self.states, self.controls, self.parameters, self.constants)
+            self.iter_dyn_args = [ca.vertsplit(arg, 1) for arg in self.dyn_args[1:]]
+            self.iter_dyn_args.insert(0, self.dyn_args[0])  # Insert time separately b/c not wrapped in list
+
+            self.bc_args = (self.independent, self.states, self.parameters, self.constants)
+            self.iter_bc_args = [ca.vertsplit(arg, 1) for arg in self.bc_args[1:]]
+            self.iter_bc_args.insert(0, self.bc_args[0])  # Insert time separately b/c not wrapped in list
+
+            self.ca_dynamics = self.wrap_dynamics()
+            self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
+                = self.wrap_boundary_conditions()
+
+            self.ca_compute_initial_cost, self.ca_compute_path_cost, self.ca_compute_terminal_cost = self.wrap_cost()
+
         else:
-            length = 1
+            raise ValueError('Need a source BVP')
 
-        return self.dtype.sym(str(sympy_sym), length)
+        self.compute_dynamics = lambdify_ca(self.ca_dynamics)
+
+        self.compute_initial_boundary_conditions = lambdify_ca(self.ca_initial_boundary_conditions)
+        self.compute_terminal_boundary_conditions = lambdify_ca(self.ca_terminal_boundary_conditions)
+
+        self.compute_initial_cost = lambdify_ca(self.ca_compute_initial_cost)
+        self.compute_path_cost = lambdify_ca(self.ca_compute_path_cost)
+        self.compute_terminal_cost = lambdify_ca(self.ca_compute_terminal_cost)
 
     def wrap_dynamics(self):
-        dynamics_fun = ca_wrap('f', self.args, self.comp_ocp.dynamics, self.iter_args,
-                               self.arg_names, 'dx_dt')
-        dynamics_sym = dynamics_fun(*self.args)
-        return dynamics_fun, dynamics_sym
-
-    def wrap_boundary_conditions(self):
-        initial_boundary_conditions = ca_wrap('Psi_0', self.args, self.comp_ocp.boundary_conditions.initial,
-                                              self.iter_args, self.arg_names)
-        terminal_boundary_conditions = ca_wrap('Psi_f', self.args, self.comp_ocp.boundary_conditions.terminal,
-                                               self.iter_args, self.arg_names)
-        adiff_bcs = AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
-        input_bcs = InputAdiffConstraints(initial=initial_boundary_conditions(*self.args),
-                                          terminal=terminal_boundary_conditions(*self.args))
-        return adiff_bcs, input_bcs
+        return ca_wrap('f', self.dyn_args, self.source_ocp.compute_dynamics,
+                       self.iter_dyn_args, self.dyn_arg_names, 'dx_dt')
 
     def create_boundary_conditions(self):
-        initial_boundary_conditions = ca.Function('Psi_0', self.args, (self.inputConstraints.initial,),
-                                                  self.arg_names, ('Psi_0',))
-        terminal_boundary_conditions = ca.Function('Psi_f', self.args, (self.inputConstraints.terminal,),
-                                                   self.arg_names, ('Psi_f',))
-        return AdiffBoundaryConditions(initial_boundary_conditions, terminal_boundary_conditions)
+        initial_boundary_conditions = ca.Function(
+                'Psi_0', self.bc_args, (self.input_constraints.initial,), self.bc_arg_names, ('Psi_0',))
+        terminal_boundary_conditions = ca.Function(
+                'Psi_f', self.bc_args, (self.input_constraints.terminal,), self.bc_arg_names, ('Psi_f',))
+        return initial_boundary_conditions, terminal_boundary_conditions
+
+    def wrap_boundary_conditions(self):
+        initial_boundary_conditions = ca_wrap(
+                'Psi_0', self.bc_args, self.source_ocp.compute_initial_boundary_conditions,
+                self.iter_bc_args, self.bc_arg_names)
+        terminal_boundary_conditions = ca_wrap(
+                'Psi_f', self.bc_args, self.source_ocp.compute_terminal_boundary_conditions,
+                self.iter_bc_args, self.bc_arg_names)
+        return initial_boundary_conditions, terminal_boundary_conditions
 
     def wrap_cost(self):
-        initial_cost = ca_wrap('Phi_0', self.args, self.comp_ocp.cost.initial,
-                               self.iter_args, self.arg_names)
-        path_cost = ca_wrap('L', self.args, self.comp_ocp.cost.path,
-                            self.iter_args, self.arg_names)
-        terminal_cost = ca_wrap('Phi_f', self.args, self.comp_ocp.cost.terminal,
-                                self.iter_args, self.arg_names)
-        adiff_cost = AdiffCost(initial_cost, path_cost, terminal_cost)
-        input_cost = InputAdiffCost(initial=initial_cost(*self.args),
-                                    path=path_cost(*self.args),
-                                    terminal=terminal_cost(*self.args))
-        return adiff_cost, input_cost
+        initial_cost = ca_wrap('Phi_0', self.bc_args, self.source_ocp.compute_initial_cost,
+                               self.iter_bc_args, self.bc_arg_names)
+        path_cost = ca_wrap('L', self.dyn_args, self.source_ocp.compute_path_cost,
+                            self.iter_dyn_args, self.dyn_arg_names)
+        terminal_cost = ca_wrap('Phi_f', self.bc_args, self.source_ocp.compute_terminal_cost,
+                                self.iter_bc_args, self.bc_arg_names)
+        return initial_cost, path_cost, terminal_cost
 
     def create_cost(self):
-        initial_cost = ca.Function('Phi_0', self.args, (self.inputCost.initial,),
-                                   self.arg_names, ('Phi_0',))
-        path_cost = ca.Function('L', self.args, (self.inputCost.path,),
-                                self.arg_names, ('L',))
-        terminal_cost = ca.Function('Phi_f', self.args, (self.inputCost.terminal,),
-                                    self.arg_names, ('Phi_f',))
-        return AdiffCost(initial_cost, path_cost, terminal_cost)
+        initial_cost = ca.Function('Phi_0', self.bc_args, (self.input_cost.initial,),
+                                   self.bc_arg_names, ('Phi_0',))
+        path_cost = ca.Function('L', self.dyn_args, (self.input_cost.path,),
+                                self.dyn_arg_names, ('L',))
+        terminal_cost = ca.Function('Phi_f', self.bc_args, (self.input_cost.terminal,),
+                                    self.bc_arg_names, ('Phi_f',))
+        return initial_cost, path_cost, terminal_cost
 
-    def process_inequality_constraints(self, input_inequality_constraints: InputAdiffInequalityConstraints):
+    def process_inequality_constraints(self, input_inequality_constraints: ADiffInputInequalityConstraints):
         for position in ['initial', 'path', 'terminal', 'control']:
             for constraint in input_inequality_constraints.__getattribute__(position):
                 if constraint.regularizer is None:

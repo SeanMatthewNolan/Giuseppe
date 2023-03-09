@@ -19,6 +19,8 @@ class ADiffBVP(BVP):
         self.arg_names = ('t', 'x', 'p', 'k')
 
         if isinstance(self.source_bvp, ADiffInputProb):
+            self.dtype = self.source_bvp.dtype
+
             self.independent = self.source_bvp.independent
             self.states = self.source_bvp.states.states
             self.parameters = self.source_bvp.parameters
@@ -39,6 +41,8 @@ class ADiffBVP(BVP):
                 = self.create_boundary_conditions()
 
         elif isinstance(self.source_bvp, (BVP, SymBVP, StrInputProb)):
+            self.dtype = ca.SX
+
             if isinstance(self.source_bvp, StrInputProb):
                 self.source_bvp = SymBVP(self.source_bvp)
 
@@ -49,7 +53,7 @@ class ADiffBVP(BVP):
                     or isinstance(self.source_bvp.compute_boundary_conditions, CPUDispatcher):
                 warn('ADiffBVP cannot accept JIT compiled BVP! Please don\'t JIT compile in this case')
 
-            self.annotations = source_bvp.annotations
+            self.annotations = self.source_bvp.annotations
 
             if isinstance(self.source_bvp.compute_dynamics, CPUDispatcher):
                 self.source_bvp.compute_dynamics = self.source_bvp.compute_dynamics.py_func
@@ -57,17 +61,15 @@ class ADiffBVP(BVP):
             if isinstance(self.source_bvp.compute_boundary_conditions, CPUDispatcher):
                 self.source_bvp.compute_boundary_conditions = self.source_bvp.compute_boundary_conditions.py_func
 
-            self.constants: Optional[Annotations] = self.source_bvp.annotations
-
             self.num_states = self.source_bvp.num_states
             self.num_parameters = self.source_bvp.num_parameters
             self.num_constants = self.source_bvp.num_constants
             self.default_values = self.source_bvp.default_values
 
-            self.independent = ca.MX.sym('t', 1)
-            self.states = ca.MX.sym('x', self.num_states)
-            self.parameters = ca.MX.sym('p', self.num_parameters)
-            self.constants = ca.MX.sym('k', self.num_constants)
+            self.independent = self.dtype.sym(self.annotations.independent, 1)
+            self.states = self.dtype.sym(str(self.annotations.states), self.num_states)
+            self.parameters = self.dtype.sym(str(self.annotations.parameters), self.num_parameters)
+            self.constants = self.dtype.sym(str(self.annotations.constants), self.num_constants)
 
             self.args = (self.independent, self.states, self.parameters, self.constants)
             self.iter_args = [ca.vertsplit(arg, 1) for arg in self.args[1:]]

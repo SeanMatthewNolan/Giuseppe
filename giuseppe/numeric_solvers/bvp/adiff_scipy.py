@@ -157,9 +157,9 @@ class AdiffScipySolveBVP(Picky):
 
     @staticmethod
     def _generate_ocp_diff_dynamics(dual_ocp: AdiffDualOCP) -> _dyn_type:
-        args = dual_ocp.dual.args['dynamic']
+        args = dual_ocp.dual.dyn_args['dynamic']
         arg_names = dual_ocp.dual.arg_names['dynamic']
-        _x_dot = dual_ocp.ocp.ca_dynamics(*dual_ocp.ocp.args)
+        _x_dot = dual_ocp.ocp.ca_dynamics(*dual_ocp.ocp.dyn_args)
         _lam_dot = dual_ocp.dual.ca_costate_dynamics(*args)
         _u_dot = dual_ocp.control_handler.ca_control_dynamics(*args)
         y_dyn = ca.Function('dy_dt', args, (ca.vcat((_x_dot, _lam_dot, _u_dot)),), arg_names, ('dy_dt',))

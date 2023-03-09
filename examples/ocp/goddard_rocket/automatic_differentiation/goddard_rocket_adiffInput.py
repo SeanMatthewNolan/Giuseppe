@@ -56,7 +56,7 @@ goddard.add_constraint('terminal', m - m_f)
 
 goddard.add_inequality_constraint(
         'control', thrust, lower_limit=0, upper_limit=max_thrust,
-        regularizer=giuseppe.regularization.AdiffControlConstraintHandler(eps_thrust * h_ref, method='sin'))
+        regularizer=giuseppe.regularization.ADiffControlConstraintHandler(eps_thrust * h_ref, method='sin'))
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.AdiffOCP(goddard)

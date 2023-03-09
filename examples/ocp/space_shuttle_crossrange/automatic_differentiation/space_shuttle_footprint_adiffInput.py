@@ -5,7 +5,7 @@ import giuseppe
 
 giuseppe.utils.compilation.JIT_COMPILE = True
 
-ocp = giuseppe.io.AdiffInputOCP(dtype=ca.SX)
+ocp = giuseppe.problems.automatic_differentiation.ADiffInputProb(dtype=ca.SX)
 
 # Independent Variables
 t = ca.SX.sym('t', 1)
@@ -129,28 +129,30 @@ ocp.add_constraint('terminal', h - h_f)
 ocp.add_constraint('terminal', v - v_f)
 ocp.add_constraint('terminal', γ - γ_f)
 
-ocp.add_inequality_constraint('path', alpha, lower_limit=alpha_min, upper_limit=alpha_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(
-                                  eps_alpha, method='sec'))
+ocp.add_inequality_constraint(
+        'path', alpha, lower_limit=alpha_min, upper_limit=alpha_max,
+        regularizer=giuseppe.problems.automatic_differentiation.regularization.ADiffPenaltyConstraintHandler(
+                eps_alpha, method='sec'))
 # ocp.add_inequality_constraint('path', beta, lower_limit=beta_min, upper_limit=beta_max,
 #                               regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(
 #                                   eps_alpha, method='sec'))
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    adiff_ocp = giuseppe.problems.ocp.AdiffOCP(ocp)
-    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
-    adiff_bvp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual, control_method='differential')
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_bvp, bc_tol=1e-8, use_jac=True)
+    adiff_ocp = giuseppe.problems.automatic_differentiation.ADiffOCP(ocp)
 
-if __name__ == '__main__':
-    guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
-    seed_sol = num_solver.solve(guess.k, guess)
-    sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
+x_dot = adiff_ocp.compute_dynamics(
+        0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),
+        adiff_ocp.default_values)
 
-    cont = giuseppe.continuation.ContinuationHandler(sol_set)
-    cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
-    cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
-    cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
-    sol_set = cont.run_continuation(num_solver)
-
-    sol_set.save('sol_set.data')
+# if __name__ == '__main__':
+#     guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)
+#     seed_sol = num_solver.solve(guess.k, guess)
+#     sol_set = giuseppe.io.SolutionSet(adiff_bvp, seed_sol)
+#
+#     cont = giuseppe.continuation.ContinuationHandler(sol_set)
+#     cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
+#     cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'γ_f': -5 / 180 * 3.14159})
+#     cont.add_linear_series(90, {'ξ': np.pi / 2}, bisection=True)
+#     sol_set = cont.run_continuation(num_solver)
+#
+#     sol_set.save('sol_set.data')

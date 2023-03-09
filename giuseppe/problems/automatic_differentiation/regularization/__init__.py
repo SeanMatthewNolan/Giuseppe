@@ -1,2 +1,2 @@
-from .control_constraints import AdiffControlConstraintHandler
-from .penalty_constraints import AdiffPenaltyConstraintHandler
+from .control_constraints import ADiffControlConstraintHandler
+from .penalty_constraints import ADiffPenaltyConstraintHandler

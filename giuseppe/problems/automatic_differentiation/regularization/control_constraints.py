@@ -1,19 +1,18 @@
-from typing import Union, Tuple, TYPE_CHECKING, TypeVar
+from typing import Union, TYPE_CHECKING, TypeVar, Tuple
 
 import casadi as ca
 
-from giuseppe.problems.protocols.generic import Regularizer
-from giuseppe.utils.typing import Symbol, SymExpr
+from giuseppe.problems.protocols.regularizer import Regularizer
 
 if TYPE_CHECKING:
-    from giuseppe.problems import AdiffOCP
-    from giuseppe.problems.components.adiffInput import InputAdiffInequalityConstraint
+    from ..ocp import ADiffOCP
+    from ..input import ADiffInputInequalityConstraint
 else:
-    AdiffOCP = TypeVar('AdiffOCP')
-    InputAdiffInequalityConstraint = TypeVar('InputAdiffInequalityConstraint')
+    ADiffOCP = TypeVar('ADiffOCP')
+    ADiffInputInequalityConstraint = TypeVar('ADiffInputInequalityConstraint')
 
 
-class AdiffControlConstraintHandler(Regularizer):
+class ADiffControlConstraintHandler(Regularizer):
     def __init__(self, regulator: Union[ca.SX, ca.MX], method: str = 'atan'):
         self.regulator: Union[ca.SX, ca.MX] = regulator
         self.method: str = method
@@ -36,7 +35,7 @@ class AdiffControlConstraintHandler(Regularizer):
 
     # TODO: Add technique to compute real control automatically
     # TODO: Explore one-sided control functions
-    def apply(self, prob: AdiffOCP, control_constraint: InputAdiffInequalityConstraint, position: str) -> AdiffOCP:
+    def apply(self, prob: ADiffOCP, control_constraint: ADiffInputInequalityConstraint, position: str) -> ADiffOCP:
         if position not in ['control', 'path']:
             raise ValueError(f'Location of control constraint regularizer should be \'control\' or \'path\'')
 
@@ -51,10 +50,11 @@ class AdiffControlConstraintHandler(Regularizer):
             if control_constraint.lower_limit is None or control_constraint.upper_limit is None:
                 raise ValueError('Control constraints must have lower and upper limits')
 
-            control_expr, pseudo_expr, error_expr = self.expr_generator(pseudo_control, bounded_control,
-                                                                        control_constraint.lower_limit,
-                                                                        control_constraint.upper_limit,
-                                                                        self.regulator)
+            control_expr, pseudo_expr, error_expr = self.expr_generator(
+                    pseudo_control, bounded_control,
+                    control_constraint.lower_limit,
+                    control_constraint.upper_limit,
+                    self.regulator)
             pseudo_control_expression = ca.substitute(prob.ca_pseudo2control(prob.controls, prob.constants),
                                                       bounded_control, control_expr)
             real_control_expression = ca.substitute(prob.ca_control2pseudo(prob.unregulated_controls, prob.constants),
@@ -69,42 +69,48 @@ class AdiffControlConstraintHandler(Regularizer):
 
         prob.eom = ca.substitute(prob.eom, bounded_control, control_expr)
 
-        prob.inputConstraints.initial = ca.substitute(prob.inputConstraints.initial, bounded_control, control_expr)
-        prob.inputConstraints.terminal = ca.substitute(prob.inputConstraints.terminal, bounded_control, control_expr)
+        prob.input_constraints.initial = ca.substitute(prob.inputConstraints.initial, bounded_control, control_expr)
+        prob.input_constraints.terminal = ca.substitute(prob.inputConstraints.terminal, bounded_control, control_expr)
 
-        prob.inputCost.initial = ca.substitute(prob.inputCost.initial, bounded_control, control_expr)
-        prob.inputCost.terminal = ca.substitute(prob.inputCost.terminal, bounded_control, control_expr)
-
-        prob.inputCost.path = ca.substitute(prob.inputCost.path, bounded_control, control_expr) + error_expr
+        prob.input_cost.initial = ca.substitute(prob.inputCost.initial, bounded_control, control_expr)
+        prob.input_cost.path = ca.substitute(prob.inputCost.path, bounded_control, control_expr) + error_expr
+        prob.input_cost.terminal = ca.substitute(prob.inputCost.terminal, bounded_control, control_expr)
 
         return prob
 
     @staticmethod
-    def _gen_atan_expr(pseudo_control: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float],
-                       upper_limit: Union[Union[ca.SX, ca.MX], float],
-                       regulator: Union[ca.SX, ca.MX]) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
+    def _gen_atan_expr(
+            pseudo_control: Union[ca.SX, ca.MX], control: Union[ca.SX, ca.MX],
+            lower_limit: Union[ca.SX, ca.MX], upper_limit: Union[ca.SX, ca.MX],
+            regulator: Union[ca.SX, ca.MX]
+    ) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) / ca.pi * ca.atan(pseudo_control / regulator) \
                        + (upper_limit + lower_limit) / 2
+        pseudo_expr = ca.pi * ca.tan((2 * control - upper_limit - lower_limit) / (upper_limit - lower_limit))
         error_expr = regulator * ca.log(1 + pseudo_control**2 / regulator**2) / ca.pi
 
-        return control_expr, error_expr
+        return control_expr, pseudo_expr, error_expr
 
     @staticmethod
-    def _gen_trig_expr(pseudo_control: Symbol, control: Symbol,
-                       lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr)\
-            -> Tuple[SymExpr, SymExpr, SymExpr]:
+    def _gen_trig_expr(
+            pseudo_control: Union[ca.SX, ca.MX], control: Union[ca.SX, ca.MX],
+            lower_limit: Union[ca.SX, ca.MX], upper_limit: Union[ca.SX, ca.MX],
+            regulator: Union[ca.SX, ca.MX]
+    ) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) / 2 * ca.sin(pseudo_control) + (upper_limit + lower_limit) / 2
-        pseudo_expr = ca.asin((2*control - upper_limit - lower_limit) / (upper_limit - lower_limit))
+        pseudo_expr = ca.asin((2 * control - upper_limit - lower_limit) / (upper_limit - lower_limit))
         error_expr = -regulator * ca.cos(pseudo_control)
 
         return control_expr, pseudo_expr, error_expr
 
     @staticmethod
-    def _gen_erf_expr(pseudo_control: Symbol, control: Symbol,
-                      lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr)\
-            -> Tuple[SymExpr, SymExpr, SymExpr]:
+    def _gen_erf_expr(
+            pseudo_control: Union[ca.SX, ca.MX], control: Union[ca.SX, ca.MX],
+            lower_limit: Union[ca.SX, ca.MX], upper_limit: Union[ca.SX, ca.MX],
+            regulator: Union[ca.SX, ca.MX]
+    ) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) / 2 * ca.erf(pseudo_control) + (upper_limit + lower_limit) / 2
         pseudo_expr = ca.erfinv((2*control - upper_limit - lower_limit) / (upper_limit - lower_limit))
@@ -113,9 +119,11 @@ class AdiffControlConstraintHandler(Regularizer):
         return control_expr, pseudo_expr, error_expr
 
     @staticmethod
-    def _gen_tanh_expr(pseudo_control: Symbol, control: Symbol,
-                       lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr)\
-            -> Tuple[SymExpr, SymExpr, SymExpr]:
+    def _gen_tanh_expr(
+            pseudo_control: Union[ca.SX, ca.MX], control: Union[ca.SX, ca.MX],
+            lower_limit: Union[ca.SX, ca.MX], upper_limit: Union[ca.SX, ca.MX],
+            regulator: Union[ca.SX, ca.MX]
+    ) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) / 2 * ca.tanh(pseudo_control / regulator) \
             + (upper_limit + lower_limit) / 2
@@ -126,9 +134,11 @@ class AdiffControlConstraintHandler(Regularizer):
         return control_expr, pseudo_expr, error_expr
 
     @staticmethod
-    def _gen_logistic_expr(pseudo_control: Symbol, control: Symbol,
-                           lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr)\
-            -> Tuple[SymExpr, SymExpr, SymExpr]:
+    def _gen_logistic_expr(
+            pseudo_control: Union[ca.SX, ca.MX], control: Union[ca.SX, ca.MX],
+            lower_limit: Union[ca.SX, ca.MX], upper_limit: Union[ca.SX, ca.MX],
+            regulator: Union[ca.SX, ca.MX]
+    ) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) * ((1 + ca.exp(-pseudo_control / regulator))**-1 - 1 / 2) \
             + (upper_limit + lower_limit) / 2
@@ -140,15 +150,17 @@ class AdiffControlConstraintHandler(Regularizer):
         return control_expr, pseudo_expr, error_expr
 
     @staticmethod
-    def _gen_alg_expr(pseudo_control: Symbol, control: Symbol,
-                      lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr)\
-            -> Tuple[SymExpr, SymExpr, SymExpr]:
+    def _gen_alg_expr(
+            pseudo_control: Union[ca.SX, ca.MX], control: Union[ca.SX, ca.MX],
+            lower_limit: Union[ca.SX, ca.MX], upper_limit: Union[ca.SX, ca.MX],
+            regulator: Union[ca.SX, ca.MX]
+    ) -> Tuple[Union[ca.SX, ca.MX], Union[ca.SX, ca.MX], Union[ca.SX, ca.MX]]:
 
         control_expr = (upper_limit - lower_limit) / 2 * (pseudo_control / regulator) \
             * (1 + (pseudo_control ** 2 / regulator ** 2)) + (upper_limit + lower_limit) / 2
         pseudo_expr = ca.poly_roots(ca.poly_coeff(pseudo_control**3 + regulator**2 * pseudo_control
-                                                  -regulator**3 * ((2 * control - upper_limit - lower_limit)
-                                                                   / (upper_limit - lower_limit)), pseudo_control))
+                                                  - regulator**3 * ((2 * control - upper_limit - lower_limit)
+                                                                    / (upper_limit - lower_limit)), pseudo_control))
         error_expr = regulator * (1 - (1 + (pseudo_control ** 2 / regulator ** 2)) ** (-1/2))
 
         return control_expr, pseudo_expr, error_expr

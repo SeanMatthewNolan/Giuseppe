@@ -58,7 +58,7 @@ class AdiffDual(Picky):
                           'dynamic': ('t', 'x', 'lam', 'u', 'p', 'k'),
                           'terminal': ('t', 'x', 'lam', 'u', 'p', '_nu_f', 'k')}
 
-        self.args = {'ocp': self.adiff_ocp.args,
+        self.args = {'ocp': self.adiff_ocp.dyn_args,
                      'initial': (self.independent, self.states, self.costates, self.controls, self.parameters,
                                  self.initial_adjoints, self.constants),
                      'dynamic': (self.independent, self.states, self.costates, self.controls, self.parameters,
@@ -201,7 +201,7 @@ class AdiffDualOCP:
         ))
         self.num_bvp_parameters = self.bvp_parameters.shape[0]
 
-        _x_dot = self.ocp.ca_dynamics(*self.ocp.args)
+        _x_dot = self.ocp.ca_dynamics(*self.ocp.dyn_args)
         _lam_dot = self.dual.ca_costate_dynamics(*self.dual.args['dynamic'])
         _u_dot = self.control_handler.ca_control_dynamics(*self.dual.args['dynamic'])
         _y_dot = ca.vcat((_x_dot, _lam_dot, _u_dot))

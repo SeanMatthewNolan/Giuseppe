@@ -92,10 +92,10 @@ ocp.add_constant(eps_alpha, 1e-3)
 
 ocp.add_inequality_constraint('path', h,
                               lower_limit=h_min, upper_limit=h_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_h))
+                              regularizer=giuseppe.regularization.ADiffPenaltyConstraintHandler(regulator=eps_h))
 ocp.add_inequality_constraint('path', alpha,
                               lower_limit=-alpha_max, upper_limit=alpha_max,
-                              regularizer=giuseppe.regularization.AdiffPenaltyConstraintHandler(regulator=eps_alpha))
+                              regularizer=giuseppe.regularization.ADiffPenaltyConstraintHandler(regulator=eps_alpha))
 
 # Initial Boundary Conditions
 t_0 = ca.MX.sym('t_0', 1)

@@ -2,17 +2,17 @@ from typing import Union, TYPE_CHECKING, TypeVar
 
 import casadi as ca
 
-from giuseppe.problems.protocols.generic import Regularizer
+from giuseppe.problems.protocols.regularizer import Regularizer
 
 if TYPE_CHECKING:
-    from giuseppe.problems import AdiffOCP
-    from giuseppe.problems.components.adiffInput import InputAdiffInequalityConstraint
+    from ..ocp import ADiffOCP
+    from ..input import ADiffInputInequalityConstraint
 else:
-    AdiffOCP = TypeVar('AdiffOCP')
-    InputAdiffInequalityConstraint = TypeVar('InputAdiffInequalityConstraint')
+    ADiffOCP = TypeVar('ADiffOCP')
+    ADiffInputInequalityConstraint = TypeVar('ADiffInputInequalityConstraint')
 
 
-class AdiffPenaltyConstraintHandler(Regularizer):
+class ADiffPenaltyConstraintHandler(Regularizer):
     def __init__(self, regulator: Union[ca.SX, ca.MX], method: str = 'sec'):
         self.regulator: Union[ca.SX, ca.MX] = regulator
         self.method: str = method
@@ -24,22 +24,23 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         else:
             raise ValueError(f'method \'{method}\' not implemented')
 
-    def apply(self, prob: AdiffOCP, constraint: InputAdiffInequalityConstraint, position: str) -> AdiffOCP:
+    def apply(self, prob: ADiffOCP, constraint: ADiffInputInequalityConstraint, position: str) -> ADiffOCP:
 
-        penalty_func = self.expr_generator(constraint.expr, constraint.lower_limit, constraint.upper_limit,
-                                           self.regulator)
+        penalty_func = self.expr_generator(
+                constraint.expr, constraint.lower_limit, constraint.upper_limit, self.regulator)
 
         if position.lower() == 'initial':
-            prob.inputCost.initial += penalty_func
+            prob.input_cost.initial += penalty_func
         elif position.lower() in ['path', 'control']:
-            prob.inputCost.path += penalty_func
+            prob.input_cost.path += penalty_func
         elif position.lower() == 'terminal':
-            prob.inputCost.terminal += penalty_func
+            prob.input_cost.terminal += penalty_func
 
         return prob
 
     @staticmethod
-    def _gen_sec_expr(expr: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float], upper_limit: Union[Union[ca.SX, ca.MX], float],
+    def _gen_sec_expr(expr: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float],
+                      upper_limit: Union[Union[ca.SX, ca.MX], float],
                       regulator: Union[ca.SX, ca.MX]) -> Union[ca.SX, ca.MX]:
 
         if lower_limit is None or upper_limit is None:
@@ -50,8 +51,9 @@ class AdiffPenaltyConstraintHandler(Regularizer):
         return penalty_func
 
     @staticmethod
-    def _gen_rat_expr(expr: Union[ca.SX, ca.MX], lower_limit: Union[Union[ca.SX, ca.MX], float], upper_limit: Union[Union[ca.SX, ca.MX], float],
-                      regulator: Union[ca.SX, ca.MX]) -> Union[ca.SX, ca.MX]:
+    def _gen_rat_expr(expr: Union[ca.SX, ca.MX], lower_limit: Union[ca.SX, ca.MX, float],
+                      upper_limit: Union[ca.SX, ca.MX, float],
+                      regulator: Union[ca.SX, ca.MX]) -> Union[ca.SX, ca.MX, float]:
 
         if lower_limit is not None and upper_limit is not None:
             penalty_func = regulator * (1 / (expr - lower_limit) + 1 / (upper_limit - expr)
