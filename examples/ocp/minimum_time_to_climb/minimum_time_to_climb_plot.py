@@ -209,8 +209,8 @@ fig5.tight_layout()
 
 # FIGURE 6 (Validation with Hamiltonian)
 ham_map = adiff_dualocp.dual.ca_hamiltonian.map(len(sol.t))
-ham_u_map = adiff_dualocp.dual.ca_dH_du.map(len(sol.t))
-ham_t_map = adiff_dualocp.dual.ca_dH_dt.map(len(sol.t))
+ham_u_map = adiff_dualocp.dual.ca_dh_du.map(len(sol.t))
+ham_t_map = adiff_dualocp.dual.ca_dh_dt.map(len(sol.t))
 
 ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
 ham_t_numerical = np.diff(ham) / np.diff(sol.t)

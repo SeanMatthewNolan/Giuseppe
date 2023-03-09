@@ -140,9 +140,21 @@ ocp.add_inequality_constraint(
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     adiff_ocp = giuseppe.problems.automatic_differentiation.ADiffOCP(ocp)
 
+x0, u0, p, k = np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),\
+    adiff_ocp.default_values
 x_dot = adiff_ocp.compute_dynamics(
         0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([0.1, 0]), np.array([]),
         adiff_ocp.default_values)
+psi_0 = adiff_ocp.compute_initial_boundary_conditions(
+        0., np.array([260_000, 0., 0., 2500, -1/180*3.14, 0]), np.array([]),
+        adiff_ocp.default_values
+)
+
+from giuseppe.problems.automatic_differentiation import ADiffAdjoints
+
+lam0, nu0, nuf = np.ones_like(x0), np.ones((7,)), np.ones((3,))
+adiff_adjoints = ADiffAdjoints(ocp)
+lam_dot = adiff_adjoints.compute_costate_dynamics(0, x0, lam0, u0, p, k)
 
 # if __name__ == '__main__':
 #     guess = giuseppe.guess_generators.auto_propagate_guess(adiff_bvp, control=(20/180*3.14159, 0), t_span=100)

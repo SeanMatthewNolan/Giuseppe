@@ -143,10 +143,10 @@ fig4.tight_layout()
 
 # FIGURE 6 (VALIDATION)
 ham_map = adiff_bvp.dual.ca_hamiltonian.map(len(sol_cond.t))
-ham_u_func = adiff_bvp.dual.ca_dH_du
+ham_u_func = adiff_bvp.dual.ca_dh_du
 ham_uT_func = ca.Function('dH_du_T', ham_u_func.sx_in(), (ham_u_func(*ham_u_func.sx_in()).T,))
 ham_u_map = ham_uT_func.map(len(sol_cond.t))
-ham_t_map = adiff_bvp.dual.ca_dH_dt.map(len(sol_cond.t))
+ham_t_map = adiff_bvp.dual.ca_dh_dt.map(len(sol_cond.t))
 
 ham = np.asarray(ham_map(sol_cond.t, sol_cond.x, sol_cond.lam, sol_cond.u, sol_cond.p, sol_cond.k)).flatten()
 ham_t_numerical = np.diff(ham) / np.diff(sol_cond.t)

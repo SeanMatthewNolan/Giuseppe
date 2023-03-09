@@ -25,7 +25,7 @@ class AdiffDual(Picky):
         elif isinstance(self.src_ocp, CompOCP):
             if self.src_ocp.use_jit_compile:
                 warn('AdiffDual cannot accept JIT compiled CompOCP! Recompiling CompOCP without JIT...')
-                self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp.src_ocp)
+                self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp.source_ocp)
             else:
                 self.adiff_ocp: AdiffOCP = AdiffOCP(self.src_ocp)
         elif isinstance(self.src_ocp, SymOCP) or isinstance(self.src_ocp, AdiffInputProb):

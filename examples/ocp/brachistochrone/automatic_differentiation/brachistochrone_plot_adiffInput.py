@@ -13,7 +13,7 @@ SML_FIG_SIZE = (6.5, 3)
 # Automatically Derived Dualized Necessary Conditions
 dlam_ad = adiff_bvp.dual.ca_costate_dynamics
 du_ad = adiff_bvp.control_handler.ca_control_dynamics
-Hu_ad = adiff_bvp.dual.ca_dH_du
+Hu_ad = adiff_bvp.dual.ca_dh_du
 psi_adj_0_ad = adiff_bvp.dual.ca_adj_boundary_conditions.initial
 psi_adj_f_ad = adiff_bvp.dual.ca_adj_boundary_conditions.terminal
 

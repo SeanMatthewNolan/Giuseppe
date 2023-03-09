@@ -20,6 +20,8 @@ class ADiffOCP(OCP):
         self.bc_arg_names = ('t', 'x', 'p', 'k')
 
         if isinstance(self.source_ocp, ADiffInputProb):
+            self.dtype = self.source_ocp.dtype
+
             self.independent = self.source_ocp.independent
             self.states = self.source_ocp.states.states
             self.controls = self.source_ocp.controls
@@ -52,7 +54,7 @@ class ADiffOCP(OCP):
             self.ca_dynamics = ca.Function('f', self.dyn_args, (self.eom,), self.dyn_arg_names, ('dx_dt',))
             self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
                 = self.create_boundary_conditions()
-            self.ca_compute_initial_cost, self.ca_compute_path_cost, self.ca_compute_terminal_cost = self.create_cost()
+            self.ca_initial_cost, self.ca_path_cost, self.ca_terminal_cost = self.create_cost()
 
         elif isinstance(self.source_ocp, (OCP, SymOCP, StrInputProb)):
             self.dtype = ca.SX
@@ -99,7 +101,7 @@ class ADiffOCP(OCP):
             self.ca_initial_boundary_conditions, self.ca_terminal_boundary_conditions \
                 = self.wrap_boundary_conditions()
 
-            self.ca_compute_initial_cost, self.ca_compute_path_cost, self.ca_compute_terminal_cost = self.wrap_cost()
+            self.ca_initial_cost, self.ca_path_cost, self.ca_terminal_cost = self.wrap_cost()
 
         else:
             raise ValueError('Need a source BVP')
@@ -109,9 +111,9 @@ class ADiffOCP(OCP):
         self.compute_initial_boundary_conditions = lambdify_ca(self.ca_initial_boundary_conditions)
         self.compute_terminal_boundary_conditions = lambdify_ca(self.ca_terminal_boundary_conditions)
 
-        self.compute_initial_cost = lambdify_ca(self.ca_compute_initial_cost)
-        self.compute_path_cost = lambdify_ca(self.ca_compute_path_cost)
-        self.compute_terminal_cost = lambdify_ca(self.ca_compute_terminal_cost)
+        self.compute_initial_cost = lambdify_ca(self.ca_initial_cost)
+        self.compute_path_cost = lambdify_ca(self.ca_path_cost)
+        self.compute_terminal_cost = lambdify_ca(self.ca_terminal_cost)
 
     def wrap_dynamics(self):
         return ca_wrap('f', self.dyn_args, self.source_ocp.compute_dynamics,
