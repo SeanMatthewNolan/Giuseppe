@@ -24,10 +24,6 @@ u_max = sol.k[17]
 u = 0.5 * ((u_max - u_min) * np.sin(sol.u) + u_max + u_min)
 
 dJ_dt = np.sum(u, 0)
-dJ_dt_interp = pchip(sol.t, dJ_dt)
-
-sol_J = solve_ivp(lambda _t, _x: dJ_dt_interp(_t), sol.t[((0, -1),)], np.array((0.0,)))
-J = sol_J.y[0, -1]
 
 t1 = u[0, :] - u[1, :]
 t2 = u[2, :] - u[3, :]
@@ -87,6 +83,6 @@ ax_cost.grid()
 ax_cost.plot(sol.t, dJ_dt)
 ax_cost.set_xlabel('Time [s]')
 ax_cost.set_ylabel(r'Path Cost $|T_1| + |T_2|$')
-ax_cost.set_title(f'Total Cost = {J}')
+ax_cost.set_title(f'Total Cost = {sol.cost}')
 
 plt.show()
