@@ -5,7 +5,7 @@ import numpy as np
 
 from giuseppe.utils.examples import Atmosphere1976
 
-from minimum_time_to_climb import S, adiff_dualocp
+from minimum_time_to_climb import S, adiff_dual
 from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
     CD0_table_bspline_expanded, temp_table_bspline, dens_table_bspline
 
@@ -208,9 +208,9 @@ ax54.grid()
 fig5.tight_layout()
 
 # FIGURE 6 (Validation with Hamiltonian)
-ham_map = adiff_dualocp.dual.ca_hamiltonian.map(len(sol.t))
-ham_u_map = adiff_dualocp.dual.ca_dh_du.map(len(sol.t))
-ham_t_map = adiff_dualocp.dual.ca_dh_dt.map(len(sol.t))
+ham_map = adiff_dual.ca_hamiltonian.map(len(sol.t))
+ham_u_map = adiff_dual.ca_dh_du.map(len(sol.t))
+ham_t_map = adiff_dual.ca_dh_dt.map(len(sol.t))
 
 ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
 ham_t_numerical = np.diff(ham) / np.diff(sol.t)
@@ -220,13 +220,13 @@ ham_u_max = np.max(np.abs(ham_u))
 ham_t = np.asarray(ham_t_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
 ham_t_max = np.max(np.abs(ham_t))
 
-psi_0 = np.asarray(adiff_dualocp.ocp.ca_boundary_conditions.initial(
+psi_0 = np.asarray(adiff_dual.ca_initial_boundary_conditions(
     sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)).flatten()
-psi_f = np.asarray(adiff_dualocp.ocp.ca_boundary_conditions.terminal(
+psi_f = np.asarray(adiff_dual.ca_terminal_boundary_conditions(
     sol.t[-1], sol.x[:, -1], sol.u[:, -1], sol.p, sol.k)).flatten()
-psi_adj_0 = np.asarray(adiff_dualocp.dual.ca_adj_boundary_conditions.initial(
+psi_adj_0 = np.asarray(adiff_dual.ca_initial_adjoint_boundary_conditions(
     sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.nu0, sol.k)).flatten()
-psi_adj_f = np.asarray(adiff_dualocp.dual.ca_adj_boundary_conditions.terminal(
+psi_adj_f = np.asarray(adiff_dual.ca_terminal_adjoint_boundary_conditions(
     sol.t[-1], sol.x[:, -1], sol.lam[:, -1], sol.u[:, -1], sol.p, sol.nuf, sol.k)).flatten()
 
 fig6 = plt.figure(figsize=SMALL_FIGSIZE)

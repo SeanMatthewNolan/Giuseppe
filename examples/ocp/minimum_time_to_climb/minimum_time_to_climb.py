@@ -9,7 +9,7 @@ from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLal
 from giuseppe.utils.examples.atmosphere1976 import Atmosphere1976
 
 
-ocp = giuseppe.io.AdiffInputOCP(dtype=ca.MX)
+ocp = giuseppe.problems.automatic_differentiation.ADiffInputProb(dtype=ca.MX)
 
 # Independent Variable
 t = ca.MX.sym('t', 1)
@@ -90,12 +90,16 @@ eps_alpha = ca.MX.sym('eps_alpha', 1)
 ocp.add_constant(alpha_max, 20*d2r)
 ocp.add_constant(eps_alpha, 1e-3)
 
-ocp.add_inequality_constraint('path', h,
-                              lower_limit=h_min, upper_limit=h_max,
-                              regularizer=giuseppe.regularization.ADiffPenaltyConstraintHandler(regulator=eps_h))
-ocp.add_inequality_constraint('path', alpha,
-                              lower_limit=-alpha_max, upper_limit=alpha_max,
-                              regularizer=giuseppe.regularization.ADiffPenaltyConstraintHandler(regulator=eps_alpha))
+ocp.add_inequality_constraint(
+        'path', h,
+        lower_limit=h_min, upper_limit=h_max,
+        regularizer=giuseppe.problems.automatic_differentiation.regularization.ADiffPenaltyConstraintHandler(
+                regulator=eps_h))
+ocp.add_inequality_constraint(
+        'path', alpha,
+        lower_limit=-alpha_max, upper_limit=alpha_max,
+        regularizer=giuseppe.problems.automatic_differentiation.regularization.ADiffPenaltyConstraintHandler(
+                regulator=eps_alpha))
 
 # Initial Boundary Conditions
 t_0 = ca.MX.sym('t_0', 1)
@@ -134,32 +138,28 @@ ocp.set_cost(0, 0, t)
 
 # Compilation
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    adiff_ocp = giuseppe.problems.AdiffOCP(ocp)
-    adiff_dual = giuseppe.problems.AdiffDual(adiff_ocp)
-    adiff_dualocp = giuseppe.problems.AdiffDualOCP(adiff_ocp, adiff_dual)
-    num_solver = giuseppe.numeric_solvers.AdiffScipySolveBVP(adiff_dualocp, verbose=False, use_jac=True)
+    adiff_dual = giuseppe.problems.automatic_differentiation.ADiffDual(ocp)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(adiff_dual)
 
 if __name__ == "__main__":
     # Guess Generation (overwrites the terminal conditions in order to converge)
-    guess = giuseppe.guess_generators.auto_propagate_guess(adiff_dualocp, control=6*d2r, t_span=0.1)
+    guess = giuseppe.guess_generation.auto_propagate_guess(adiff_dual, control=6*d2r, t_span=1)
 
     with open('guess.data', 'wb') as file:
         pickle.dump(guess, file)
 
-    seed_sol = num_solver.solve(guess.k, guess)
+    seed_sol = num_solver.solve(guess)
 
     with open('seed.data', 'wb') as file:
         pickle.dump(seed_sol, file)
 
-    sol_set = giuseppe.io.SolutionSet(adiff_dualocp, seed_sol)
-
     # Continuations (from guess BCs to desired BCs)
-    cont = giuseppe.continuation.ContinuationHandler(sol_set)
+    cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
     cont.add_linear_series(100, {'h_f': 50, 'v_f': 500, 'gam_f': 3 * np.pi/180})
     cont.add_linear_series(100, {'h_f': 10_000, 'v_f': 1_000, 'gam_f': 35 * np.pi/180})
     cont.add_linear_series(100, {'h_f': 65_600.0, 'v_f': a_func(65_600)})
     cont.add_linear_series(100, {'gam_f': 0})
-    sol_set = cont.run_continuation(num_solver)
+    sol_set = cont.run_continuation()
 
     # Save Solution
     sol_set.save('sol_set.data')

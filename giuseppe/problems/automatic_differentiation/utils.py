@@ -54,4 +54,7 @@ def maybe_expand(fun: ca.Function):
 
 
 def get_names(_vec: Union[ca.SX, ca.MX]) -> Tuple[str, ...]:
-    return tuple(_vec[idx].name() for idx in range(_vec.numel()))
+    try:
+        return tuple(_vec[idx].name() for idx in range(_vec.numel()))
+    except RuntimeError:
+        return tuple(f'{_vec}_{idx}' for idx in range(_vec.numel()))
