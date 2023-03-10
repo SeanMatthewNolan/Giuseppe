@@ -2,15 +2,16 @@ from copy import deepcopy
 from typing import Union
 
 import casadi as ca
+import numpy as np
 
-from giuseppe.problems.protocols import OCP, Adjoints
+from giuseppe.problems.protocols import OCP, VectorizedAdjoints
 from .input import ADiffInputProb
 from .ocp import ADiffOCP
 from .utils import lambdify_ca, get_names
 from ..symbolic.ocp import SymOCP, StrInputProb
 
 
-class ADiffAdjoints(Adjoints):
+class ADiffAdjoints(VectorizedAdjoints):
     def __init__(self, source_ocp: Union[ADiffOCP, ADiffInputProb, SymOCP, OCP, StrInputProb]):
 
         if isinstance(source_ocp, ADiffOCP):
@@ -128,3 +129,45 @@ class ADiffAdjoints(Adjoints):
 
         self.compute_initial_adjoint_boundary_conditions = lambdify_ca(self.ca_initial_adjoint_boundary_conditions)
         self.compute_terminal_adjoint_boundary_conditions = lambdify_ca(self.ca_terminal_adjoint_boundary_conditions)
+
+        self.compute_costate_dynamics_vectorized, self.compute_hamiltonian_vectorized,\
+            self.compute_control_law_vectorized = self.vectorize()
+
+    def vectorize(self):
+        _compute_costate_dynamics = self.ca_costate_dynamics
+
+        def _compute_costate_dynamics_vectorized(
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                parameters: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+
+            map_size = len(independent)
+            _costate_dynamics_mapped = _compute_costate_dynamics.map(map_size)
+
+            return np.array(_costate_dynamics_mapped(independent, states, costates, controls, parameters, constants))
+
+        _compute_hamiltonian = self.ca_hamiltonian
+
+        def _compute_hamiltonian_vectorized(
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                parameters: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+
+            map_size = len(independent)
+            _hamiltonian_mapped = _compute_hamiltonian.map(map_size)
+
+            return np.array(_hamiltonian_mapped(independent, states, costates, controls, parameters, constants))
+
+        _compute_control_law = self.ca_dh_du
+
+        def _compute_control_law_vectorized(
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                parameters: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+
+            map_size = len(independent)
+            _control_law_mapped = _compute_control_law.map(map_size)
+
+            return np.array(_control_law_mapped(independent, states, costates, controls, parameters, constants))
+
+        return _compute_costate_dynamics_vectorized, _compute_hamiltonian_vectorized, _compute_control_law_vectorized

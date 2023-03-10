@@ -68,7 +68,7 @@ class VectorizedAdjoints(Adjoints, Protocol):
 
     @staticmethod
     def compute_hamiltonian_vectorized(
-            independent: np.ndarray, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
+            independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
             parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...

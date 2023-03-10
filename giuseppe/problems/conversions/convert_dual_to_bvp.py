@@ -323,6 +323,7 @@ class VectorizedBVPFromDual(BVPFromDual, VectorizedBVP):
 
         BVPFromDual.__init__(self, source_dual, use_jit_compile)
 
+        # Replace with better duck-typing
         if not isinstance(self.source_dual, VectorizedDual):
             self.source_dual: VectorizedDual = vectorize(self.source_dual, use_jit_compile)
 

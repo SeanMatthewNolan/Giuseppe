@@ -1,18 +1,20 @@
 from copy import deepcopy
-from typing import Union, Optional
+from typing import Union
 from warnings import warn
 
+import numpy as np
 import casadi as ca
 from numba.core.registry import CPUDispatcher
 
 from giuseppe.data_classes.annotations import Annotations
-from giuseppe.problems.protocols import OCP
+from giuseppe.problems.protocols import OCP, VectorizedOCP
+
 from .input import ADiffInputProb, ADiffInputInequalityConstraints
 from .utils import ca_wrap, lambdify_ca
 from ..symbolic.ocp import SymOCP, StrInputProb
 
 
-class ADiffOCP(OCP):
+class ADiffOCP(VectorizedOCP):
     def __init__(self, source_ocp: Union[ADiffInputProb, SymOCP, OCP, StrInputProb]):
         self.source_ocp = deepcopy(source_ocp)
 
@@ -116,6 +118,8 @@ class ADiffOCP(OCP):
         self.compute_path_cost = lambdify_ca(self.ca_path_cost)
         self.compute_terminal_cost = lambdify_ca(self.ca_terminal_cost)
 
+        self.compute_dynamics_vectorized, self.compute_path_cost_vectorized = self.vectorize()
+
     def wrap_dynamics(self):
         return ca_wrap('f', self.dyn_args, self.source_ocp.compute_dynamics,
                        self.iter_dyn_args, self.dyn_arg_names, 'dx_dt')
@@ -161,3 +165,28 @@ class ADiffOCP(OCP):
                     raise NotImplementedError('Inequality constraint without regularizer not yet implemented')
                 else:
                     constraint.regularizer.apply(self, constraint, position)
+
+    def vectorize(self):
+        _compute_dynamics = self.ca_dynamics
+
+        def _compute_dynamics_vectorized(
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, parameters: np.ndarray,
+                constants: np.ndarray
+        ) -> np.ndarray:
+            map_size = len(independent)
+            _dynamics_mapped = _compute_dynamics.map(map_size)
+
+            return np.array(_dynamics_mapped(independent, states, costates, parameters, constants))
+
+        _compute_path_cost = self.ca_path_cost
+
+        def _compute_path_cost_vectorized(
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, parameters: np.ndarray,
+                constants: np.ndarray
+        ) -> np.ndarray:
+            map_size = len(independent)
+            _path_cost_mapped = _compute_path_cost.map(map_size)
+
+            return np.array(_path_cost_mapped(independent, states, costates, parameters, constants))
+
+        return _compute_dynamics_vectorized, _compute_path_cost_vectorized

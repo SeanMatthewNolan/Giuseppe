@@ -81,7 +81,7 @@ def vectorize(
             prob.compute_costate_dynamics_vectorized = _compute_costates_dynamics_vectorized
 
             def _compute_hamiltonian_vectorized(
-                    independent: np.ndarray, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
+                    independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
                     parameters: np.ndarray, constants: np.ndarray
             ) -> np.ndarray:
                 return np.array(
@@ -216,7 +216,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
         )
 
         def _compute_hamiltonian_vectorized(
-                independent: np.ndarray, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray
         ) -> np.ndarray:
 

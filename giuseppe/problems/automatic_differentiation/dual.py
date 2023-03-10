@@ -3,9 +3,10 @@ from typing import Union
 from warnings import warn
 
 import casadi as ca
+import numpy as np
 
 from giuseppe.data_classes.annotations import Annotations
-from giuseppe.problems.protocols import OCP, Adjoints, Dual, DifferentialControlHandler
+from giuseppe.problems.protocols import OCP, VectorizedDual, VectorizedDifferentialControlHandler
 from .input import ADiffInputProb, ADiffInputInequalityConstraints
 from .ocp import ADiffOCP
 from .adjoints import ADiffAdjoints
@@ -13,7 +14,7 @@ from .utils import ca_wrap, lambdify_ca
 from ..symbolic.ocp import SymOCP, StrInputProb
 
 
-class ADiffDual(ADiffOCP, ADiffAdjoints, Dual):
+class ADiffDual(ADiffOCP, ADiffAdjoints, VectorizedDual):
     def __init__(self, input_data: Union[ADiffInputProb, SymOCP, OCP, StrInputProb]):
         ADiffOCP.__init__(self, input_data)
         self.adjoints = ADiffAdjoints(self)
@@ -48,6 +49,10 @@ class ADiffDual(ADiffOCP, ADiffAdjoints, Dual):
 
         self.compute_initial_adjoint_boundary_conditions = lambdify_ca(self.ca_initial_adjoint_boundary_conditions)
         self.compute_terminal_adjoint_boundary_conditions = lambdify_ca(self.ca_terminal_adjoint_boundary_conditions)
+
+        self.compute_costate_dynamics_vectorized = self.adjoints.compute_costate_dynamics_vectorized
+        self.compute_hamiltonian_vectorized = self.adjoints.compute_hamiltonian_vectorized
+        self.compute_control_law_vectorized = self.adjoints.compute_control_law_vectorized
 
         self.control_handler = ADiffControlHandler(self)
 
@@ -156,8 +161,7 @@ class ADiffDual(ADiffOCP, ADiffAdjoints, Dual):
         # self.dbc_dyb = ca.Function('dbc_dyb', self.bc_jac_args, (_dbc_dyb,), self.bc_jac_arg_names, ('dbc_dya',))
         # self.dbc_dp = ca.Function('dbc_dp_nu_t', self.bc_jac_args, (_dbc_dp,), self.bc_jac_arg_names, ('dbc_dp_nu_t',))
 
-
-class ADiffControlHandler(DifferentialControlHandler):
+class ADiffControlHandler(VectorizedDifferentialControlHandler):
     def __init__(self, source_dual: ADiffDual):
         self.source_dual = source_dual
 
@@ -179,14 +183,27 @@ class ADiffControlHandler(DifferentialControlHandler):
         self.h_ux: ca.Function = ca.Function('H_ux', args['adj_dynamic'], (_h_ux,), arg_names['adj_dynamic'], ('H_ux',))
         self.f_u: ca.Function = ca.Function('f_u', args['ocp_dynamic'], (_f_u,), arg_names['ocp_dynamic'], ('f_u',))
 
-        self.ca_control_dynamics: ca.Function = ca.Function('u_dot', args['adj_dynamic'],
-                                                            (-ca.solve(_h_uu, _h_ut + _h_ux @ _f + _f_u.T @ _lam_dot),),
-                                                            arg_names['adj_dynamic'], ('u_dot',))
+        _ca_control_dynamics: ca.Function = ca.Function('u_dot', args['adj_dynamic'],
+                                                        (-ca.solve(_h_uu, _h_ut + _h_ux @ _f + _f_u.T @ _lam_dot),),
+                                                        arg_names['adj_dynamic'], ('u_dot',))
+        self.ca_control_dynamics = _ca_control_dynamics
         self.ca_control_bc: ca.Function = ca.Function(
                 'u_bc', args['adj_dynamic'], (_h_u.T,), arg_names['adj_dynamic'], ('transpose_H_u',))
 
         self.compute_control_dynamics = lambdify_ca(self.ca_control_dynamics)
         self.compute_control_boundary_conditions = lambdify_ca(self.ca_control_bc)
+
+        def _compute_control_dynamics_vectorized(
+                independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                parameters: np.ndarray, constants: np.ndarray
+        ) -> np.ndarray:
+
+            map_size = len(independent)
+            _ca_control_dynamics_mapped = _ca_control_dynamics.map(map_size)
+
+            return np.array(_ca_control_dynamics_mapped(independent, states, costates, controls, parameters, constants))
+
+        self.compute_control_dynamics_vectorized = _compute_control_dynamics_vectorized
 
 
 # TODO implement AdiffAlgControlHandler using ca.DaeBuilder
