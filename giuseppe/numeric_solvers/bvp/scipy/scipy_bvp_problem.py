@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Union
 
 from giuseppe.utils.compilation import jit_compile, check_if_can_jit_compile
 from giuseppe.utils.typing import NumbaArray, NumbaMatrix
@@ -8,13 +9,13 @@ from giuseppe.utils.typing import NumbaArray, NumbaMatrix
 import numpy as np
 
 from giuseppe.data_classes import Solution
-from giuseppe.problems.protocols import BVP
+from giuseppe.problems.protocols import BVP, VectorizedBVP
 
 from .scipy_types import _scipy_bvp_sol, _dyn_type, _bc_type
 
 
 class SciPyBVP:
-    def __init__(self, source_bvp: BVP, use_jit_compile: bool = True):
+    def __init__(self, source_bvp: Union[BVP, VectorizedBVP], use_jit_compile: bool = True):
         self.source_bvp = deepcopy(source_bvp)
         self.use_jit_compile = check_if_can_jit_compile(use_jit_compile, self.source_bvp)
 
@@ -31,21 +32,38 @@ class SciPyBVP:
 
     def _compile_dynamics(self) -> _dyn_type:
 
-        bvp_dyn = self.source_bvp.compute_dynamics
+        if hasattr(self.source_bvp, 'compute_dynamics_vectorized'):
+            bvp_dyn = self.source_bvp.compute_dynamics
+            vec_bvp_dyn = self.source_bvp.compute_dynamics_vectorized
 
-        def compute_dynamics(tau_vec: np.ndarray, x_vec: np.ndarray, p: np.ndarray, k: np.ndarray) -> np.ndarray:
-            t0, tf = p[-2], p[-1]
-            # _p = p[:-2]
-            tau_mult = (tf - t0)
-            t_vec = tau_vec * tau_mult + t0
+            def compute_dynamics(tau_vec: np.ndarray, x_vec: np.ndarray, p: np.ndarray, k: np.ndarray) -> np.ndarray:
+                t0, tf = p[-2], p[-1]
+                # _p = p[:-2]
+                tau_mult = (tf - t0)
+                t_vec = tau_vec * tau_mult + t0
 
-            x_dot = np.empty_like(x_vec)  # Need to pre-allocate for Numba
-            for idx, (ti, xi) in enumerate(zip(t_vec, x_vec.T)):
-                x_dot[:, idx] = bvp_dyn(ti, xi, p[:-2], k)
+                x_dot = vec_bvp_dyn(t_vec, x_vec, p[:-2], k)
 
-            return x_dot * tau_mult
+                return x_dot * tau_mult
 
-        return compute_dynamics
+            return compute_dynamics
+
+        else:
+            bvp_dyn = self.source_bvp.compute_dynamics
+
+            def compute_dynamics(tau_vec: np.ndarray, x_vec: np.ndarray, p: np.ndarray, k: np.ndarray) -> np.ndarray:
+                t0, tf = p[-2], p[-1]
+                # _p = p[:-2]
+                tau_mult = (tf - t0)
+                t_vec = tau_vec * tau_mult + t0
+
+                x_dot = np.empty_like(x_vec)  # Need to pre-allocate for Numba
+                for idx, (ti, xi) in enumerate(zip(t_vec, x_vec.T)):
+                    x_dot[:, idx] = bvp_dyn(ti, xi, p[:-2], k)
+
+                return x_dot * tau_mult
+
+            return compute_dynamics
 
     def _compile_boundary_conditions(self) -> _bc_type:
         _bvp_compute_initial_boundary_conditions = self.source_bvp.compute_initial_boundary_conditions

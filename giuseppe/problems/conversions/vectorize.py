@@ -259,7 +259,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
             ) -> np.ndarray:
 
                 u = np.empty((_num_controls, len(independent)))
-                for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T)):
+                for idx, (ti, xi, lami) in enumerate(zip(independent, states.T, costates.T)):
                     u[:, idx] = _compute_control(ti, xi, lami, parameters, constants)
 
                 return u
@@ -281,7 +281,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
 
                 u_dot = np.empty_like(controls)
                 for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T, controls.T)):
-                    u_dot[:, idx] = _compute_control_law(ti, xi, lami, ui, parameters, constants)
+                    u_dot[:, idx] = _compute_control_dynamics(ti, xi, lami, ui, parameters, constants)
 
                 return u_dot
 

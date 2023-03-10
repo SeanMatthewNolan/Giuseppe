@@ -88,10 +88,44 @@ ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_li
 ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 
+import giuseppe
+# giuseppe.utils.compilation.JIT_COMPILE = False
+
 with Timer('Setup Time: '):
     comp_dual = SymDual(ocp, control_method='differential').compile()
     solver = SciPySolver(comp_dual)
     guess = auto_propagate_guess(comp_dual, control=(15/180*3.14159, 0), t_span=100)
+
+
+# from giuseppe.problems.conversions import vectorize, BVPFromDual, VectorizedBVPFromDual
+#
+# vec_dual = vectorize(comp_dual)
+#
+# lam_dot = np.array([comp_dual.compute_costate_dynamics(ti, xi, lami, ui, guess.p, guess.k) for ti, xi, lami, ui
+#                     in zip(guess.t, guess.x.T, guess.lam.T, guess.u.T)]).T
+# vec_lam_dot = vec_dual.compute_costate_dynamics_vectorized(guess.t, guess.x, guess.lam, guess.u, guess.p, guess.k)
+#
+# bvp = BVPFromDual(comp_dual)
+# vec_bvp = VectorizedBVPFromDual(comp_dual)
+#
+# bvp_guess = bvp.preprocess_data(guess)
+#
+# bvp_x_dot = np.array([bvp.compute_dynamics(ti, xi, guess.p, guess.k) for ti, xi in zip(bvp_guess.t, bvp_guess.x.T)]).T
+# vec_bvp_x_dot = vec_bvp.compute_dynamics_vectorized(bvp_guess.t, bvp_guess.x, bvp_guess.p, bvp_guess.k)
+#
+# from giuseppe.numeric_solvers.bvp.scipy.scipy_bvp_problem import SciPyBVP
+#
+# sp_bvp = SciPyBVP(bvp)
+# vec_sp_bvp = SciPyBVP(vec_bvp)
+#
+# sp_guess = sp_bvp.preprocess(guess)
+# sp_x_dot = sp_bvp.compute_dynamics(*sp_guess, guess.k)
+# vec_sp_x_dot = vec_sp_bvp.compute_dynamics(*sp_guess, guess.k)
+
+old_solver = SciPySolver(comp_dual, perform_vectorize=False)
+
+sol_old = old_solver.solve(guess)
+sol_new = solver.solve(guess)
 
 cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
