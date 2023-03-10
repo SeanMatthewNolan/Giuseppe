@@ -9,7 +9,7 @@ from giuseppe.data_classes import Solution, Annotations
 
 @runtime_checkable
 class BVP(Protocol):
-    prob_class = 'bvp'
+    prob_class: str = 'bvp'
 
     num_states: int
     num_parameters: int

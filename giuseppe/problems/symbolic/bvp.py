@@ -15,6 +15,7 @@ from giuseppe.utils.strings import stringify_list
 
 from .input import StrInputProb, StrInputInequalityConstraints
 
+
 class SymNamedExpr:
     def __init__(self, sym):
         self.sym: Symbol = sym

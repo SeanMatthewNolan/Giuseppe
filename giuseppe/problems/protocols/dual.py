@@ -8,11 +8,11 @@ from .control_handlers import AlgebraicControlHandler, DifferentialControlHandle
 
 @runtime_checkable
 class Dual(OCP, Adjoints, Protocol):
-    prob_class = 'dual'
+    prob_class: str = 'dual'
     control_handler: Union[None, AlgebraicControlHandler, DifferentialControlHandler]
 
 
 @runtime_checkable
-class DualVectorized(Dual, VectorizedOCP, VectorizedAdjoints, Protocol):
-    prob_class = 'dual'
+class VectorizedDual(Dual, VectorizedOCP, VectorizedAdjoints, Protocol):
+    prob_class: str = 'dual'
     control_handler: Union[None, VectorizedAlgebraicControlHandler, VectorizedDifferentialControlHandler]
