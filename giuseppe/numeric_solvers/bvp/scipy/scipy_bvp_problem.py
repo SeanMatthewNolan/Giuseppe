@@ -97,5 +97,6 @@ class SciPyBVP:
         p = p[:-2]
 
         return self.source_bvp.post_process_data(
-                Solution(t=t, x=x, p=p, k=constants, converged=scipy_sol.success, annotations=self.annotations)
+                Solution(t=t, x=x, p=p, k=constants,
+                         converged=scipy_sol.success, annotations=self.annotations)
         )

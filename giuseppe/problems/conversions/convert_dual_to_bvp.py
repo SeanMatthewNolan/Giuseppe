@@ -87,7 +87,7 @@ class BVPFromDual(BVP):
         else:
             raise ValueError('Cannot convert Dual to BVP without valid control handler')
 
-        if self.use_jit_compile:
+        if use_jit_compile:
             self.compute_dynamics = jit_compile(
                     self.compute_dynamics, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
             )
@@ -96,6 +96,9 @@ class BVPFromDual(BVP):
             )
             self.compute_terminal_boundary_conditions = jit_compile(
                     self.compute_terminal_boundary_conditions, (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+            )
+            self.compute_cost = jit_compile(
+                self.compute_cost, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
             )
 
     def _alg_convert_dynamics(self):
@@ -280,6 +283,21 @@ class BVPFromDual(BVP):
 
         return compute_initial_boundary_conditions, compute_terminal_boundary_conditions
 
+    # def _convert_cost(self):
+    #     _x_slice, _u_slice, _p_slice = self._x_slice, self._u_slice, self._p_slice
+    #     _compute_cost = self.source_dual.compute_cost
+    #
+    #     def compute_cost(
+    #             t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+    #     ) -> float:
+    #         x = y[_x_slice, :]
+    #         u = y[_u_slice, :]
+    #         p = rho[_p_slice]
+    #
+    #         return _compute_cost(t, x, u, p, k)
+    #
+    #     return compute_cost
+
     def _diff_compile_preprocess(self):
         _annotations = self.annotations
 
@@ -312,8 +330,10 @@ class BVPFromDual(BVP):
             nuf = in_data.p[_nuf_slice]
             k = in_data.k
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
-                            converged=in_data.converged, annotations=_annotations)
+            sol = Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
+                           converged=in_data.converged, annotations=_annotations)
+
+            return self.source_dual.post_process_data(sol)
 
         return post_process_data
 

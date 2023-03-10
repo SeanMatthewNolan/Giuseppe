@@ -1,5 +1,6 @@
 from typing import Union, cast
 import copy
+from types import MethodType
 
 import numpy as np
 
@@ -61,7 +62,7 @@ def vectorize(
 
                 prob.compute_path_cost_vectorized = _compute_path_cost_vectorized
 
-                prob.compute_cost = VectorizedOCP.compute_cost
+                prob.compute_cost = MethodType(VectorizedOCP.compute_cost, prob)
 
                 prob = cast(VectorizedOCP, prob)
 
@@ -190,7 +191,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
                     (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray)
             )
 
-            prob.compute_cost = VectorizedOCP.compute_cost
+            prob.compute_cost = MethodType(VectorizedOCP.compute_cost, prob)
 
             prob = cast(VectorizedOCP, prob)
 

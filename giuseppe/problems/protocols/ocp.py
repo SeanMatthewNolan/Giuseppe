@@ -72,11 +72,15 @@ class OCP(Protocol):
 
         return initial_cost + path_cost + terminal_cost
 
-    def preprocess_data(self, data: Solution) -> Solution:
-        ...
+    @staticmethod
+    def preprocess_data(data: Solution) -> Solution:
+        return data
 
     def post_process_data(self, data: Solution) -> Solution:
-        ...
+
+        data.cost = self.compute_cost(data.t, data.x, data.u, data.p, data.k)
+
+        return data
 
 
 @runtime_checkable

@@ -37,6 +37,13 @@ class BVP(Protocol):
         ...
 
     @staticmethod
+    def compute_cost(
+            independent: np.ndarray, states: np.ndarray, parameters: np.ndarray,
+            constants: np.ndarray
+    ) -> float:
+        ...
+
+    @staticmethod
     def preprocess_data(data: Solution) -> Solution:
         return data
 
