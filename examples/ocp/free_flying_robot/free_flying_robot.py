@@ -55,16 +55,10 @@ robot.add_constant('tha_f', tha_f)
 robot.add_constant('om_f', om_f)
 
 min_u = 0.0
-max_u = 10.0
+max_u = 1.0
 robot.add_constant('eps_u', 5e-1)
 robot.add_constant('min_u', min_u)
 robot.add_constant('max_u', max_u)
-
-min_T = -1.0
-max_T = 1.0
-robot.add_constant('eps_T', 1e-1)
-robot.add_constant('min_T', min_T)
-robot.add_constant('max_T', max_T)
 
 robot.set_cost('0', 'u1 + u2 + u3 + u4', '0')
 
@@ -100,13 +94,13 @@ robot.add_inequality_constraint(
         'control', 'u4', lower_limit='min_u', upper_limit='max_u',
         regularizer=giuseppe.problems.symbolic.regularization.ControlConstraintHandler('eps_u', method='sin'))
 
-robot.add_inequality_constraint(
-        'path', 'T1', lower_limit='min_T', upper_limit='max_T',
-        regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_T', method='utm'))
-
-robot.add_inequality_constraint(
-        'path', 'T2', lower_limit='min_T', upper_limit='max_T',
-        regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_T', method='utm'))
+# robot.add_inequality_constraint(
+#         'path', 'T1', lower_limit='min_T', upper_limit='max_T',
+#         regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_T', method='utm'))
+#
+# robot.add_inequality_constraint(
+#         'path', 'T2', lower_limit='min_T', upper_limit='max_T',
+#         regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_T', method='utm'))
 
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
@@ -143,43 +137,8 @@ cont.add_linear_series(100, {'t_f': t_f})
 cont.add_linear_series(100, {'x_f': x_f, 'vx_f': vx_f})
 cont.add_linear_series(100, {'y_f': y_f, 'vy_f': vy_f})
 cont.add_linear_series(100, {'tha_f': tha_f, 'om_f': om_f})
-cont.add_logarithmic_series(100, {'eps_T': 1e-2, 'eps_u': 5e-2})
-cont.add_logarithmic_series(150, {'eps_T': 1e-3, 'eps_u': 5e-3})
-cont.add_logarithmic_series(350, {'eps_T': 1e-4, 'eps_u': 5e-4})
+cont.add_logarithmic_series(200, {'eps_u': 1e-6})
 
 sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')
-
-# # Initial guess: rotate 90 deg
-# ang_acc = 2 * (tha_f - tha_0) / (t_f ** 2)
-# t2 = -ang_acc / bet
-# guess = giuseppe.guess_generators.auto_propagate_guess(comp_dual_ocp,
-#                                                        control=ctrl2reg(np.array((0.0, 0.0, t2, 0.0))),
-#                                                        t_span=1.0)
-
-#
-# seed_sol = num_solver.solve(guess.k, guess)
-#
-# with open('seed_sol.data', 'wb') as f:
-#     pickle.dump(seed_sol, f)
-#
-# sol_set = giuseppe.io.SolutionSet(sym_bvp, seed_sol)
-# x_f_seed = seed_sol.x[:, -1]
-# v_f_intermediate = 0.1 * (vy_f + x_f_seed[3])
-#
-# cont = giuseppe.continuation.ContinuationHandler(sol_set)
-# cont.add_linear_series(100, {'y_f': y_f, 'vy_f': 0.1 * (vy_f + x_f_seed[3])})
-# # cont.add_linear_series(100, {'x_f': x_f, 'vx_f': 0.1 * (vy_f + x_f_seed[3]),
-# #                              'vy_f': vy_f, 'tha_f': tha_f})
-# sol_set = cont.run_continuation(num_solver)
-#
-# # cont.add_linear_series(50, {'x_f': x_f, 'y_f': y_f,
-# #                            'vx_f': vx_f, 'vy_f': vy_f,
-# #                            'tha_f': tha_f, 'om_f': om_f}, bisection=True)
-# # sol_set = cont.run_continuation(num_solver)
-# # cont.add_linear_series(10, {'m_f': 1})
-# # cont.add_logarithmic_series(20, {'eps_thrust': 1e-6})
-# # sol_set = cont.run_continuation(num_solver)
-#
-# # sol_set.save('sol_set.data')
