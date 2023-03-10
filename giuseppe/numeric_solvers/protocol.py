@@ -1,4 +1,4 @@
-from typing import Union, Protocol, runtime_checkable, Optional
+from typing import Protocol, runtime_checkable, Optional
 
 import numpy as np
 
