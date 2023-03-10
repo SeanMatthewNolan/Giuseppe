@@ -5,7 +5,7 @@ from scipy.integrate import solve_bvp
 
 from giuseppe.data_classes import Solution
 from giuseppe.problems.protocols import BVP, Dual
-from giuseppe.problems.conversions import convert_dual_to_bvp
+from giuseppe.problems.conversions import convert_dual_to_bvp, vectorize
 from .scipy_bvp_problem import SciPyBVP
 from .scipy_types import _scipy_bvp_sol
 

@@ -3,7 +3,8 @@ import copy
 
 import numpy as np
 
-from ..protocols import Problem, VectorizedBVP, VectorizedOCP, VectorizedAdjoints, VectorizedDual
+from ..protocols import Problem, VectorizedBVP, VectorizedOCP, VectorizedAdjoints, VectorizedDual,\
+    AlgebraicControlHandler, DifferentialControlHandler
 from ...utils.compilation import check_if_can_jit_compile, jit_compile
 from ...utils.typing import NumbaArray, NumbaMatrix
 
@@ -73,8 +74,8 @@ def vectorize(
                     parameters: np.ndarray, constants: np.ndarray
             ) -> np.ndarray:
                 return np.vstack(
-                        tuple(_compute_costate_dynamics(ti, xi, ui, lami, parameters, constants)
-                              for ti, xi, ui, lami in zip(independent, states.T, costates.T, controls.T))).T
+                        tuple(_compute_costate_dynamics(ti, xi, lami, ui, parameters, constants)
+                              for ti, xi, lami, ui in zip(independent, states.T, costates.T, controls.T))).T
 
             prob.compute_costate_dynamics_vectorized = _compute_costates_dynamics_vectorized
 
@@ -83,8 +84,8 @@ def vectorize(
                     parameters: np.ndarray, constants: np.ndarray
             ) -> np.ndarray:
                 return np.array(
-                        tuple(_compute_hamiltonian(ti, xi, ui, lami, parameters, constants)
-                              for ti, xi, ui, lami in zip(independent, states.T, costates.T, controls.T)))
+                        tuple(_compute_hamiltonian(ti, xi, lami, ui, parameters, constants)
+                              for ti, xi, lami, ui in zip(independent, states.T, costates.T, controls.T)))
 
             prob.compute_hamiltonian_vectorized = _compute_hamiltonian_vectorized
 
@@ -93,12 +94,39 @@ def vectorize(
                     parameters: np.ndarray, constants: np.ndarray
             ) -> np.ndarray:
                 return np.vstack(
-                        tuple(_compute_control_law(ti, xi, ui, lami, parameters, constants)
-                              for ti, xi, ui, lami in zip(independent, states.T, costates.T, controls.T))).T
+                        tuple(_compute_control_law(ti, xi, lami, ui, parameters, constants)
+                              for ti, xi, lami, ui in zip(independent, states.T, costates.T, controls.T))).T
 
             prob.compute_control_law_vectorized = _compute_control_law_vectorized
 
             prob = cast(VectorizedAdjoints, prob)
+
+        if hasattr(prob, 'control_handler') and prob.control_handler is not None:
+            if isinstance(prob.control_handler, AlgebraicControlHandler):
+                _compute_control = prob.control_handler.compute_control
+
+                def _compute_control_vectorized(
+                        independent: np.ndarray, states: np.ndarray, costates: np.ndarray,
+                        parameters: np.ndarray, constants: np.ndarray
+                ) -> np.ndarray:
+                    return np.vstack(
+                            tuple(_compute_control(ti, xi, lami, parameters, constants)
+                                  for ti, xi, lami in zip(independent, states.T, costates.T))).T
+
+                prob.control_handler.compute_control_vectorized = _compute_control_vectorized
+
+            elif isinstance(prob.control_handler, DifferentialControlHandler):
+                _compute_control_dynamics = prob.control_handler.compute_control_dynamics
+
+                def _compute_control_dynamics_vectorized(
+                        independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                        parameters: np.ndarray, constants: np.ndarray
+                ) -> np.ndarray:
+                    return np.vstack(
+                            tuple(_compute_control_dynamics(ti, xi, lami, ui, parameters, constants)
+                                  for ti, xi, lami, ui in zip(independent, states.T, costates.T, controls.T))).T
+
+                prob.control_handler.compute_control_dynamics_vectorized = _compute_control_dynamics_vectorized
 
         return prob
 
@@ -176,8 +204,8 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
         ) -> np.ndarray:
 
             lam_dot = np.empty_like(costates)  # Need to pre-allocate for Numba
-            for idx, (ti, xi, ui, lami) in enumerate(zip(independent, states.T, costates.T, controls.T)):
-                lam_dot[:, idx] = _compute_costate_dynamics(ti, xi, ui, lami, parameters, constants)
+            for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T, controls.T)):
+                lam_dot[:, idx] = _compute_costate_dynamics(ti, xi, lami, ui, parameters, constants)
 
             return lam_dot
 
@@ -193,7 +221,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
 
             hamiltonians = np.empty_like(independent)
             for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T, controls.T)):
-                hamiltonians[idx] = _compute_hamiltonian(ti, xi, ui, lami, parameters, constants)
+                hamiltonians[idx] = _compute_hamiltonian(ti, xi, lami, ui, parameters, constants)
 
             return hamiltonians
 
@@ -207,8 +235,8 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
                 parameters: np.ndarray, constants: np.ndarray
         ) -> np.ndarray:
             dh_du = np.empty_like(controls)  # Need to pre-allocate for Numba
-            for idx, (ti, xi, ui, lami) in enumerate(zip(independent, states.T, costates.T, controls.T)):
-                dh_du[:, idx] = _compute_control_law(ti, xi, ui, lami, parameters, constants)
+            for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T, controls.T)):
+                dh_du[:, idx] = _compute_control_law(ti, xi, lami, ui, parameters, constants)
 
             return dh_du
 
@@ -218,5 +246,45 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
         )
 
         prob = cast(VectorizedAdjoints, prob)
+
+    if hasattr(prob, 'control_handler') and prob.control_handler is not None:
+        if isinstance(prob.control_handler, AlgebraicControlHandler):
+            _compute_control = prob.control_handler.compute_control
+            _num_controls = prob.num_controls
+
+            def _compute_control_vectorized(
+                    independent: np.ndarray, states: np.ndarray, costates: np.ndarray,
+                    parameters: np.ndarray, constants: np.ndarray
+            ) -> np.ndarray:
+
+                u = np.empty((_num_controls, len(independent)))
+                for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T)):
+                    u[:, idx] = _compute_control(ti, xi, lami, parameters, constants)
+
+                return u
+
+            prob.control_handler.compute_control_vectorized = jit_compile(
+                    _compute_control_vectorized,
+                    (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray)
+            )
+
+        elif isinstance(prob.control_handler, DifferentialControlHandler):
+            _compute_control_dynamics = prob.control_handler.compute_control_dynamics
+
+            def _compute_control_dynamics_vectorized(
+                    independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
+                    parameters: np.ndarray, constants: np.ndarray
+            ) -> np.ndarray:
+
+                u_dot = np.empty_like(controls)
+                for idx, (ti, xi, lami, ui) in enumerate(zip(independent, states.T, costates.T, controls.T)):
+                    u_dot[:, idx] = _compute_control_law(ti, xi, lami, ui, parameters, constants)
+
+                return u_dot
+
+            prob.control_handler.compute_control_dynamics_vectorized = jit_compile(
+                    _compute_control_dynamics_vectorized,
+                    (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray)
+            )
 
     return prob

@@ -32,13 +32,6 @@ class DifferentialControlHandler(Protocol):
     ) -> np.ndarray:
         ...
 
-    @staticmethod
-    def compute_control_boundary_conditions(
-            independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
-            parameters: np.ndarray, constants: np.ndarray
-    ) -> np.ndarray:
-        ...
-
 
 @runtime_checkable
 class VectorizedDifferentialControlHandler(DifferentialControlHandler, Protocol):
@@ -46,13 +39,6 @@ class VectorizedDifferentialControlHandler(DifferentialControlHandler, Protocol)
     @staticmethod
     def compute_control_dynamics_vectorized(
             independent: np.ndarray, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
-            parameters: np.ndarray, constants: np.ndarray
-    ) -> np.ndarray:
-        ...
-
-    @staticmethod
-    def compute_control_boundary_conditions_vectorized(
-            independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
             parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:
         ...
