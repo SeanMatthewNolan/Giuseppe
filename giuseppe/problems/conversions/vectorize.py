@@ -4,7 +4,8 @@ import copy
 import numpy as np
 
 from ..protocols import Problem, VectorizedBVP, VectorizedOCP, VectorizedAdjoints, VectorizedDual,\
-    AlgebraicControlHandler, DifferentialControlHandler
+    AlgebraicControlHandler, DifferentialControlHandler,  VectorizedAlgebraicControlHandler,\
+    VectorizedDifferentialControlHandler
 from ...utils.compilation import check_if_can_jit_compile, jit_compile
 from ...utils.typing import NumbaArray, NumbaMatrix
 
@@ -198,7 +199,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
         _compute_hamiltonian = input_prob.compute_hamiltonian
         _compute_control_law = input_prob.compute_control_law
 
-        def _compute_costates_dynamics_vectorized(
+        def _compute_costate_dynamics_vectorized(
                 independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray
         ) -> np.ndarray:
@@ -210,7 +211,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
             return lam_dot
 
         prob.compute_costate_dynamics_vectorized = jit_compile(
-                _compute_costates_dynamics_vectorized,
+                _compute_costate_dynamics_vectorized,
                 (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray)
         )
 
@@ -268,6 +269,8 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
                     (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray)
             )
 
+            prob.control_handler = cast(VectorizedAlgebraicControlHandler, prob.control_handler)
+
         elif isinstance(prob.control_handler, DifferentialControlHandler):
             _compute_control_dynamics = prob.control_handler.compute_control_dynamics
 
@@ -286,5 +289,7 @@ def _jit_vectorized(input_prob: Problem) -> Union[VectorizedBVP, VectorizedOCP, 
                     _compute_control_dynamics_vectorized,
                     (NumbaArray, NumbaMatrix, NumbaMatrix, NumbaMatrix, NumbaArray, NumbaArray)
             )
+
+            prob.control_handler = cast(VectorizedDifferentialControlHandler, prob.control_handler)
 
     return prob

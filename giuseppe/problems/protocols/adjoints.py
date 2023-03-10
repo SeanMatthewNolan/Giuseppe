@@ -60,7 +60,7 @@ class Adjoints(Protocol):
 @runtime_checkable
 class VectorizedAdjoints(Adjoints, Protocol):
     @staticmethod
-    def compute_costates_dynamics_vectorized(
+    def compute_costate_dynamics_vectorized(
             independent: np.ndarray, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,
             parameters: np.ndarray, constants: np.ndarray
     ) -> np.ndarray:

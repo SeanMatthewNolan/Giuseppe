@@ -1,21 +1,26 @@
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
 from giuseppe.utils import make_array_slices
 from giuseppe.utils.compilation import jit_compile, check_if_can_jit_compile
-from giuseppe.utils.typing import NumbaFloat, NumbaArray
+from giuseppe.utils.typing import NumbaFloat, NumbaArray, NumbaMatrix
 from giuseppe.data_classes import Solution, Annotations
-from giuseppe.problems.protocols.bvp import BVP
-from giuseppe.problems.protocols.dual import Dual
+from giuseppe.problems.protocols.bvp import BVP, VectorizedBVP
+from giuseppe.problems.protocols.dual import Dual, VectorizedDual
 from giuseppe.problems.protocols.control_handlers import AlgebraicControlHandler, DifferentialControlHandler
+
+from .vectorize import vectorize
 
 # TODO Add method to convert OCP to BVP by specifying control law
 
 
-def convert_dual_to_bvp(dual_prob: Dual) -> 'BVPFromDual':
-    return BVPFromDual(dual_prob)
+def convert_dual_to_bvp(dual_prob: Dual, perform_vectorize: bool = True) -> 'BVPFromDual':
+    if perform_vectorize:
+        return VectorizedBVPFromDual(dual_prob)
+    else:
+        return BVPFromDual(dual_prob)
 
 
 class BVPFromDual(BVP):
@@ -206,8 +211,7 @@ class BVPFromDual(BVP):
         return post_process_data
 
     def _diff_convert_dynamics(self):
-        _x_slice, _lam_slice, _u_slice, _p_slice, _nu_slice = \
-            self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu_slice
+        _x_slice, _lam_slice, _u_slice, _p_slice = self._x_slice, self._lam_slice, self._u_slice, self._p_slice
 
         _compute_state_dynamics = self.source_dual.compute_dynamics
         _compute_costate_dynamics = self.source_dual.compute_costate_dynamics
@@ -312,3 +316,74 @@ class BVPFromDual(BVP):
                             converged=in_data.converged, annotations=_annotations)
 
         return post_process_data
+
+
+class VectorizedBVPFromDual(BVPFromDual, VectorizedBVP):
+    def __init__(self, source_dual: Union[Dual, VectorizedDual], use_jit_compile: bool = True):
+
+        BVPFromDual.__init__(self, source_dual, use_jit_compile)
+
+        if not isinstance(self.source_dual, VectorizedDual):
+            self.source_dual: VectorizedDual = vectorize(self.source_dual, use_jit_compile)
+
+        if isinstance(self.source_dual.control_handler, AlgebraicControlHandler):
+            self.compute_dynamics_vectorized = self._alg_convert_vectorized_dynamics()
+        elif isinstance(self.source_dual.control_handler, DifferentialControlHandler):
+            self.compute_dynamics_vectorized = self._diff_convert_vectorized_dynamics()
+        else:
+            raise ValueError('Cannot convert Dual to BVP without valid control handler')
+
+        if self.use_jit_compile:
+            self.compute_dynamics_vectorized = jit_compile(
+                    self.compute_dynamics_vectorized, (NumbaArray, NumbaMatrix, NumbaArray, NumbaArray)
+            )
+
+    def _alg_convert_vectorized_dynamics(self):
+        _x_slice, _lam_slice, _p_slice = self._x_slice, self._lam_slice, self._p_slice
+
+        _compute_state_dynamics_vectorized = self.source_dual.compute_dynamics_vectorized
+        _compute_costate_dynamics_vectorized = self.source_dual.compute_costate_dynamics_vectorized
+        _compute_control_vectorized = self.source_dual.control_handler.compute_control_vectorized
+
+        def compute_dynamics_vectorized(
+                t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+        ) -> np.ndarray:
+
+            x = y[_x_slice, :]
+            lam = y[_lam_slice, :]
+
+            p = rho[_p_slice]
+
+            u = _compute_control_vectorized(t, x, lam, p, k)
+
+            _x_dot = _compute_state_dynamics_vectorized(t, x, u, p, k)
+            _lam_dot = _compute_costate_dynamics_vectorized(t, x, lam, u, p, k)
+
+            return np.vstack((_x_dot, _lam_dot))
+
+        return compute_dynamics_vectorized
+
+    def _diff_convert_vectorized_dynamics(self):
+        _x_slice, _lam_slice, _u_slice, _p_slice = self._x_slice, self._lam_slice, self._u_slice, self._p_slice
+
+        _compute_state_dynamics_vectorized = self.source_dual.compute_dynamics_vectorized
+        _compute_costate_dynamics_vectorized = self.source_dual.compute_costate_dynamics_vectorized
+        _compute_control_dynamics_vectorized = self.source_dual.control_handler.compute_control_dynamics_vectorized
+
+        def compute_dynamics_vectorized(
+                t: np.ndarray, y: np.ndarray, rho: np.ndarray, k: np.ndarray
+        ) -> np.ndarray:
+
+            x = y[_x_slice, :]
+            lam = y[_lam_slice, :]
+            u = y[_u_slice, :]
+
+            p = rho[_p_slice]
+
+            _x_dot = _compute_state_dynamics_vectorized(t, x, u, p, k)
+            _lam_dot = _compute_costate_dynamics_vectorized(t, x, lam, u, p, k)
+            _u_dot = _compute_control_dynamics_vectorized(t, x, lam, u, p, k)
+
+            return np.vstack((_x_dot, _lam_dot, _u_dot))
+
+        return compute_dynamics_vectorized
