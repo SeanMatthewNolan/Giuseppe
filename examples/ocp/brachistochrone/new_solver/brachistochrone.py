@@ -1,7 +1,10 @@
 import os
 
+import numpy as np
+
 from giuseppe import SymDual, StrInputProb, auto_propagate_guess
 from giuseppe.numeric_solvers.dual.collocation import DualCollocation
+from giuseppe.data_classes.remesh import remesh
 
 os.chdir(os.path.dirname(__file__))  # Set directory to file location
 
@@ -35,7 +38,9 @@ ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
 comp_dual = SymDual(ocp, control_method=None).compile()
-guess = auto_propagate_guess(comp_dual, t_span=1, control=-15/180 * 3.14159, max_step=0.1)
+guess = auto_propagate_guess(comp_dual, t_span=1, control=-15/180 * 3.14159)
+
+remeshed = remesh(guess, np.linspace(guess.t[0], guess.t[-1], 11))
 
 solver = DualCollocation(comp_dual)
-out = solver.solve(guess)
+out = solver.solve(remeshed)
