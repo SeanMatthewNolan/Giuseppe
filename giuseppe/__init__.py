@@ -1,6 +1,7 @@
 from . import continuation, data_classes, guess_generation, numeric_solvers, problems, utils, visualization
 
 from .data_classes import Solution, SolutionSet, Annotations
+from .data_classes import load_sol, load_sol_set
 
 from .problems import VectorizedBVP, VectorizedOCP, VectorizedAdjoints, VectorizedDual
 from .problems import StrInputProb, SymBVP, SymOCP, SymAdjoints, SymDual
