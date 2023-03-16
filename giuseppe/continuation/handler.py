@@ -7,7 +7,7 @@ from giuseppe.data_classes import Solution, SolutionSet, Annotations
 
 from .display import ContinuationDisplayManager, ProgressBarDisplay, NoDisplay
 from .methods import ContinuationSeries, LinearSeries, BisectionLinearSeries, LogarithmicSeries, \
-    BisectionLogarithmicSeries
+    BisectionLogarithmicSeries, UntilFailureSeries
 from ..numeric_solvers import NumericSolver
 from ..utils.exceptions import ContinuationError
 
@@ -146,6 +146,46 @@ class ContinuationHandler:
         else:
             series = LogarithmicSeries(num_steps, target_values, self.solution_set,
                                        constant_names=self.constant_names)
+
+        self.continuation_series.append(series)
+        return self
+
+    def add_linear_series_until_failure(self, step_sizes: Mapping[Hashable: float], bisection: Union[bool, int] = True):
+        """
+        Add a linear series to the continuation handler
+
+        The linear series will take linearly spaced steps toward the specified target values using the last solution as
+        the next guess
+
+        Parameters
+        ----------
+        num_steps : int
+            number of steps in the continuation series
+
+        step_sizes : dict[str: float]
+           dictionary (or other mapping) assigning target values to continuation series
+           key should be the name of the constant to change
+           value is the final value
+
+        bisection : Union[bool, int], default=False
+           If True or number, the continuation handler will retry to solve problem with bisected step length if solver
+           fails to converge.
+
+           If a number is given, the number specifies the maximum number of bisections that will occur before giving up.
+
+        Returns
+        -------
+        self : ContinuationHandler
+        """
+
+        if bisection is True:
+            series = UntilFailureSeries(step_sizes, self.solution_set, constant_names=self.constant_names)
+        elif bisection > 0:
+            series = UntilFailureSeries(step_sizes, self.solution_set, max_bisections=bisection,
+                                        constant_names=self.constant_names)
+        else:
+            series = UntilFailureSeries(step_sizes, self.solution_set, max_bisections=False,
+                                        constant_names=self.constant_names)
 
         self.continuation_series.append(series)
         return self

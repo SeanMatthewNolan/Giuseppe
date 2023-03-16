@@ -71,6 +71,9 @@ class CompAlgebraicControlHandler:
     def compile_control(self):
         control_law = self.source_handler.control_functions
 
+        if isinstance(control_law, dict):
+            control_law = tuple(zip([control_law[_ui] for _ui in self.source_handler.controls]))
+
         num_options = len(control_law)
 
         if num_options == 1:

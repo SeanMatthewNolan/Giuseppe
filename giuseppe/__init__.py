@@ -11,7 +11,7 @@ from .problems import ADiffInputProb, ADiffBVP, ADiffOCP, ADiffAdjoints, ADiffDu
 from .problems import ADiffPenaltyConstraintHandler, ADiffControlConstraintHandler
 
 from .guess_generation import initialize_guess, initialize_guess_from_partial_solution, auto_propagate_guess, \
-    auto_guess, propagate_guess
+    auto_guess, propagate_guess, InteractiveGuessGenerator
 
 from .numeric_solvers import SciPySolver
 

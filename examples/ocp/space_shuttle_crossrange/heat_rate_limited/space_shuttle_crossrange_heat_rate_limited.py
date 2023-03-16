@@ -96,8 +96,6 @@ ocp.add_constraint('terminal', 'h - h_f')
 ocp.add_constraint('terminal', 'v - v_f')
 ocp.add_constraint('terminal', 'gamma - gamma_f')
 
-ocp.add_inequality_constraint('path', 'alpha', lower_limit='alpha_min', upper_limit='alpha_max',
-                              regularizer=PenaltyConstraintHandler('eps_alpha', method='sec'))
 ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limit='beta_max',
                               regularizer=PenaltyConstraintHandler('eps_beta', method='sec'))
 ocp.add_inequality_constraint('path', 'q', upper_limit='q_max',
@@ -115,6 +113,7 @@ cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(250, {'q_max': 70})
 cont.add_linear_series(90, {'xi': np.pi / 2})
+cont.add_logarithmic_series(90, {'eps_beta': 1e-10, 'eps_q': 1e-7})
 sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')
