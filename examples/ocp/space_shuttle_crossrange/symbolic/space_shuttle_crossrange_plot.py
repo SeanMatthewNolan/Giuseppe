@@ -127,6 +127,11 @@ ax24.set_ylabel(r'$\lambda_\psi$')
 
 fig_lam.tight_layout()
 
+fig_cond = plt.figure()
+ax_cond = fig_cond.add_subplot()
+ax_cond.plot(sol.t, sol.aux['cond_h_uu'])
+ax_cond.set_yscale('log')
+
 # fig.savefig('brachistocrone.eps',
 #             format='eps',
 #             bbox_extra_artists=(title, xlabel_1, ylabel_1, xlabel_2, ylabel_2),

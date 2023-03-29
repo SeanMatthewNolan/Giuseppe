@@ -39,6 +39,13 @@ class DifferentialControlHandler(Protocol):
     ) -> np.ndarray:
         ...
 
+    @staticmethod
+    def compute_h_uu(
+            independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
+            parameters: np.ndarray, constants: np.ndarray
+    ) -> np.ndarray:
+        ...
+
 
 @runtime_checkable
 class VectorizedDifferentialControlHandler(DifferentialControlHandler, Protocol):

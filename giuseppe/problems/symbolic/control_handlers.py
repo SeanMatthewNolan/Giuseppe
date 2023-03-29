@@ -111,19 +111,28 @@ class CompDifferentialControlHandler:
         self.sym_args = self.source_comp_dual.sym_args['dynamic']
         self.args_numba_signature = self.source_comp_dual.args_numba_signature['dynamic']
 
-        self.compute_control_dynamics = self.compile_control_dynamics()
+        self.compute_control_dynamics, self.compute_h_uu = self.compile_control_dynamics()
         self.compute_control_boundary_conditions = self.source_comp_dual.compute_control_law
 
     def compile_control_dynamics(self):
         _compute_control_dynamics = lambdify(self.sym_args, tuple(self.source_handler.control_dynamics.flat()),
                                              use_jit_compile=self.use_jit_compile)
 
+        _compute_h_uu = lambdify(self.sym_args, self.source_handler.h_uu, use_jit_compile=self.use_jit_compile)
+
         def compute_control_dynamics(
                 independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
                 parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
             return np.asarray(_compute_control_dynamics(independent, states, controls, costates, parameters, constants))
 
+        def compute_h_uu(
+                independent: float, states: np.ndarray, controls: np.ndarray, costates: np.ndarray,
+                parameters: np.ndarray, constants: np.ndarray) -> np.ndarray:
+            # return np.array(_compute_h_uu(independent, states, controls, costates, parameters, constants), ndmin=2)
+            return _compute_h_uu(independent, states, controls, costates, parameters, constants)
+
         if self.use_jit_compile:
             compute_control_dynamics = jit_compile(compute_control_dynamics, self.args_numba_signature)
+            compute_h_uu = jit_compile(compute_h_uu, self.args_numba_signature)
 
-        return compute_control_dynamics
+        return compute_control_dynamics, compute_h_uu
