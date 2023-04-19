@@ -35,10 +35,9 @@ zermelo.add_constraint('terminal', 'y - y_f')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_dual = giuseppe.problems.symbolic.SymDual(zermelo, control_method='algebraic')
-    comp_dual = sym_dual.compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(sym_dual)
 
-guess = giuseppe.guess_generation.initialize_guess(comp_dual)
+guess = giuseppe.guess_generation.initialize_guess(sym_dual)
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(6, {'c': 1})

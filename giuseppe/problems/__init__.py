@@ -4,7 +4,6 @@ from .protocols import BVP, OCP, Adjoints, Dual
 from .protocols import VectorizedBVP, VectorizedOCP, VectorizedAdjoints, VectorizedDual
 
 from .symbolic import StrInputProb, SymBVP, SymOCP, SymAdjoints, SymDual
-from .symbolic import CompOCP, CompAdjoints, CompDual
 from .symbolic import PenaltyConstraintHandler as SymPenaltyConstraintHandler, \
     ControlConstraintHandler as SymControlConstraintHandler
 

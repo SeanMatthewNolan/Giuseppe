@@ -39,7 +39,7 @@ ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Setup Time:'):
-    comp_dual = SymDual(ocp, control_method='algebraic').compile(use_jit_compile=False)
+    comp_dual = SymDual(ocp, control_method='algebraic')
     num_solver = SciPySolver(comp_dual)
     guess = auto_guess(comp_dual, u=-45/180 * 3.14159)
 

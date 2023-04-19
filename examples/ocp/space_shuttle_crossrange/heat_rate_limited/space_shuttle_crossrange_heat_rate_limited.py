@@ -103,10 +103,9 @@ ocp.add_inequality_constraint('path', 'q', upper_limit='q_max',
 
 with Timer(prefix='Compilation Time:'):
     sym_dual = SymDual(ocp, control_method='differential')
-    comp_dual = sym_dual.compile()
-    solver = SciPySolver(comp_dual)
+    solver = SciPySolver(sym_dual)
 
-guess = auto_propagate_guess(comp_dual, control=(20/180*3.14159, 0), t_span=100)
+guess = auto_propagate_guess(sym_dual, control=(20 / 180 * 3.14159, 0), t_span=100)
 
 cont = ContinuationHandler(solver, guess)
 cont.add_linear_series(100, {'h_f': 200_000, 'v_f': 10_000})

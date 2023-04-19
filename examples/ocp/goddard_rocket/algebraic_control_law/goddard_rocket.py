@@ -44,7 +44,7 @@ goddard.add_inequality_constraint(
         regularizer=giuseppe.problems.symbolic.ControlConstraintHandler(
                 'eps_thrust * h_ref', method='atan'))
 
-comp_goddard = giuseppe.problems.symbolic.SymDual(goddard, control_method='algebraic').compile()
+comp_goddard = giuseppe.problems.symbolic.SymDual(goddard, control_method='algebraic')
 num_solver = giuseppe.numeric_solvers.SciPySolver(comp_goddard)
 
 guess = giuseppe.guess_generation.auto_guess(comp_goddard, t_span=np.linspace(0, 0.1, 2))

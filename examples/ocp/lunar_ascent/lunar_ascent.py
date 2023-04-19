@@ -45,7 +45,7 @@ lunar.add_constraint('terminal', 'v_h - v_h_f')
 lunar.add_constraint('terminal', 'v_x - v_x_f')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    comp_lunar = giuseppe.problems.symbolic.SymDual(lunar, control_method='algebraic').compile()
+    comp_lunar = giuseppe.problems.symbolic.SymDual(lunar, control_method='algebraic')
     solver = giuseppe.numeric_solvers.SciPySolver(comp_lunar, use_jit_compile=False)
 
 guess = giuseppe.guess_generation.auto_propagate_guess(comp_lunar, control=45 / 180 * 3.14159, t_span=T_GUESS)

@@ -42,7 +42,7 @@ goddard.add_inequality_constraint(
         regularizer=giuseppe.problems.symbolic.PenaltyConstraintHandler('eps_thrust * h_ref', method='sec'))
 
 with giuseppe.utils.Timer(prefix='Setup Time:'):
-    comp_dual_ocp = giuseppe.problems.symbolic.SymDual(goddard, control_method='differential').compile()
+    comp_dual_ocp = giuseppe.problems.symbolic.SymDual(goddard, control_method='differential')
     num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual_ocp, bc_tol=1e-8, tol=1e-5)
     guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual_ocp, control=150)
 

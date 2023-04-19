@@ -79,9 +79,9 @@ ocp.add_inequality_constraint('path', 'beta', lower_limit='beta_min', upper_limi
                               regularizer=SymPenaltyConstraintHandler('eps_beta', method='sec'))
 
 with Timer('Setup Time: '):
-    comp_dual = SymDual(ocp, control_method='differential').compile()
-    solver = SciPySolver(comp_dual)
-    guess = auto_propagate_guess(comp_dual, control=(15/180*3.14159, 0), t_span=100)
+    sym_dual = SymDual(ocp, control_method='differential')
+    solver = SciPySolver(sym_dual)
+    guess = auto_propagate_guess(sym_dual, control=(15 / 180 * 3.14159, 0), t_span=100)
 
 cont = ContinuationHandler(solver, guess)
 

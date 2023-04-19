@@ -30,7 +30,7 @@ zermelo.add_constraint('terminal', 'x - x_f')
 zermelo.add_constraint('terminal', 'y - y_f')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    comp_prob = giuseppe.problems.symbolic.SymDual(zermelo, control_method='differential').compile()
+    comp_prob = giuseppe.problems.symbolic.SymDual(zermelo, control_method='differential')
     num_solver = giuseppe.numeric_solvers.SciPySolver(comp_prob)
 
 guess = giuseppe.guess_generation.auto_propagate_guess(comp_prob, control=0, t_span=1)
