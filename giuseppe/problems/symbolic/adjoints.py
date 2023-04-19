@@ -15,14 +15,16 @@ from .bvp import SymBoundaryConditions
 from .ocp import SymCost, SymOCP
 
 
-class SymAdjoints(Symbolic):
-    def __init__(self, ocp: SymOCP):
+class SymAdjoints(Symbolic, Adjoints):
+    def __init__(self, ocp: SymOCP, use_jit_compile: bool = True):
         Symbolic.__init__(self)
+        self.use_jit_compile = use_jit_compile
 
         self.annotations: Annotations = Annotations()
 
         self.source_ocp: SymOCP = deepcopy(ocp)
         self._sympify_adjoint_information(self.source_ocp)
+        self._compile_adjoint_information(self.source_ocp)
 
     def _sympify_adjoint_information(self, ocp: SymOCP):
         states_and_parameters = SymMatrix(ocp.states.flat() + ocp.parameters.flat())
@@ -67,46 +69,34 @@ class SymAdjoints(Symbolic):
         self.annotations.initial_adjoints = stringify_list(self.initial_adjoints)
         self.annotations.terminal_adjoints = stringify_list(self.terminal_adjoints)
 
-    def compile(self, use_jit_compile: bool = True) -> 'CompAdjoints':
-        return CompAdjoints(self, use_jit_compile=use_jit_compile)
-
-
-class CompAdjoints(Adjoints):
-    def __init__(self, source_adjoints: SymAdjoints, use_jit_compile: bool = True):
-        self.use_jit_compile = use_jit_compile
-        self.source_adjoints: SymAdjoints = deepcopy(source_adjoints)
-        self.source_ocp: SymOCP = self.source_adjoints.source_ocp
-
-        self._compile_adjoint_information(self.source_ocp, self.source_adjoints)
-
-    def _compile_adjoint_information(self, sym_ocp, sym_adjoints):
+    def _compile_adjoint_information(self, sym_ocp):
 
         self.num_states: int = sym_ocp.num_states
         self.num_parameters: int = sym_ocp.num_parameters
         self.num_constants: int = sym_ocp.num_constants
 
-        self.num_costates: int = sym_adjoints.num_costates
-        self.num_initial_adjoints: int = sym_adjoints.num_initial_adjoints
-        self.num_terminal_adjoints: int = sym_adjoints.num_terminal_adjoints
+        self.num_costates: int = self.num_costates
+        self.num_initial_adjoints: int = self.num_initial_adjoints
+        self.num_terminal_adjoints: int = self.num_terminal_adjoints
         self.num_adjoints: int = self.num_initial_adjoints + self.num_terminal_adjoints
 
         self.default_values: np.ndarray = sym_ocp.default_values
 
         self.sym_args = {
             'dynamic'  : (sym_ocp.independent, sym_ocp.states.flat(),
-                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
+                          self.costates.flat(), sym_ocp.controls.flat(),
                           sym_ocp.parameters.flat(), sym_ocp.constants.flat()),
             'static'   : (sym_ocp.independent, sym_ocp.states.flat(),
-                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
-                          sym_ocp.parameters.flat(), sym_adjoints.adjoints.flat(),
+                          self.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), self.adjoints.flat(),
                           sym_ocp.constants.flat()),
             'initial'  : (sym_ocp.independent, sym_ocp.states.flat(),
-                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
-                          sym_ocp.parameters.flat(), sym_adjoints.initial_adjoints.flat(),
+                          self.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), self.initial_adjoints.flat(),
                           sym_ocp.constants.flat()),
             'terminal' : (sym_ocp.independent, sym_ocp.states.flat(),
-                          sym_adjoints.costates.flat(), sym_ocp.controls.flat(),
-                          sym_ocp.parameters.flat(), sym_adjoints.terminal_adjoints.flat(),
+                          self.costates.flat(), sym_ocp.controls.flat(),
+                          sym_ocp.parameters.flat(), self.terminal_adjoints.flat(),
                           sym_ocp.constants.flat())
         }
 
@@ -115,19 +105,19 @@ class CompAdjoints(Adjoints):
             'static' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
         }
 
-        self.compute_costate_dynamics = self._compile_costate_dynamics(sym_adjoints)
+        self.compute_costate_dynamics = self._compile_costate_dynamics()
 
-        _adjoint_boundary_condition_funcs = self._compile_adjoint_boundary_conditions(sym_adjoints)
+        _adjoint_boundary_condition_funcs = self._compile_adjoint_boundary_conditions()
         self.compute_initial_adjoint_boundary_conditions = _adjoint_boundary_condition_funcs[0]
         self.compute_terminal_adjoint_boundary_conditions = _adjoint_boundary_condition_funcs[1]
         self.compute_adjoint_boundary_conditions = _adjoint_boundary_condition_funcs[2]
 
-        self.compute_hamiltonian = self._compile_hamiltonian(sym_adjoints)
-        self.compute_control_law = self._compile_control_law(sym_adjoints)
+        self.compute_hamiltonian = self._compile_hamiltonian()
+        self.compute_control_law = self._compile_control_law()
 
-    def _compile_costate_dynamics(self, sym_adjoints: SymAdjoints) -> Callable:
+    def _compile_costate_dynamics(self) -> Callable:
         _compute_costate_dynamics = lambdify(
-                self.sym_args['dynamic'], tuple(sym_adjoints.costate_dynamics.flat()),
+                self.sym_args['dynamic'], tuple(self.costate_dynamics.flat()),
                 use_jit_compile=self.use_jit_compile)
 
         def compute_costate_dynamics(
@@ -140,12 +130,12 @@ class CompAdjoints(Adjoints):
 
         return compute_costate_dynamics
 
-    def _compile_adjoint_boundary_conditions(self, sym_adjoints: SymAdjoints) -> tuple:
+    def _compile_adjoint_boundary_conditions(self) -> tuple:
         _compute_initial_adjoint_boundary_conditions = lambdify(
-                self.sym_args['initial'], tuple(sym_adjoints.adjoint_boundary_conditions.initial.flat()),
+                self.sym_args['initial'], tuple(self.adjoint_boundary_conditions.initial.flat()),
                 use_jit_compile=self.use_jit_compile)
         _compute_terminal_adjoint_boundary_conditions = lambdify(
-                self.sym_args['terminal'], tuple(sym_adjoints.adjoint_boundary_conditions.terminal.flat()),
+                self.sym_args['terminal'], tuple(self.adjoint_boundary_conditions.terminal.flat()),
                 use_jit_compile=self.use_jit_compile)
 
         def compute_initial_adjoint_boundary_conditions(
@@ -196,11 +186,11 @@ class CompAdjoints(Adjoints):
         return compute_initial_adjoint_boundary_conditions, compute_terminal_adjoint_boundary_conditions, \
             compute_adjoint_boundary_conditions
 
-    def _compile_hamiltonian(self, sym_adjoints: SymAdjoints) -> Callable:
-        return lambdify(self.sym_args['dynamic'], sym_adjoints.hamiltonian, use_jit_compile=self.use_jit_compile)
+    def _compile_hamiltonian(self) -> Callable:
+        return lambdify(self.sym_args['dynamic'], self.hamiltonian, use_jit_compile=self.use_jit_compile)
 
-    def _compile_control_law(self, sym_adjoints: SymAdjoints) -> Callable:
-        _compute_control_law = lambdify(self.sym_args['dynamic'], tuple(sym_adjoints.control_law),
+    def _compile_control_law(self) -> Callable:
+        _compute_control_law = lambdify(self.sym_args['dynamic'], tuple(self.control_law),
                                         use_jit_compile=self.use_jit_compile)
 
         def compute_control_law(independent: float, states: np.ndarray, costates: np.ndarray, controls: np.ndarray,

@@ -99,7 +99,7 @@ robot.add_inequality_constraint(
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_dual = giuseppe.problems.symbolic.SymDual(robot, control_method='differential')
-    comp_dual_ocp = sym_dual.compile()
+    comp_dual_ocp = sym_dual
     num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual_ocp)
 
 

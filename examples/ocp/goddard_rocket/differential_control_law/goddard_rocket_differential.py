@@ -43,7 +43,7 @@ goddard.add_inequality_constraint(
                 'eps_thrust * h_ref', method='sin'))
 
 with giuseppe.utils.Timer(prefix='Setup Time:'):
-    compiled_problem = giuseppe.problems.symbolic.SymDual(goddard).compile()
+    compiled_problem = giuseppe.problems.symbolic.SymDual(goddard)
     num_solver = giuseppe.numeric_solvers.SciPySolver(compiled_problem, bc_tol=1e-8, tol=1e-5)
     guess = giuseppe.guess_generation.auto_propagate_guess(compiled_problem, control=89 / 180 * 3.14159)
 

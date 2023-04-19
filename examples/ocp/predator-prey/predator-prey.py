@@ -49,11 +49,10 @@ prob.add_inequality_constraint(
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     sym_prob = giuseppe.problems.symbolic.SymDual(prob)
-    comp_dual = sym_prob.compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_dual)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(sym_prob)
 
 # guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual, control=0.5, t_span=1)
-guess = giuseppe.guess_generation.auto_propagate_guess(comp_dual, control=0, t_span=0.1)
+guess = giuseppe.guess_generation.auto_propagate_guess(sym_prob, control=0, t_span=0.1)
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(10, {'t_f': 1})

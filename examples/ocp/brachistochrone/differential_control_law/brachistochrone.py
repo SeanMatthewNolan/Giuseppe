@@ -41,7 +41,7 @@ input_ocp.add_constraint('terminal', 'x - x_f')
 input_ocp.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Compilation Time:'):
-    comp_dual = SymDual(input_ocp, control_method='differential').compile()
+    comp_dual = SymDual(input_ocp, control_method='differential')
     solver = SciPySolver(comp_dual)
 
 guess = auto_guess(comp_dual, u=-15 / 180 * 3.14159)

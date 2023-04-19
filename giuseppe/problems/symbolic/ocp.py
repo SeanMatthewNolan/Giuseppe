@@ -21,19 +21,24 @@ class SymCost:
     terminal: SymExpr = SYM_ZERO
 
 
-class SymOCP(SymBVP):
-    def __init__(self, input_data: StrInputProb = None):
+class SymOCP(SymBVP, OCP):
+    def __init__(self, input_data: StrInputProb = None, use_jit_compile: bool = True, cost_quadrature: str = 'simpson'):
         self.controls: SymMatrix = EMPTY_SYM_MATRIX
         self.cost = SymCost()
 
-        super().__init__(input_data=input_data)
+        if cost_quadrature.lower() == 'simpson':
+            self.integrate_path_cost = simpson
+        elif cost_quadrature.lower() == 'trapezoid':
+            self.integrate_path_cost = trapezoid
+        else:
+            raise RuntimeError(f'Cannot use quadrature for cost {cost_quadrature}')
 
-        self.num_states = len(self.states)
-        self.num_parameters = len(self.parameters)
-        self.num_constants = len(self.constants)
-        self.num_controls = len(self.controls)
-        self.sym_args = (self.independent, self.states.flat(), self.controls.flat(),
-                         self.parameters.flat(), self.constants.flat())
+        self.compute_initial_cost = None
+        self.compute_path_cost = None
+        self.compute_terminal_cost = None
+        self.compute_cost = None
+
+        super().__init__(input_data=input_data, use_jit_compile=use_jit_compile)
 
     def _process_variables_from_input(self, input_data: StrInputProb):
         super()._process_variables_from_input(input_data)
@@ -65,56 +70,9 @@ class SymOCP(SymBVP):
 
         return self.annotations
 
-    def compile(self, use_jit_compile: bool = True, cost_quadrature: str = 'simpson') -> 'CompOCP':
-        return CompOCP(self, use_jit_compile=use_jit_compile, cost_quadrature=cost_quadrature)
-
-
-class CompOCP(OCP):
-    def __init__(self, source_ocp: SymOCP, use_jit_compile: bool = True, cost_quadrature: str = 'simpson'):
-        self.use_jit_compile = use_jit_compile
-        self.source_ocp: SymOCP = deepcopy(source_ocp)
-
-        self.num_states: int = self.source_ocp.num_states
-        self.num_controls: int = self.source_ocp.num_controls
-        self.num_parameters: int = self.source_ocp.num_parameters
-        self.num_constants: int = self.source_ocp.num_constants
-        self.default_values: np.ndarray = self.source_ocp.default_values
-
-        self.sym_args = {
-            'dynamic': (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_ocp.controls.flat(),
-                        self.source_ocp.parameters.flat(), self.source_ocp.constants.flat()),
-            'static' : (self.source_ocp.independent, self.source_ocp.states.flat(), self.source_ocp.parameters.flat(),
-                        self.source_ocp.constants.flat())
-        }
-
-        self.args_numba_signature = {
-            'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-            'static' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
-        }
-
-        self.compute_dynamics = self.compile_dynamics()
-
-        _boundary_condition_funcs = self.compile_boundary_conditions()
-        self.compute_initial_boundary_conditions = _boundary_condition_funcs[0]
-        self.compute_terminal_boundary_conditions = _boundary_condition_funcs[1]
-        self.compute_boundary_conditions = _boundary_condition_funcs[2]
-
-        if cost_quadrature.lower() == 'simpson':
-            self.integrate_path_cost = simpson
-        elif cost_quadrature.lower() == 'trapezoid':
-            self.integrate_path_cost = trapezoid
-
-        _cost_funcs = self.compile_cost()
-        self.compute_initial_cost = _cost_funcs[0]
-        self.compute_path_cost = _cost_funcs[1]
-        self.compute_terminal_cost = _cost_funcs[2]
-        self.compute_cost = _cost_funcs[3]
-
-        self.annotations : Annotations = self.source_ocp.annotations
-
     def compile_dynamics(self) -> Callable:
         _compute_dynamics = lambdify(
-                self.sym_args['dynamic'], tuple(self.source_ocp.dynamics.flat()), use_jit_compile=self.use_jit_compile)
+                self.sym_args['dynamic'], tuple(self.dynamics.flat()), use_jit_compile=self.use_jit_compile)
 
         def compute_dynamics(
                 independent: float, states: np.ndarray, controls: np.ndarray,
@@ -128,10 +86,10 @@ class CompOCP(OCP):
 
     def compile_boundary_conditions(self) -> tuple:
         _compute_initial_boundary_conditions = lambdify(
-                self.sym_args['static'], tuple(self.source_ocp.boundary_conditions.initial.flat()),
+                self.sym_args['static'], tuple(self.boundary_conditions.initial.flat()),
                 use_jit_compile=self.use_jit_compile)
         _compute_terminal_boundary_conditions = lambdify(
-                self.sym_args['static'], tuple(self.source_ocp.boundary_conditions.terminal.flat()),
+                self.sym_args['static'], tuple(self.boundary_conditions.terminal.flat()),
                 use_jit_compile=self.use_jit_compile)
 
         def compute_initial_boundary_conditions(
@@ -172,11 +130,11 @@ class CompOCP(OCP):
 
     def compile_cost(self) -> tuple:
         compute_initial_cost = lambdify(
-                self.sym_args['static'], self.source_ocp.cost.initial, use_jit_compile=self.use_jit_compile)
+                self.sym_args['static'], self.cost.initial, use_jit_compile=self.use_jit_compile)
         compute_path_cost = lambdify(
-                self.sym_args['dynamic'], self.source_ocp.cost.path, use_jit_compile=self.use_jit_compile)
+                self.sym_args['dynamic'], self.cost.path, use_jit_compile=self.use_jit_compile)
         compute_terminal_cost = lambdify(
-                self.sym_args['static'], self.source_ocp.cost.terminal, use_jit_compile=self.use_jit_compile)
+                self.sym_args['static'], self.cost.terminal, use_jit_compile=self.use_jit_compile)
 
         integrate_path_cost = self.integrate_path_cost
 
@@ -197,3 +155,34 @@ class CompOCP(OCP):
             return initial_cost + path_cost + terminal_cost
 
         return compute_initial_cost, compute_path_cost, compute_terminal_cost, compute_cost
+
+    def compile(self):
+        self.num_states = len(self.states)
+        self.num_parameters = len(self.parameters)
+        self.num_constants = len(self.constants)
+        self.num_controls = len(self.controls)
+
+        self.sym_args = {
+            'dynamic': (self.independent, self.states.flat(), self.controls.flat(),
+                        self.parameters.flat(), self.constants.flat()),
+            'static' : (self.independent, self.states.flat(), self.parameters.flat(),
+                        self.constants.flat())
+        }
+
+        self.args_numba_signature = {
+            'dynamic': (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+            'static' : (NumbaFloat, NumbaArray, NumbaArray, NumbaArray, NumbaArray),
+        }
+
+        self.compute_dynamics = self.compile_dynamics()
+
+        _boundary_condition_funcs = self.compile_boundary_conditions()
+        self.compute_initial_boundary_conditions = _boundary_condition_funcs[0]
+        self.compute_terminal_boundary_conditions = _boundary_condition_funcs[1]
+        self.compute_boundary_conditions = _boundary_condition_funcs[2]
+
+        _cost_funcs = self.compile_cost()
+        self.compute_initial_cost = _cost_funcs[0]
+        self.compute_path_cost = _cost_funcs[1]
+        self.compute_terminal_cost = _cost_funcs[2]
+        self.compute_cost = _cost_funcs[3]

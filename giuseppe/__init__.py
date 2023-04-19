@@ -5,7 +5,6 @@ from .data_classes import load_sol, load_sol_set
 
 from .problems import VectorizedBVP, VectorizedOCP, VectorizedAdjoints, VectorizedDual
 from .problems import StrInputProb, SymBVP, SymOCP, SymAdjoints, SymDual
-from .problems import CompOCP, CompAdjoints, CompDual
 from .problems import SymPenaltyConstraintHandler, SymControlConstraintHandler
 from .problems import ADiffInputProb, ADiffBVP, ADiffOCP, ADiffAdjoints, ADiffDual
 from .problems import ADiffPenaltyConstraintHandler, ADiffControlConstraintHandler

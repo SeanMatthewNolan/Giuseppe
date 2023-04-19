@@ -104,8 +104,8 @@ robot.add_inequality_constraint(
 
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    comp_robot = giuseppe.problems.symbolic.SymDual(robot, control_method='differential').compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_robot, verbose=0, max_nodes=0, node_buffer=10, bc_tol=1e-7)
+    comp_robot = giuseppe.problems.symbolic.SymDual(robot, control_method='differential')
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_robot, verbose=0, max_nodes=0, node_buffer=10)
 
 
 def ctrl2reg(u: np.array) -> np.array:
