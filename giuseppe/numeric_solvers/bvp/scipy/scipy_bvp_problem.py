@@ -96,7 +96,16 @@ class SciPyBVP:
         t = (tf - t0) * tau + t0
         p = p[:-2]
 
+        if scipy_sol.status == 0:
+            aux = {}
+        else:
+            aux = {'solver status': scipy_sol.status}
+
         return self.source_bvp.post_process_data(
-                Solution(t=t, x=x, p=p, k=constants,
-                         converged=scipy_sol.success, annotations=self.annotations)
+                Solution(
+                    t=t, x=x, p=p, k=constants,
+                    converged=scipy_sol.success,
+                    annotations=self.annotations,
+                    aux=aux
+                )
         )

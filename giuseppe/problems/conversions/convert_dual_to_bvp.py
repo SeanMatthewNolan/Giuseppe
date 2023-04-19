@@ -204,8 +204,9 @@ class BVPFromDual(BVP):
             k = in_data.k
 
             u = np.array([_compute_control(ti, xi, lam_i, p, k) for ti, xi, lam_i in zip(t, x.T, lam.T)]).T
+            aux = in_data.aux
 
-            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k,
+            return Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, aux=aux,
                             converged=in_data.converged, annotations=_annotations)
 
         return post_process_data
@@ -301,6 +302,7 @@ class BVPFromDual(BVP):
             self._x_slice, self._lam_slice, self._u_slice, self._p_slice, self._nu0_slice, self._nuf_slice
 
         _annotations = self.dual_annotations
+        _compute_hamiltonian = self.source_dual.compute_hamiltonian
         _compute_huu = self.source_dual.control_handler.compute_h_uu
 
         def post_process_data(in_data: Solution) -> Solution:
@@ -312,10 +314,7 @@ class BVPFromDual(BVP):
             nu0 = in_data.p[_nu0_slice]
             nuf = in_data.p[_nuf_slice]
             k = in_data.k
-
-            h_uu = [_compute_huu(ti, xi, lami, ui, p, k) for ti, xi, lami, ui in zip(t, x.T, lam.T, u.T)]
-            cond_h_uu = [np.linalg.cond(_h_uu) for _h_uu in h_uu]
-            aux = {'h_uu': h_uu, 'cond_h_uu': cond_h_uu}
+            aux = in_data.aux
 
             sol = Solution(t=t, x=x, lam=lam, u=u, p=p, nu0=nu0, nuf=nuf, k=k, aux=aux,
                            converged=in_data.converged, annotations=_annotations)
