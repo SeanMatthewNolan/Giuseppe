@@ -34,9 +34,11 @@ class SymBoundaryConditions:
         self.terminal: SymMatrix = terminal
 
 
-class SymBVP(Symbolic):
-    def __init__(self, input_data: Optional[StrInputProb] = None):
+class SymBVP(Symbolic, BVP):
+    def __init__(self, input_data: StrInputProb, use_jit_compile=True):
         Symbolic.__init__(self)
+
+        self.use_jit_compile = use_jit_compile
 
         self.independent: Symbol = SYM_NULL
         self.states: SymMatrix = EMPTY_SYM_MATRIX
@@ -48,14 +50,18 @@ class SymBVP(Symbolic):
         self.expressions: list[SymNamedExpr] = []
 
         self.boundary_conditions = SymBoundaryConditions()
-
-        self.default_values = np.array([])
         self.annotations: Annotations = Annotations()
 
-        if input_data is None:
-            pass
-        elif isinstance(input_data, StrInputProb):
+        self.sym_args = None
+        self.args_numba_signature = None
+        self.compute_dynamics = None
+        self.compute_initial_boundary_conditions = None
+        self.compute_terminal_boundary_conditions = None
+        self.compute_boundary_conditions = None
+
+        if isinstance(input_data, StrInputProb):
             self.process_data_from_input(input_data)
+            self.compile()
         else:
             raise RuntimeError(f'{type(self)} cannot process input data class of {type(self)}')
 
@@ -125,35 +131,8 @@ class SymBVP(Symbolic):
 
         return self.annotations
 
-    def compile(self, use_jit_compile: bool = True) -> 'CompBVP':
-        return CompBVP(self, use_jit_compile=use_jit_compile)
-
-
-class CompBVP(BVP):
-    def __init__(self, source_bvp: SymBVP, use_jit_compile: bool = True):
-        self.use_jit_compile = use_jit_compile
-        self.source_bvp = deepcopy(source_bvp)
-
-        self.num_states = len(self.source_bvp.states)
-        self.num_parameters = len(self.source_bvp.parameters)
-        self.num_constants = len(self.source_bvp.constants)
-        self.default_values = self.source_bvp.default_values
-
-        self.sym_args = (self.source_bvp.independent, self.source_bvp.states.flat(), self.source_bvp.parameters.flat(),
-                         self.source_bvp.constants.flat())
-        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
-
-        self.compute_dynamics = self.compile_dynamics()
-
-        _boundary_condition_funcs = self.compile_boundary_conditions()
-        self.compute_initial_boundary_conditions = _boundary_condition_funcs[0]
-        self.compute_terminal_boundary_conditions = _boundary_condition_funcs[1]
-        self.compute_boundary_conditions = _boundary_condition_funcs[2]
-
-        self.annotations : Annotations = self.source_bvp.annotations
-
     def compile_dynamics(self):
-        _compute_dynamics = lambdify(self.sym_args, self.source_bvp.dynamics.flat(),
+        _compute_dynamics = lambdify(self.sym_args, self.dynamics.flat(),
                                      use_jit_compile=self.use_jit_compile)
 
         def compute_dynamics(
@@ -167,10 +146,10 @@ class CompBVP(BVP):
 
     def compile_boundary_conditions(self):
         _compute_initial_boundary_conditions = lambdify(
-                self.sym_args, tuple(self.source_bvp.boundary_conditions.initial.flat()),
+                self.sym_args, tuple(self.boundary_conditions.initial.flat()),
                 use_jit_compile=self.use_jit_compile)
         _compute_terminal_boundary_conditions = lambdify(
-                self.sym_args, tuple(self.source_bvp.boundary_conditions.terminal.flat()),
+                self.sym_args, tuple(self.boundary_conditions.terminal.flat()),
                 use_jit_compile=self.use_jit_compile)
 
         def compute_initial_boundary_conditions(
@@ -206,3 +185,20 @@ class CompBVP(BVP):
             )
 
         return compute_initial_boundary_conditions, compute_terminal_boundary_conditions, compute_boundary_conditions
+
+    def compile(self):
+        self.num_states = len(self.states)
+        self.num_parameters = len(self.parameters)
+        self.num_constants = len(self.constants)
+        self.default_values = self.default_values
+
+        self.sym_args = (self.independent, self.states.flat(), self.parameters.flat(),
+                         self.constants.flat())
+        self.args_numba_signature = (NumbaFloat, NumbaArray, NumbaArray, NumbaArray)
+
+        self.compute_dynamics = self.compile_dynamics()
+
+        _boundary_condition_funcs = self.compile_boundary_conditions()
+        self.compute_initial_boundary_conditions = _boundary_condition_funcs[0]
+        self.compute_terminal_boundary_conditions = _boundary_condition_funcs[1]
+        self.compute_boundary_conditions = _boundary_condition_funcs[2]
