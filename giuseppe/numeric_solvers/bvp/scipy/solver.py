@@ -84,7 +84,8 @@ class SciPySolver:
                     tau_guess, x_guess, p_guess,
                     tol=self.tol, bc_tol=self.bc_tol, max_nodes=max_nodes, verbose=self.verbose
             )
-        except ZeroDivisionError:
+
+        except (ZeroDivisionError, np.linalg.LinAlgError):
             sol: _scipy_bvp_sol = self._form_solution_when_solver_throws_exception(tau_guess, x_guess, p_guess)
 
         return self.prob.post_process(sol, constants)
@@ -99,5 +100,6 @@ class SciPySolver:
 
         _failed = _FailedSciPySol
         _failed.x, _failed.y, _failed.p = _x, _y, _p
+        _failed.status = 3
 
         return _failed

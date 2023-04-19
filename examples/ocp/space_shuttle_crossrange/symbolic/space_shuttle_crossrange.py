@@ -84,11 +84,13 @@ with Timer('Setup Time: '):
     guess = auto_propagate_guess(comp_dual, control=(15/180*3.14159, 0), t_span=100)
 
 cont = ContinuationHandler(solver, guess)
+
 cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
 cont.add_linear_series(50, {'h_f': 80_000, 'v_f': 2_500, 'gamma_f': -5 / 180 * 3.14159})
 cont.add_linear_series(90, {'xi': np.pi / 2})
 cont.add_linear_series(90, {'beta_min': -70 / 180 * 3.14159, 'beta_max': 70 / 180 * 3.14159})
 cont.add_logarithmic_series(90, {'eps_beta': 1e-10})
+
 sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')
