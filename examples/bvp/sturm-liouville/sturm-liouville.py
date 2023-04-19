@@ -34,7 +34,7 @@ sturm_liouville.add_constraint('terminal', 'x - x_f')
 sturm_liouville.add_constraint('terminal', 'y - y_f')
 
 with Timer(prefix='Compilation Time:'):
-    comp_bvp = SymBVP(sturm_liouville).compile()
+    comp_bvp = SymBVP(sturm_liouville)
     solver = SciPySolver(comp_bvp)
 
 guess = initialize_guess(comp_bvp, t_span=np.linspace(0, 1, 3))
