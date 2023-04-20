@@ -1,8 +1,6 @@
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import pchip
-from scipy.integrate import solve_ivp
 
 DATA = 2
 
