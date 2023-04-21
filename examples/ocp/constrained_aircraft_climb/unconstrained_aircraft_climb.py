@@ -14,14 +14,6 @@ climb.add_state('V', '(thrust_frac * thrust_max - qdyn * s_ref * CD - mass * g *
 climb.add_state('gam', '(qdyn * s_ref * CL / mass - g * cos(gam)) / V')
 climb.add_state('mass', '-CS * thrust_frac * thrust_max')
 
-# Path Constraints
-climb.add_inequality_constraint(
-    'path', 'h', lower_limit='h - eps_h', upper_limit='h_max',
-    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_h / h_max')
-)
-climb.add_constant('eps_h', 1e-3)
-climb.add_constant('h_max', 11_000.)
-
 # Regularaized Control
 climb.add_control('thrust_frac')
 climb.add_control('CL')
@@ -134,7 +126,7 @@ cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 100, 'df': seed_sol.x[1, -1] + 100}, bisection=True)
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
 cont.add_linear_series(100, {'gamf': gamf}, bisection=True)
-cont.add_logarithmic_series(100, {'eps_thrust_frac': 1e-6, 'eps_CL': 1e-6, 'eps_h': 1e-6}, bisection=True)
+cont.add_logarithmic_series(100, {'eps_thrust_frac': 1e-6, 'eps_CL': 1e-6}, bisection=True)
 
 sol_set = cont.run_continuation()
 
