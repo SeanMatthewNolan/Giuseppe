@@ -14,14 +14,6 @@ climb.add_state('V', '(thrust_frac * thrust_max - qdyn * s_ref * CD - mass * g *
 climb.add_state('gam', '(qdyn * s_ref * CL / mass - g * cos(gam)) / V')
 climb.add_state('mass', '-CS * thrust_frac * thrust_max')
 
-# Path Constraints
-climb.add_inequality_constraint(
-    'path', 'h', lower_limit='h - eps_h', upper_limit='h_max',
-    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_h / h_max')
-)
-climb.add_constant('eps_h', 1e-3)
-climb.add_constant('h_max', 11_000.)
-
 # Regularaized Control
 climb.add_control('thrust_frac')
 climb.add_control('CL')
@@ -72,6 +64,8 @@ climb.add_constant('density0', 101325 / (287.058 * 288.15))  # rho = P / (R T)
 # climb.add_constant('mu', 0.2857)
 climb.add_constant('gam_air', 1.4)
 
+speed_of_sound0 = (1.4 * 287.058 * 288.15) ** 0.5
+
 # Boundary Values
 climb.add_constant('h0', 3480.)
 climb.add_constant('d0', 0.)
@@ -81,11 +75,11 @@ climb.add_constant('mass0', 4.8e4)
 # climb.add_constant('mass0', 7.6e4)
 
 climb.add_constraint('initial', 't')
-climb.add_constraint('initial', 'h - h0')
-climb.add_constraint('initial', 'd - d0')
-climb.add_constraint('initial', 'V - V0')
-climb.add_constraint('initial', 'gam - gam0')
-climb.add_constraint('initial', 'mass - mass0')
+climb.add_constraint('initial', '(h - h0) / h_max')
+climb.add_constraint('initial', '(d - d0) / h_max')
+climb.add_constraint('initial', '(V - V0) / V_max')
+climb.add_constraint('initial', '(gam - gam0) / gam_max')
+climb.add_constraint('initial', '(mass - mass0) / mass0')
 
 hf = 9144.
 df = 150_000.
@@ -96,12 +90,31 @@ climb.add_constant('hf', hf)
 climb.add_constant('df', df)
 climb.add_constant('Vf', Vf)
 climb.add_constant('gamf', gamf)
+climb.add_constant('h_ref', hf)
 
-climb.add_constraint('terminal', 'h - hf')
-climb.add_constraint('terminal', 'd - df')
-climb.add_constraint('terminal', 'V - Vf')
-climb.add_constraint('terminal', 'gam - gamf')
+climb.add_constraint('terminal', '(h - hf) / h_ref')
+climb.add_constraint('terminal', '(d - df) / h_ref')
+climb.add_constraint('terminal', '(V - Vf) / V_max')
+climb.add_constraint('terminal', '(gam - gamf) / gam_max')
 # Terminal mass/time are free
+
+# Constraint on FPA: FPA > 0
+climb.add_inequality_constraint(
+    'path', 'gam', lower_limit='gam_min - eps_gam', upper_limit='gam_max',
+    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='utm')
+)
+climb.add_constant('eps_gam', 1)
+climb.add_constant('gam_min', -89 * np.pi / 180)  # Via continuation, drive to gam_min = 0
+climb.add_constant('gam_max', 89 * np.pi / 180)
+
+# # Constraint on V: M < M_max
+# climb.add_inequality_constraint(
+#     'path', 'mach', lower_limit='0 - eps_mach', upper_limit='mach_max',
+#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_mach', method='utm')
+# )
+climb.add_constant('eps_mach', 1)
+# climb.add_constant('mach_max', 0.82)
+climb.add_constant('V_max', 0.82 * speed_of_sound0)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential').compile()
@@ -116,26 +129,39 @@ def reg2ctrl(u_reg: np.array, u_min: float, u_max: float) -> np.array:
     return 0.5 * ((u_max - u_min) * np.sin(u_reg) + u_max + u_min)
 
 
+def get_const_dict(_sol):
+    _constants_dict = {}
+    for key, val in zip(_sol.annotations.constants, _sol.k):
+        _constants_dict[key] = val
+    return _constants_dict
+
+
 guess = giuseppe.guess_generation.auto_propagate_guess(
     comp_climb,
     control=np.array((0.0, ctrl2reg(0.75, thrust_frac_min, thrust_frac_max))),
-    t_span=10.0)
+    t_span=2.5)
 
-with open('guess.data', 'wb') as f:
+with open('mach_fpa_guess.data', 'wb') as f:
     pickle.dump(guess, f)
 
 seed_sol = num_solver.solve(guess)
+slope_const = (hf - seed_sol.x[0, 0]) / (df - seed_sol.x[1, 0])
+gam_const = np.arctan(slope_const)
+df_seed = (seed_sol.x[0, -1] - seed_sol.x[0, 0]) / slope_const
 
-with open('seed_sol.data', 'wb') as f:
+with open('mach_fpa_seed_sol.data', 'wb') as f:
     pickle.dump(seed_sol, f)
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 
-cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 100, 'df': seed_sol.x[1, -1] + 100}, bisection=True)
+cont.add_linear_series(100, {'gam_min': 0.0})
+cont.add_linear_series(100, {'hf': seed_sol.x[0, -1] + 100, 'df': seed_sol.x[1, -1] + 500}, bisection=True)
+cont.add_linear_series(100, {'gamf': gamf, 'hf': 5_000, 'df': 10_000}, bisection=True)
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
-cont.add_linear_series(100, {'gamf': gamf}, bisection=True)
-cont.add_logarithmic_series(100, {'eps_thrust_frac': 1e-6, 'eps_CL': 1e-6, 'eps_h': 1e-6}, bisection=True)
+cont.add_logarithmic_series(100, {'eps_gam': 1e-3, 'eps_mach': 1e-3},
+                            bisection=True)
+cont.add_logarithmic_series(100, {'eps_thrust_frac': 1e-6, 'eps_CL': 1e-6}, bisection=True)
 
 sol_set = cont.run_continuation()
 
-sol_set.save('sol_set.data')
+sol_set.save('mach_fpa_sol_set.data')
