@@ -17,6 +17,8 @@ class PenaltyConstraintHandler(SymRegularizer):
             self.expr_generator = self._gen_sec_expr
         elif method.lower() in ['rational', 'rat']:
             self.expr_generator = self._gen_rat_expr
+        elif method.lower() in ['exterior', 'cubic', 'cube']:
+            self.expr_generator = self._gen_cubic_expr
         else:
             raise ValueError(f'method \'{method}\' not implemented')
 
@@ -62,6 +64,22 @@ class PenaltyConstraintHandler(SymRegularizer):
         elif upper_limit is not None:
             penalty_func = regulator / (upper_limit - expr)
         else:
-            raise ValueError(f'Lower or upper limit must be specificed for inequality path constraint.')
+            raise ValueError(f'Lower or upper limit must be specified for inequality path constraint.')
+
+        return penalty_func
+
+    @staticmethod
+    def _gen_cubic_expr(expr: SymExpr, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \
+            -> Tuple[SymExpr, SymExpr]:
+
+        penalty_func = sympy.Symbol('0')
+
+        if lower_limit is not None:
+            sign_lower = (lower_limit - expr) / ((lower_limit - expr) ** 2) ** 0.5
+            penalty_func += (lower_limit - expr) ** 3 * (0.5 + 0.5 * sign_lower) / regulator
+
+        if upper_limit is not None:
+            sign_upper = (expr - upper_limit) / ((expr - upper_limit) ** 2) ** 0.5
+            penalty_func += (expr - upper_limit) ** 3 * (0.5 + 0.5 * sign_upper) / regulator
 
         return penalty_func
