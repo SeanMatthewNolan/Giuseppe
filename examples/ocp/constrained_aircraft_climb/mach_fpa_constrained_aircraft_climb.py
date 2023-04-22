@@ -75,9 +75,9 @@ climb.add_constant('mass0', 4.8e4)
 # climb.add_constant('mass0', 7.6e4)
 
 climb.add_constraint('initial', 't')
-climb.add_constraint('initial', '(h - h0) / h_max')
-climb.add_constraint('initial', '(d - d0) / h_max')
-climb.add_constraint('initial', '(V - V0) / V_max')
+climb.add_constraint('initial', '(h - h0) / h_ref')
+climb.add_constraint('initial', '(d - d0) / h_ref')
+climb.add_constraint('initial', '(V - V0) / CAS_max')
 climb.add_constraint('initial', '(gam - gam0) / gam_max')
 climb.add_constraint('initial', '(mass - mass0) / mass0')
 
@@ -94,27 +94,32 @@ climb.add_constant('h_ref', hf)
 
 climb.add_constraint('terminal', '(h - hf) / h_ref')
 climb.add_constraint('terminal', '(d - df) / h_ref')
-climb.add_constraint('terminal', '(V - Vf) / V_max')
+climb.add_constraint('terminal', '(V - Vf) / CAS_max')
 climb.add_constraint('terminal', '(gam - gamf) / gam_max')
 # Terminal mass/time are free
 
 # Constraint on FPA: FPA > 0
 climb.add_inequality_constraint(
-    'path', 'gam', lower_limit='gam_min - eps_gam', upper_limit='gam_max',
+    'path', 'gam', lower_limit='gam_min - eps_gam * pi/180', upper_limit='gam_max',
     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='utm')
 )
-climb.add_constant('eps_gam', 1)
-climb.add_constant('gam_min', -89 * np.pi / 180)  # Via continuation, drive to gam_min = 0
-climb.add_constant('gam_max', 89 * np.pi / 180)
-
-# # Constraint on V: M < M_max
 # climb.add_inequality_constraint(
-#     'path', 'mach', lower_limit='0 - eps_mach', upper_limit='mach_max',
-#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_mach', method='utm')
+#     'path', 'gam', lower_limit='gam_min - eps_gam * pi/180',
+#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='exterior')
 # )
-climb.add_constant('eps_mach', 1)
+climb.add_constant('eps_gam', 1)
+climb.add_constant('gam_min', -30 * np.pi / 180)  # Via continuation, drive to gam_min = 0
+climb.add_constant('gam_max', 30 * np.pi / 180)
+
+# Constraint on V: M < M_max
+climb.add_inequality_constraint(
+    'path', 'mach', lower_limit='0', upper_limit='mach_max',
+    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_mach', method='utm')
+)
+climb.add_constant('eps_mach', 1e-2)
 # climb.add_constant('mach_max', 0.82)
-climb.add_constant('V_max', 0.82 * speed_of_sound0)
+climb.add_constant('mach_max', 2.0)
+climb.add_constant('CAS_max', 0.82 * speed_of_sound0)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential').compile()
@@ -154,13 +159,20 @@ with open('mach_fpa_seed_sol.data', 'wb') as f:
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 
-cont.add_linear_series(100, {'gam_min': 0.0})
 cont.add_linear_series(100, {'hf': seed_sol.x[0, -1] + 100, 'df': seed_sol.x[1, -1] + 500}, bisection=True)
 cont.add_linear_series(100, {'gamf': gamf, 'hf': 5_000, 'df': 10_000}, bisection=True)
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
-cont.add_logarithmic_series(100, {'eps_gam': 1e-3, 'eps_mach': 1e-3},
-                            bisection=True)
-cont.add_logarithmic_series(100, {'eps_thrust_frac': 1e-6, 'eps_CL': 1e-6}, bisection=True)
+cont.add_logarithmic_series(50, {'eps_gam': 1e-3})
+cont.add_linear_series(50, {'gam_min': -1. * np.pi/180, 'gam_max': 89. * np.pi/180})
+cont.add_logarithmic_series(50, {'eps_gam': 1e-3})
+cont.add_linear_series(100, {'gam_min': -1e-3 * np.pi/180})
+# cont.add_logarithmic_series(50, {'eps_gam': 1e-4})
+# cont.add_linear_series(100, {'gam_min': -1. * np.pi/180})
+
+# cont.add_logarithmic_series(200, {'eps_gam': 1e-8, 'eps_mach': 1e-3},
+#                             bisection=True)
+# cont.add_logarithmic_series(250, {'eps_thrust_frac': 1e-3, 'eps_CL': 1e-3,
+#                                   'eps_gam': 1e-4, 'eps_mach': 1e-4}, bisection=True)
 
 sol_set = cont.run_continuation()
 
