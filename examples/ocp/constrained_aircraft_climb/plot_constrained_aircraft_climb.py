@@ -25,6 +25,15 @@ def reg2ctrl(u_reg: np.array, u_min: float, u_max: float) -> np.array:
     return 0.5 * ((u_max - u_min) * np.sin(u_reg) + u_max + u_min)
 
 
+def get_fpa_mach_bounds(_x, _const_dict):
+    _temperature = _const_dict['temperature0'] - _const_dict['lapse_rate'] * _x[0, :]
+    _speed_of_sound = (_const_dict['gam_air'] * _const_dict['R_air'] * _temperature) ** 0.5
+    _v_max = _const_dict['mach_max'] * _speed_of_sound
+
+    _fpa_min = _const_dict['gam_min'] - _const_dict['eps_gam'] * np.pi/180 + 0 * _x[3, :]
+    return _v_max, _fpa_min
+
+
 constants_dict = {}
 for key, val in zip(sol.annotations.constants, sol.k):
     constants_dict[key] = val
@@ -36,7 +45,8 @@ CL = reg2ctrl(sol.u[1, :], constants_dict['CL_min'], constants_dict['CL_max'])
 mpl.rcParams['axes.formatter.useoffset'] = False
 
 # PLOT STATES
-ylabs = (r'$h$', r'$d$', r'$V$', r'$\gamma$', r'$m$')
+ylabs = (r'$h$ [m]', r'$d$ [m]', r'$V$ [m/s]', r'$\gamma$ [deg]', r'$m$ [kg]')
+mult = np.array((1., 1., 1., 180/np.pi, 1.))
 np.dtype(float)
 fig_states = plt.figure()
 axes_states = []
@@ -49,7 +59,12 @@ for idx, state in enumerate(list(sol.x)):
     ax.grid()
     ax.set_xlabel('Time [s]')
     ax.set_ylabel(ylabs[idx])
-    ax.plot(sol.t, state)
+    ax.plot(sol.t, state * mult[idx])
+
+if PLOT == 'mach_fpa':
+    v_max, fpa_min = get_fpa_mach_bounds(sol.x, constants_dict)
+    axes_states[2].plot(sol.t, v_max * mult[2], 'k--')
+    axes_states[3].plot(sol.t, fpa_min * mult[3], 'k--')
 
 fig_states.suptitle(rf'$J(\alpha = {constants_dict["frac_time_cost"]}) = {sol.cost:.2f}$, '
                     + rf'$m_0 - m_f = {sol.x[-1, 0] - sol.x[-1, -1]:.2f}$, $t_f = {sol.t[-1]:.2f}$')
