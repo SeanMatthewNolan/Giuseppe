@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable, Optional
+from typing import Protocol, runtime_checkable, Optional, Callable
 
 import numpy as np
 
 from giuseppe.data_classes import Solution, Annotations
+
+
+_process_type = Callable[['Problem', Solution], Solution]
 
 
 @runtime_checkable
@@ -14,6 +17,9 @@ class BVP(Protocol):
     num_states: int
     num_parameters: int
     num_constants: int
+
+    preprocesses: list[_process_type] = []
+    post_processes: list[_process_type] = []
 
     default_values: np.ndarray
     annotations: Optional[Annotations]
@@ -43,12 +49,14 @@ class BVP(Protocol):
     ) -> float:
         ...
 
-    @staticmethod
-    def preprocess_data(data: Solution) -> Solution:
+    def preprocess_data(self, data: Solution) -> Solution:
+        for process in self.preprocesses:
+            data = process(self, data)
         return data
 
-    @staticmethod
-    def post_process_data(data: Solution) -> Solution:
+    def post_process_data(self, data: Solution) -> Solution:
+        for process in self.post_processes:
+            data = process(self, data)
         return data
 
 

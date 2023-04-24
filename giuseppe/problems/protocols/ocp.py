@@ -1,4 +1,4 @@
-from typing import Protocol, runtime_checkable, Optional
+from typing import Protocol, runtime_checkable, Optional, Callable
 
 import numpy as np
 from scipy.integrate import simpson
@@ -6,7 +6,14 @@ from scipy.integrate import simpson
 from giuseppe.data_classes import Solution, Annotations
 
 
-# TODO Add Vectorized Protocol
+_process_type = Callable[['Problem', Solution], Solution]
+
+
+def _cost_post_process(ocp: 'OCP', data: Solution) -> Solution:
+    data.cost = ocp.compute_cost(data.t, data.x, data.u, data.p, data.k)
+    return data
+
+
 @runtime_checkable
 class OCP(Protocol):
     prob_class: str = 'ocp'
@@ -15,6 +22,9 @@ class OCP(Protocol):
     num_controls: int
     num_parameters: int
     num_constants: int
+
+    preprocesses: list[_process_type] = []
+    post_processes: list[_process_type] = [_cost_post_process]
 
     default_values: np.ndarray
     annotations: Optional[Annotations]
@@ -72,14 +82,14 @@ class OCP(Protocol):
 
         return initial_cost + path_cost + terminal_cost
 
-    @staticmethod
-    def preprocess_data(data: Solution) -> Solution:
+    def preprocess_data(self, data: Solution) -> Solution:
+        for process in self.preprocesses:
+            data = process(self, data)
         return data
 
     def post_process_data(self, data: Solution) -> Solution:
-
-        data.cost = self.compute_cost(data.t, data.x, data.u, data.p, data.k)
-
+        for process in self.post_processes:
+            data = process(self, data)
         return data
 
 

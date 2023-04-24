@@ -1,7 +1,6 @@
 from typing import Optional
 
 from giuseppe.problems.protocols import Dual
-from giuseppe.data_classes.annotations import Annotations
 
 from .input import StrInputProb
 from .adjoints import SymAdjoints
@@ -9,8 +8,10 @@ from .ocp import SymOCP
 
 
 class SymDual(SymOCP, SymAdjoints, Dual):
-    def __init__(self, input_data: StrInputProb,
-                 control_method: Optional[str] = 'differential', use_jit_compile: bool = True):
+    def __init__(
+            self, input_data: StrInputProb,
+            control_method: Optional[str] = 'differential', use_jit_compile: bool = True
+    ):
 
         super().__init__(input_data, use_jit_compile=use_jit_compile)
         super()._sympify_adjoint_information(self)
