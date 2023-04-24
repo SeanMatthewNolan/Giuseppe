@@ -21,7 +21,7 @@ class SymCost:
     terminal: SymExpr = SYM_ZERO
 
 
-class SymOCP(SymBVP, OCP):
+class SymOCP(OCP, SymBVP):
     def __init__(self, input_data: StrInputProb = None, use_jit_compile: bool = True, cost_quadrature: str = 'simpson'):
         self.controls: SymMatrix = EMPTY_SYM_MATRIX
         self.cost = SymCost()
@@ -38,7 +38,7 @@ class SymOCP(SymBVP, OCP):
         self.compute_terminal_cost = None
         self.compute_cost = None
 
-        super().__init__(input_data=input_data, use_jit_compile=use_jit_compile)
+        SymBVP.__init__(self, input_data, use_jit_compile=use_jit_compile)
 
     def _process_variables_from_input(self, input_data: StrInputProb):
         super()._process_variables_from_input(input_data)
