@@ -102,15 +102,19 @@ climb.add_constraint('terminal', '(gam - gamf) / gam_max')
 
 # Constraint on FPA: FPA > 0
 climb.add_inequality_constraint(
-    'path', 'gam', lower_limit='gam_min - eps_gam * pi/180', upper_limit='gam_max',
+    'path', 'exp(gam)', lower_limit='exp(-n_gam_min)', upper_limit='exp(gam_max)',
     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='utm')
 )
+# climb.add_inequality_constraint(
+#     'path', 'gam', lower_limit='gam_min - eps_gam * pi/180', upper_limit='gam_max',
+#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='utm')
+# )
 # climb.add_inequality_constraint(
 #     'path', 'gam', lower_limit='gam_min - eps_gam * pi/180',
 #     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='exterior')
 # )
 climb.add_constant('eps_gam', 1)
-climb.add_constant('gam_min', -30 * np.pi / 180)  # Via continuation, drive to gam_min = 0
+climb.add_constant('n_gam_min', 30 * np.pi / 180)  # Via continuation, drive to gam_min = 0
 climb.add_constant('gam_max', 30 * np.pi / 180)
 
 # Constraint on V: M < M_max
@@ -161,11 +165,13 @@ cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 50, 'df': seed_sol.x[1, -1] + 500}, bisection=True)
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
 cont.add_linear_series(50, {'gamf': gamf}, bisection=True)
-cont.add_logarithmic_series(50, {'eps_gam': 1e-1}, bisection=True)
-cont.add_linear_series(100, {'eps_gam': 1e-2, 'gam_min': -1e-1 * np.pi/180, 'gam_max': 45 * np.pi/180, 'mach_max': 0.82}, bisection=True)
-cont.add_logarithmic_series(100,
-                            {'eps_mach': 1e-6, 'eps_gam': 1e-5, 'eps_thrust_frac': 7e-4, 'eps_CL': 7e-4},
+cont.add_logarithmic_series(50, {'eps_gam': 1e-3}, bisection=True)
+cont.add_logarithmic_series(100, {'n_gam_min': 1e-3, 'gam_max': 45 * np.pi/180}, bisection=True)
+cont.add_linear_series(50, {'mach_max': 0.82}, bisection=True)
+cont.add_logarithmic_series(100, {'eps_mach': 1e-5, 'eps_thrust_frac': 1e-5, 'eps_CL': 1e-5},
                             bisection=True)
+cont.add_logarithmic_series(100, {'eps_gam': 1e-4}, bisection=True)
+cont.add_logarithmic_series(100, {'n_gam_min': 1e-4, 'eps_gam': 1e-7}, bisection=True)
 
 sol_set = cont.run_continuation()
 

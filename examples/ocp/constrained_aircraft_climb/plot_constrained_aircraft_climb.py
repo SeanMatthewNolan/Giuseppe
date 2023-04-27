@@ -4,8 +4,8 @@ import matplotlib as mpl
 import numpy as np
 
 DATA = 2
-PLOT = 'mach_fpa'
-# PLOT = 'unconstrained'
+# PLOT = 'mach_fpa'
+PLOT = 'unconstrained'
 
 # BOUNDS = 'custom'
 BOUNDS = 'default'
@@ -162,6 +162,6 @@ for idx, (c, u) in enumerate(zip(constraint_sets, control_sets)):
 
 fig_paper.tight_layout()
 
-np.savetxt(PLOT + '_txu.csv', np.vstack((sol.t.reshape((1, -1)), sol.x, sol.u)), delimiter=',')
+np.savetxt(PLOT + '_txu.csv', np.vstack((sol.t.reshape((1, -1)), sol.x, thrust_frac, CL)), delimiter=',')
 
 plt.show()
