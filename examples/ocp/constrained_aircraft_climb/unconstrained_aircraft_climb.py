@@ -6,7 +6,7 @@ climb = giuseppe.problems.input.StrInputProb()
 
 climb.set_independent('t')
 climb.set_cost('0', '0', '(1 - frac_time_cost) * (mass0 - mass) + frac_time_cost * t')
-climb.add_constant('frac_time_cost', 0.0)  # 1 = min. time, 0 = min. fuel
+climb.add_constant('frac_time_cost', 1.0)  # 1 = min. time, 0 = min. fuel
 
 climb.add_state('h', 'V * sin(gam)')
 climb.add_state('d', 'V * cos(gam)')
@@ -67,10 +67,12 @@ climb.add_constant('gam_air', 1.4)
 # Boundary Values
 climb.add_constant('h0', 3480.)
 climb.add_constant('d0', 0.)
-climb.add_constant('V0', 141.67)
+# climb.add_constant('V0', 141.67)
+climb.add_constant('V0', 150.0)
 climb.add_constant('gam0', 0.07)
-climb.add_constant('mass0', 4.8e4)
+# climb.add_constant('mass0', 4.8e4)
 # climb.add_constant('mass0', 7.6e4)
+climb.add_constant('mass0', 7.2e4)
 
 climb.add_constraint('initial', 't')
 climb.add_constraint('initial', 'h - h0')
@@ -110,8 +112,8 @@ def reg2ctrl(u_reg: np.array, u_min: float, u_max: float) -> np.array:
 
 guess = giuseppe.guess_generation.auto_propagate_guess(
     comp_climb,
-    control=np.array((0.0, ctrl2reg(0.75, thrust_frac_min, thrust_frac_max))),
-    t_span=10.0)
+    control=np.array((0.0, ctrl2reg(0.5, thrust_frac_min, thrust_frac_max))),
+    t_span=1.0)
 
 with open('unconstrained_guess.data', 'wb') as f:
     pickle.dump(guess, f)
@@ -123,7 +125,7 @@ with open('unconstrained_seed_sol.data', 'wb') as f:
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 
-cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 100, 'df': seed_sol.x[1, -1] + 100}, bisection=True)
+cont.add_linear_series(50, {'hf': seed_sol.x[0, -1], 'df': seed_sol.x[1, -1] + 500}, bisection=True)
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
 cont.add_linear_series(100, {'gamf': gamf}, bisection=True)
 cont.add_logarithmic_series(100, {'eps_thrust_frac': 1e-6, 'eps_CL': 1e-6}, bisection=True)

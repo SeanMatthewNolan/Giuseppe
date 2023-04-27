@@ -69,10 +69,12 @@ speed_of_sound0 = (1.4 * 287.058 * 288.15) ** 0.5
 # Boundary Values
 climb.add_constant('h0', 3480.)
 climb.add_constant('d0', 0.)
-climb.add_constant('V0', 141.67)
+# climb.add_constant('V0', 141.67)
+climb.add_constant('V0', 150.)
 climb.add_constant('gam0', 0.07)
-climb.add_constant('mass0', 4.8e4)
+# climb.add_constant('mass0', 4.8e4)
 # climb.add_constant('mass0', 7.6e4)
+climb.add_constant('mass0', 7.2e4)
 
 climb.add_constraint('initial', 't')
 climb.add_constraint('initial', '(h - h0) / h_ref')
@@ -123,7 +125,7 @@ climb.add_constant('CAS_max', 0.82 * speed_of_sound0)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential').compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb, verbose=2, max_nodes=100, node_buffer=10)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb, verbose=False, max_nodes=100, node_buffer=10)
 
 
 def ctrl2reg(u: np.array, u_min: float, u_max: float) -> np.array:
@@ -144,26 +146,23 @@ def get_const_dict(_sol):
 guess = giuseppe.guess_generation.auto_propagate_guess(
     comp_climb,
     control=np.array((0.0, ctrl2reg(0.75, thrust_frac_min, thrust_frac_max))),
-    t_span=2.5)
+    t_span=1.0)
 
 with open('mach_fpa_guess.data', 'wb') as f:
     pickle.dump(guess, f)
 
 seed_sol = num_solver.solve(guess)
-slope_const = (hf - seed_sol.x[0, 0]) / (df - seed_sol.x[1, 0])
-gam_const = np.arctan(slope_const)
-df_seed = (seed_sol.x[0, -1] - seed_sol.x[0, 0]) / slope_const
 
 with open('mach_fpa_seed_sol.data', 'wb') as f:
     pickle.dump(seed_sol, f)
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 
-cont.add_linear_series(100, {'hf': seed_sol.x[0, -1] + 100, 'df': seed_sol.x[1, -1] + 500}, bisection=True)
-cont.add_linear_series(100, {'gamf': gamf, 'hf': 5_000, 'df': 10_000}, bisection=True)
+cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 50, 'df': seed_sol.x[1, -1] + 500}, bisection=True)
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
-cont.add_logarithmic_series(50, {'eps_gam': 1e-2}, bisection=True)
-cont.add_linear_series(100, {'gam_min': -1e-1 * np.pi/180, 'gam_max': 45 * np.pi/180, 'mach_max': 0.82}, bisection=True)
+cont.add_linear_series(50, {'gamf': gamf}, bisection=True)
+cont.add_logarithmic_series(50, {'eps_gam': 1e-1}, bisection=True)
+cont.add_linear_series(100, {'eps_gam': 1e-2, 'gam_min': -1e-1 * np.pi/180, 'gam_max': 45 * np.pi/180, 'mach_max': 0.82}, bisection=True)
 cont.add_logarithmic_series(100,
                             {'eps_mach': 1e-6, 'eps_gam': 1e-5, 'eps_thrust_frac': 7e-4, 'eps_CL': 7e-4},
                             bisection=True)
