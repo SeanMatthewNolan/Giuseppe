@@ -226,7 +226,7 @@ def auto_propagate_dual_guess(
         if verbose:
             print(f'Fitting the costates and adjoint parameters:')
 
-        guess.lam = process_dynamic_value(guess.lam[:, 0], guess.x.shape)
+        guess.lam = process_dynamic_value(guess.lam[:, 0], (len(guess.x) + len(guess.p), len(guess.t)))
         guess = match_adjoints(dual, guess, quadrature=quadrature, rel_tol=rel_tol, abs_tol=abs_tol,
                                condition_adjoints=condition_adjoints, verbose=verbose)
 
