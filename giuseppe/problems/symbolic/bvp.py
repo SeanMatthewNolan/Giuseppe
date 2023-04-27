@@ -59,6 +59,8 @@ class SymBVP(Symbolic, BVP):
         self.compute_terminal_boundary_conditions = None
         self.compute_boundary_conditions = None
 
+        self.regularizers = []
+
         if isinstance(input_data, StrInputProb):
             self.process_data_from_input(input_data)
             self.compile()
@@ -103,6 +105,13 @@ class SymBVP(Symbolic, BVP):
                     raise NotImplementedError('Inequality constraint without regularizer not yet implemented')
                 else:
                     constraint.regularizer.apply(self, constraint, position)
+                    self.regularizers.append(constraint.regularizer)
+
+    def _add_regularizer_processes(self):
+        # TODO Evaluate symbolically before
+        for regularizer in self.regularizers:
+            if hasattr(regularizer, 'add_pre_and_post_processes'):
+                regularizer.add_pre_and_post_processes(self)
 
     def _substitute(self, sym_expr: Union[SymExpr, SymMatrix]):
         sub_pairs = [(named_expr.sym, named_expr.expr) for named_expr in self.expressions]
@@ -202,3 +211,5 @@ class SymBVP(Symbolic, BVP):
         self.compute_initial_boundary_conditions = _boundary_condition_funcs[0]
         self.compute_terminal_boundary_conditions = _boundary_condition_funcs[1]
         self.compute_boundary_conditions = _boundary_condition_funcs[2]
+
+        self._add_regularizer_processes()
