@@ -186,3 +186,5 @@ class SymOCP(OCP, SymBVP):
         self.compute_path_cost = _cost_funcs[1]
         self.compute_terminal_cost = _cost_funcs[2]
         self.compute_cost = _cost_funcs[3]
+
+        self._add_regularizer_processes()

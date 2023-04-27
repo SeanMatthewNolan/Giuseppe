@@ -83,6 +83,9 @@ with Timer('Setup Time: '):
     solver = SciPySolver(sym_dual)
     guess = auto_propagate_guess(sym_dual, control=(15 / 180 * 3.14159, 0), t_span=100)
 
+sym_dual.add_post_process('compute_hamiltonian')
+sym_dual.add_post_process('compute_huu')
+
 cont = ContinuationHandler(solver, guess)
 
 cont.add_linear_series(100, {'h_f': 150_000, 'v_f': 15_000})
