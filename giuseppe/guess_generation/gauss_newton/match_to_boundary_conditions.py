@@ -66,7 +66,7 @@ def match_constants_to_boundary_conditions(
 
 def match_states_to_boundary_conditions(
         prob: Union[BVP, OCP, Dual], guess: Solution, rel_tol: float = 1e-4, abs_tol: float = 1e-4,
-        verbose: bool = False
+        verbose: bool = False, match_parameters: bool = True
 ) -> Solution:
     """
     Projects the constant array of a guess to the problem's boundary conditions to get the closest match
@@ -82,6 +82,7 @@ def match_states_to_boundary_conditions(
     rel_tol : float, default=1e-4
        relative tolerance
     verbose : bool, default=False
+    match_parameters : bool, default=True
 
     Returns
     -------
@@ -99,16 +100,6 @@ def match_states_to_boundary_conditions(
 
     _t_slice, _x_slice, _p_slice = make_array_slices((_num_boundaries, _num_states * _num_boundaries, _num_parameters))
 
-    def _constraint_function(_z: np.ndarray):
-        _t = _z[_t_slice]
-        _x = _z[_x_slice].reshape((_num_states, _num_boundaries))
-        _p = _z[_p_slice]
-
-        return np.concatenate((
-                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
-                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
-        ))
-
     # Converting supplied guess to initial vector for Gauss-Newton method
     _idx_t = tuple(np.linspace(0, guess.t.shape[0] - 1, _num_boundaries, dtype=int))
     _idx_x = tuple(np.linspace(0, guess.x.shape[1] - 1, _num_boundaries, dtype=int))
@@ -117,7 +108,31 @@ def match_states_to_boundary_conditions(
         _slp_guess.append([guess.t[_idx]])
     for _idx in _idx_x:
         _slp_guess.append(guess.x[:, _idx])
-    _slp_guess.append(guess.p)
+
+    if match_parameters:
+        _slp_guess.append(guess.p)
+
+        def _constraint_function(_z: np.ndarray):
+            _t = _z[_t_slice]
+            _x = _z[_x_slice].reshape((_num_states, _num_boundaries))
+            _p = _z[_p_slice]
+
+            return np.concatenate((
+                    _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                    _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
+    else:
+        _p = guess.p
+
+        def _constraint_function(_z: np.ndarray):
+            _t = _z[_t_slice]
+            _x = _z[_x_slice].reshape((_num_states, _num_boundaries))
+
+            return np.concatenate((
+                _compute_initial_boundary_conditions(_t[0], _x[:, 0], _p, _k),
+                _compute_terminal_boundary_conditions(_t[-1], _x[:, -1], _p, _k),
+            ))
+
     _slp_guess = np.concatenate(_slp_guess)
 
     # Application of Gauss-Newton
@@ -129,7 +144,9 @@ def match_states_to_boundary_conditions(
 
     guess.t = matched_t[0] + (matched_t[-1] - matched_t[0]) * _initial_node_spacing
     guess.x = (matched_x[:, 0] + np.outer(_initial_node_spacing, (matched_x[:, -1] - matched_x[:, 0]))).T
-    guess.p = out[_p_slice]
+
+    if match_parameters:
+        guess.p = out[_p_slice]
 
     return guess
 
