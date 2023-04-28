@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
-DATA = 1
+DATA = 2
 
 # --- DATA PROCESSING -----------------------------------------
 if DATA == 0:
