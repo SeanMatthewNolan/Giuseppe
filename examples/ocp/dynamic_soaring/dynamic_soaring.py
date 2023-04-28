@@ -77,8 +77,10 @@ gam0_guess = 0.0
 psi0_guess = 0.0
 
 p_guess = np.array((wind_guess, V0_guess, gam0_guess, psi0_guess))
+x0_guess = np.array((0., 0., 0., V0_guess, gam0_guess, psi0_guess))
 guess = giuseppe.guess_generation.auto_propagate_guess(
-    comp_soar, control=np.array((0.3, 15 * np.pi / 180)), t_span=1.0, verbose=True, p=p_guess
+    comp_soar, control=np.array((0.3, 15 * np.pi / 180)), t_span=1.0, verbose=True, p=p_guess, initial_states=x0_guess,
+    match_parameters=False
 )
 
 with open('guess.data', 'wb') as f:
@@ -88,3 +90,16 @@ seed_sol = num_solver.solve(guess)
 
 with open('seed_sol.data', 'wb') as f:
     pickle.dump(seed_sol, f)
+
+d2r = np.pi/180
+
+cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
+
+psi1 = -1 * d2r
+gam1 = 1 * d2r
+cont.add_linear_series(100, {'dgam': gam1}, bisection=True)
+cont.add_linear_series(100, {'xf': seed_sol.p[1] * np.sin(psi1), 'yf': seed_sol.p[1] * np.cos(psi1), 'dpsi': psi1}, bisection=True)
+
+sol_set = cont.run_continuation()
+
+sol_set.save('sol_set.data')
