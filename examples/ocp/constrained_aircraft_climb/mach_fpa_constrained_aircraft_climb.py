@@ -129,7 +129,7 @@ climb.add_constant('CAS_max', 0.82 * speed_of_sound0)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential').compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb, verbose=False, max_nodes=100, node_buffer=10)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb, verbose=False, max_nodes=100, node_buffer=10, bc_tol=1e-7)
 
 
 def ctrl2reg(u: np.array, u_min: float, u_max: float) -> np.array:
