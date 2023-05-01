@@ -43,8 +43,8 @@ glider.add_constant('CL_min', 0.)
 glider.add_constant('CL_max', 1.4)
 
 glider.add_inequality_constraint(
-    'path', 'CL', 'CL_min', 'CL_max',
-    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_CL', 'utm')
+    'control', 'CL', 'CL_min', 'CL_max',
+    regularizer=giuseppe.problems.symbolic.regularization.ControlConstraintHandler('eps_CL', 'sin')
 )
 
 # Boundary Conditions
@@ -93,8 +93,8 @@ def reg2ctrl(u_reg, min_u, max_u) -> np.array:
 
 guess = giuseppe.guess_generation.auto_propagate_guess(
     comp_robot,
-    control=np.array((ctrl2reg(1.0, 0., 1.4),)),
-    t_span=1.0)
+    control=np.array((ctrl2reg(1.3, 0., 1.4),)),
+    t_span=0.5)
 
 with open('guess.data', 'wb') as f:
     pickle.dump(guess, f)
