@@ -134,8 +134,7 @@ with open('seed_sol.data', 'wb') as f:
 cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 
 cont.add_linear_series(100, {'t_f': t_f})
-cont.add_linear_series(100, {'x_f': x_f, 'vx_f': vx_f})
-cont.add_linear_series(100, {'y_f': y_f, 'vy_f': vy_f})
+cont.add_linear_series(100, {'x_f': x_f, 'vx_f': vx_f, 'y_f': y_f, 'vy_f': vy_f})
 cont.add_linear_series(100, {'tha_f': tha_f, 'om_f': om_f})
 cont.add_logarithmic_series(200, {'eps_u': 1e-6})
 
