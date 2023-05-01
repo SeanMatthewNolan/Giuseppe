@@ -166,12 +166,12 @@ cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 50, 'df': seed_sol.x[1, -1
 cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
 cont.add_linear_series(50, {'gamf': gamf}, bisection=True)
 cont.add_logarithmic_series(50, {'eps_gam': 1e-3}, bisection=True)
-cont.add_logarithmic_series(100, {'n_gam_min': 1e-3, 'gam_max': 45 * np.pi/180}, bisection=True)
+cont.add_logarithmic_series(100, {'n_gam_min': 1e-2, 'gam_max': 45 * np.pi/180}, bisection=True)
 cont.add_linear_series(50, {'mach_max': 0.82}, bisection=True)
 cont.add_logarithmic_series(100, {'eps_mach': 1e-5, 'eps_thrust_frac': 1e-5, 'eps_CL': 1e-5},
                             bisection=True)
 cont.add_logarithmic_series(100, {'eps_gam': 1e-4}, bisection=True)
-cont.add_logarithmic_series(100, {'n_gam_min': 1e-4, 'eps_gam': 1e-7}, bisection=True)
+cont.add_logarithmic_series(100, {'n_gam_min': 1e-6, 'eps_gam': 1e-7}, bisection=True)
 
 sol_set = cont.run_continuation()
 
