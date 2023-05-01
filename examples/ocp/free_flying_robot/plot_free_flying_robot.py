@@ -83,4 +83,6 @@ ax_cost.set_xlabel('Time [s]')
 ax_cost.set_ylabel(r'Path Cost $|T_1| + |T_2|$')
 ax_cost.set_title(f'Total Cost = {sol.cost}')
 
+np.savetxt('txuTSolution.csv', np.vstack((sol.t.reshape((1, -1)), sol.x, u, np.array((t1, t2)))), delimiter=',')
+
 plt.show()
