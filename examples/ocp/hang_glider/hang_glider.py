@@ -79,7 +79,7 @@ glider.add_constraint('terminal', '(vy - vyf) / v_scale')
 glider.set_cost('0', '0', '-x / pos_scale')
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    comp_robot = giuseppe.problems.symbolic.SymDual(glider, control_method='differential').compile()
+    comp_robot = giuseppe.problems.symbolic.SymDual(glider, control_method='differential')
     num_solver = giuseppe.numeric_solvers.SciPySolver(comp_robot, verbose=2, max_nodes=100, node_buffer=10, bc_tol=1e-7)
 
 

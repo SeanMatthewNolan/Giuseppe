@@ -98,7 +98,7 @@ climb.add_constraint('terminal', 'gam - gamf')
 # Terminal mass/time are free
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential').compile()
+    comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential')
     num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb, verbose=False, max_nodes=100, node_buffer=10)
 
 

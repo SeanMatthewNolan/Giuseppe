@@ -68,7 +68,7 @@ soar.add_constant('psi0_max', 2*np.pi + np.pi/2)
 soar.add_constant('eps_psi0', 1e0)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
-    comp_soar = giuseppe.problems.symbolic.SymDual(soar, control_method='differential').compile()
+    comp_soar = giuseppe.problems.symbolic.SymDual(soar, control_method='differential')
     num_solver = giuseppe.numeric_solvers.SciPySolver(comp_soar, verbose=True, max_nodes=100, node_buffer=10)
 
 wind_guess = 0.1
@@ -98,7 +98,8 @@ cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 psi1 = -1 * d2r
 gam1 = 1 * d2r
 cont.add_linear_series(100, {'dgam': gam1}, bisection=True)
-cont.add_linear_series(100, {'xf': seed_sol.p[1] * np.sin(psi1), 'yf': seed_sol.p[1] * np.cos(psi1), 'dpsi': psi1}, bisection=True)
+cont.add_linear_series(100, {'xf': seed_sol.p[1] * np.sin(psi1), 'yf': seed_sol.p[1] * np.cos(psi1), 'dpsi': psi1},
+                       bisection=True)
 
 sol_set = cont.run_continuation()
 

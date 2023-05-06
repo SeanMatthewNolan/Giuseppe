@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 import numpy as np
 import sympy
@@ -54,7 +54,8 @@ class PenaltyConstraintHandler(SymRegularizer):
             print('Penalty method should be applied prior to adding processes')
             return prob
 
-        _compute_penalty = lambdify(prob.sym_args['dynamic'], self._penalty_func, use_jit_compile=prob.use_jit_compile)
+        _compute_penalty = lambdify(
+                prob.sym_args['dynamic'], prob._substitute(self._penalty_func), use_jit_compile=prob.use_jit_compile)
 
         label = f'Penalty: {self._constraint.expr}'
 
