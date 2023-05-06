@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
-DATA = 2
-# PLOT = 'mach_fpa'
-PLOT = 'unconstrained'
+DATA = 3
+PLOT = 'mach_fpa'
+# PLOT = 'unconstrained'
 
 # BOUNDS = 'custom'
 BOUNDS = 'default'
