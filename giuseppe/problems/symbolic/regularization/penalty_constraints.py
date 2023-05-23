@@ -2,6 +2,7 @@ from typing import Union, Optional, Tuple
 
 import numpy as np
 import sympy
+from scipy.integrate import simpson
 
 from giuseppe.data_classes.solution import Solution
 from giuseppe.utils.typing import Symbol, SymExpr
@@ -25,7 +26,9 @@ class PenaltyConstraintHandler(SymRegularizer):
         else:
             raise ValueError(f'method \'{method}\' not implemented')
 
+        self._expr: Optional[SymExpr] = None
         self._penalty_func: Optional[SymExpr] = None
+        self._mu_func: Optional[SymExpr] = None
         self._constraint: Optional[StrInputInequalityConstraint] = None
 
     def apply(self, prob: Problem, constraint: StrInputInequalityConstraint, position: str) -> Problem:
@@ -35,7 +38,8 @@ class PenaltyConstraintHandler(SymRegularizer):
         upper_limit = prob.sympify(constraint.upper_limit)
         regulator = prob.sympify(self.regulator)
 
-        self._penalty_func = self.expr_generator(expr, lower_limit, upper_limit, regulator)
+        self._expr = expr
+        self._penalty_func, self._mu_func = self.expr_generator(expr, lower_limit, upper_limit, regulator)
         self._constraint = constraint
 
         if position.lower() == 'initial':
@@ -54,14 +58,26 @@ class PenaltyConstraintHandler(SymRegularizer):
             print('Penalty method should be applied prior to adding processes')
             return prob
 
+        _compute_expr = lambdify(
+                prob.sym_args['dynamic'], prob._substitute(self._expr), use_jit_compile=prob.use_jit_compile)
+
         _compute_penalty = lambdify(
                 prob.sym_args['dynamic'], prob._substitute(self._penalty_func), use_jit_compile=prob.use_jit_compile)
 
-        label = f'Penalty: {self._constraint.expr}'
+        _compute_mu = lambdify(
+                prob.sym_args['dynamic'], prob._substitute(self._mu_func), use_jit_compile=prob.use_jit_compile)
 
         def _post_process(_prob: Problem, _data: Solution) -> Solution:
-            _data.aux[label] = np.array(
+            penalty = np.array(
                     [_compute_penalty(ti, xi, ui, _data.p, _data.k)
+                     for ti, xi, lami, ui in zip(_data.t, _data.x.T, _data.lam.T, _data.u.T)])
+            _data.aux[f'{self._constraint.expr}'] = np.array(
+                    [_compute_expr(ti, xi, ui, _data.p, _data.k)
+                     for ti, xi, lami, ui in zip(_data.t, _data.x.T, _data.lam.T, _data.u.T)])
+            _data.aux[f'Penalty: {self._constraint.expr}'] = penalty
+            _data.aux[f'Penalty Total: {self._constraint.expr}'] = simpson(penalty, _data.t)
+            _data.aux[f'mu Penalty: {self._constraint.expr}'] = np.array(
+                    [_compute_mu(ti, xi, ui, _data.p, _data.k)
                      for ti, xi, lami, ui in zip(_data.t, _data.x.T, _data.lam.T, _data.u.T)])
             return _data
 
@@ -69,7 +85,7 @@ class PenaltyConstraintHandler(SymRegularizer):
 
     @staticmethod
     def _gen_sec_expr(expr: SymExpr, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \
-            -> SymExpr:
+            -> (SymExpr, SymExpr):
 
         if lower_limit is None or upper_limit is None:
             raise ValueError(f'Path constraints using UTM/secant method must have lower and upper limits')
@@ -77,23 +93,32 @@ class PenaltyConstraintHandler(SymRegularizer):
         penalty_func = regulator / sympy.cos(
             sympy.pi / 2 * (2 * expr - upper_limit - lower_limit) / (upper_limit - lower_limit)) - regulator
 
-        return penalty_func
+        mu_func = regulator * sympy.pi / (upper_limit - lower_limit) / (
+                sympy.sin(sympy.pi * (expr - upper_limit) / (upper_limit - lower_limit))
+                * sympy.tan(sympy.pi * (expr - upper_limit) / (upper_limit - lower_limit))
+        )
+
+        return penalty_func, mu_func
 
     @staticmethod
     def _gen_rat_expr(expr: SymExpr, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \
-            -> SymExpr:
+            -> (SymExpr, SymExpr):
 
         if lower_limit is not None and upper_limit is not None:
-            penalty_func = regulator \
-                           * (1 / (expr - lower_limit) + 1 / (upper_limit - expr) + 4 / (lower_limit - upper_limit))
+            penalty_func = \
+                regulator * (1 / (expr - lower_limit) + 1 / (upper_limit - expr) + 4 / (lower_limit - upper_limit))
+            mu_func = \
+                regulator * (-1 / (expr - lower_limit)**2 + 1 / (upper_limit - expr)**2)
         elif lower_limit is not None:
             penalty_func = regulator / (expr - lower_limit)
+            mu_func = - regulator / (expr - lower_limit)**2
         elif upper_limit is not None:
             penalty_func = regulator / (upper_limit - expr)
+            mu_func = regulator / (upper_limit - expr)**2
         else:
             raise ValueError(f'Lower or upper limit must be specified for inequality path constraint.')
 
-        return penalty_func
+        return penalty_func, mu_func
 
     @staticmethod
     def _gen_cubic_expr(expr: SymExpr, lower_limit: SymExpr, upper_limit: SymExpr, regulator: SymExpr) \

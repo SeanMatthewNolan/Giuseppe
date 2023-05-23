@@ -48,7 +48,8 @@ with giuseppe.utils.Timer(prefix='Setup Time:'):
 
 cont = giuseppe.continuation.ContinuationHandler(num_solver, guess)
 cont.add_linear_series(10, {'m_f': 1})
-cont.add_logarithmic_series(40, {'eps_thrust': 3e-6}, bisection=True)
+cont.add_logarithmic_series(40, {'eps_thrust': 1e-5})
+cont.add_logarithmic_series(40, {'eps_thrust': 1e-7})
 sol_set = cont.run_continuation()
 
 sol_set.save('sol_set.data')
