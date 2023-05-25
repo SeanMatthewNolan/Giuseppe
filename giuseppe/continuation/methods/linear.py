@@ -101,10 +101,13 @@ class BisectionLinearSeries(LinearSeries):
 
         self.max_bisections: int = max_bisections
         self.bisection_counter: int = 0
+        self.steps: NPArray
 
     def __iter__(self):
         super().__iter__()
         self.bisection_counter = 0
+        self.steps = \
+            np.linspace(self.solution_set[-1].k[self.constant_indices], self.constant_targets, self.num_steps + 1)
         return self
 
     def __next__(self):
@@ -123,6 +126,10 @@ class BisectionLinearSeries(LinearSeries):
             if self.bisection_counter < self.max_bisections:
                 self.bisection_counter += 1
                 self.num_steps += 1
+                self.steps = np.insert(
+                        self.steps, self.current_step,
+                        (self.steps[self.current_step - 1, :] + self.steps[self.current_step, :]) / 2, axis=0
+                )
                 next_constants = self._generate_next_constants()
 
                 # print(f'Last continuation {self.generate_mapping_str(self.solution_set[-1].k[self.constant_indices])}'
@@ -135,7 +142,8 @@ class BisectionLinearSeries(LinearSeries):
 
     def _generate_next_constants(self):
         next_constants = copy(self.solution_set[-1].k)
-        next_constants[self.constant_indices] += self._step_size * 2 ** -self.bisection_counter
+        # next_constants[self.constant_indices] += self._step_size * 2 ** -self.bisection_counter
+        next_constants[self.constant_indices] = self.steps[self.current_step, :]
         return next_constants
 
     def __repr__(self):
