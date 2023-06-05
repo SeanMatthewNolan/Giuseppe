@@ -4,11 +4,11 @@ import matplotlib as mpl
 import numpy as np
 
 DATA = 2
-# PLOT = 'mach_fpa'
-PLOT = 'unconstrained'
+PLOT = 'mach_fpa'
+# PLOT = 'unconstrained'
 
-# BOUNDS = 'custom'
-BOUNDS = 'default'
+BOUNDS = 'custom'
+# BOUNDS = 'default'
 
 # --- DATA PROCESSING -----------------------------------------
 if DATA == 0:
@@ -35,7 +35,7 @@ def get_fpa_mach_bounds(_x, _const_dict):
 
     _v_max = _mach_max * _speed_of_sound
 
-    _fpa_min = _const_dict['gam_min'] - _const_dict['eps_gam'] * np.pi/180 + 0 * _x[3, :]
+    _fpa_min = _const_dict['gam_min'] + 0 * _x[3, :]
     return _mach_max, _v_max, _fpa_min
 
 
@@ -50,11 +50,14 @@ def get_default_bounds(_x, _const_dict):
     return _mach_max, _v_max, _fpa_min
 
 
-def get_mach(_x, _const_dict):
+def get_mach_qdyn(_x, _const_dict):
     _temperature = _const_dict['temperature0'] - _const_dict['lapse_rate'] * _x[0, :]
+    _density = _const_dict['density0'] * (_temperature / _const_dict['temperature0']) \
+               ** (-1 + _const_dict['g'] / (_const_dict['R_air'] * _const_dict['lapse_rate']))
     _speed_of_sound = (_const_dict['gam_air'] * _const_dict['R_air'] * _temperature) ** 0.5
     _mach = _x[2, :] / _speed_of_sound
-    return _mach
+    _qdyn = 0.5 * _density * _x[2, :] ** 2
+    return _mach, _qdyn
 
 
 constants_dict = {}
@@ -64,7 +67,15 @@ for key, val in zip(sol.annotations.constants, sol.k):
 thrust_frac = reg2ctrl(sol.u[0, :], constants_dict['thrust_frac_min'], constants_dict['thrust_frac_max'])
 CL = reg2ctrl(sol.u[1, :], constants_dict['CL_min'], constants_dict['CL_max'])
 
-# --- PLOTTING -----------------------------------------
+mach, qdyn = get_mach_qdyn(sol.x, constants_dict)
+weight = sol.x[4, :] * constants_dict['g']
+lift = constants_dict['s_ref'] * qdyn * CL
+drag = constants_dict['s_ref'] * qdyn * (constants_dict['CD1'] + constants_dict['CD2'] * CL ** 2)
+
+h = sol.x[0, :]
+thrust = constants_dict['CT1'] * (1 - h / constants_dict['CT2'] + h**2 * constants_dict['CT3'])
+
+# --- PLOTTING ---------------------------------------------------------------------------------------------------------
 mpl.rcParams['axes.formatter.useoffset'] = False
 tlab = 'Time [s]'
 
@@ -131,10 +142,13 @@ for idx, costate in enumerate(list(sol.lam)):
     ax.set_ylabel(ylabs[idx])
     ax.plot(sol.t, costate)
 
+    if np.max(costate) - np.min(costate) < 1e-9:
+        ax.set_ylim((-1, 1))
+
+
 fig_costates.tight_layout()
 
 # PLOT FROM PAPER
-mach = get_mach(sol.x, constants_dict)
 constraint_sets = (fpa_min - sol.x[3, :], mach - mach_max)
 clabs = (r'$\gamma_{min} - \gamma$ [deg]', r'$M - M_{max}$ [m/s]')
 cmult = (180 / np.pi, 1)
@@ -161,6 +175,23 @@ for idx, (c, u) in enumerate(zip(constraint_sets, control_sets)):
     ax.plot(sol.t, u)
 
 fig_paper.tight_layout()
+
+# Aerodynamics Plot
+fig_aero = plt.figure()
+axes_aero = []
+ydata = (lift / weight, (thrust - drag) / weight, mach, qdyn)
+ylabs = ('Lift [g]', 'Thrust - Drag [g]', 'Qdyn [N/m2]')
+
+for idx, (y, ylab) in enumerate(zip(ydata, ylabs)):
+    axes_aero.append(fig_aero.add_subplot(2, 2, idx + 1))
+    ax = axes_aero[-1]
+    ax.ticklabel_format(style='plain')
+    ax.grid()
+    ax.set_xlabel(tlab)
+    ax.set_ylabel(ylab)
+    ax.plot(sol.t, y)
+
+fig_aero.tight_layout()
 
 np.savetxt(PLOT + '_txu.csv', np.vstack((sol.t.reshape((1, -1)), sol.x, thrust_frac, CL)), delimiter=',')
 

@@ -1,7 +1,13 @@
+from copy import deepcopy
+
 import numpy as np
 import giuseppe
 import pickle
 
+# Conversion Factors
+d2r = np.pi / 180
+
+# Problem Setup
 climb = giuseppe.problems.input.StrInputProb()
 
 climb.set_independent('t')
@@ -67,69 +73,69 @@ climb.add_constant('gam_air', 1.4)
 speed_of_sound0 = (1.4 * 287.058 * 288.15) ** 0.5
 
 # Boundary Values
-climb.add_constant('h0', 3480.)
-climb.add_constant('d0', 0.)
-# climb.add_constant('V0', 141.67)
-climb.add_constant('V0', 150.)
-climb.add_constant('gam0', 0.07)
-# climb.add_constant('mass0', 4.8e4)
-# climb.add_constant('mass0', 7.6e4)
-climb.add_constant('mass0', 7.2e4)
+h0 = 3480.
+d0 = 0.
+V0 = 150.
+dgam0 = 1 * d2r
+mass0 = 7.2e4
+
+climb.add_constant('h0', h0)
+climb.add_constant('d0', d0)
+climb.add_constant('V0', V0)
+climb.add_constant('dgam0', dgam0)
+climb.add_constant('mass0', mass0)
 
 climb.add_constraint('initial', 't')
 climb.add_constraint('initial', '(h - h0) / h_ref')
 climb.add_constraint('initial', '(d - d0) / h_ref')
-climb.add_constraint('initial', '(V - V0) / CAS_max')
-climb.add_constraint('initial', '(gam - gam0) / gam_max')
-climb.add_constraint('initial', '(mass - mass0) / mass0')
+climb.add_constraint('initial', '(V - V0) / V_ref')
+# climb.add_constraint('initial', '(gam - (gam_min + dgam0)) / gam_ref')
+climb.add_constraint('initial', '(mass - mass0) / mass_ref')
 
 hf = 9144.
-df = 150_000.
+# df = 150_000.
 Vf = 191.0
-gamf = 0.
+dgamf = 1 * d2r
 
 climb.add_constant('hf', hf)
-climb.add_constant('df', df)
+# climb.add_constant('df', df)
 climb.add_constant('Vf', Vf)
-climb.add_constant('gamf', gamf)
-climb.add_constant('h_ref', hf)
+climb.add_constant('dgamf', dgamf)
 
 climb.add_constraint('terminal', '(h - hf) / h_ref')
-climb.add_constraint('terminal', '(d - df) / h_ref')
-climb.add_constraint('terminal', '(V - Vf) / CAS_max')
-climb.add_constraint('terminal', '(gam - gamf) / gam_max')
+# climb.add_constraint('terminal', '(d - df) / h_ref')
+climb.add_constraint('terminal', '(V - Vf) / V_ref')
+# climb.add_constraint('terminal', '(gam - (gam_min + dgamf)) / gam_ref')
 # Terminal mass/time are free
+
+climb.add_constant('h_ref', hf)
+climb.add_constant('V_ref', Vf)
+climb.add_constant('gam_ref', 90 * d2r)
+climb.add_constant('mass_ref', 7.2e4)
 
 # Constraint on FPA: FPA > 0
 climb.add_inequality_constraint(
-    'path', 'exp(gam)', lower_limit='exp(-n_gam_min)', upper_limit='exp(gam_max)',
-    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='utm')
+    'path', 'gam', lower_limit='gam_min', upper_limit='gam_max',
+    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam/gam_ref', method='utm')
 )
-# climb.add_inequality_constraint(
-#     'path', 'gam', lower_limit='gam_min - eps_gam * pi/180', upper_limit='gam_max',
-#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='utm')
-# )
-# climb.add_inequality_constraint(
-#     'path', 'gam', lower_limit='gam_min - eps_gam * pi/180',
-#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_gam', method='exterior')
-# )
-climb.add_constant('eps_gam', 1)
-climb.add_constant('n_gam_min', 30 * np.pi / 180)  # Via continuation, drive to gam_min = 0
-climb.add_constant('gam_max', 30 * np.pi / 180)
+climb.add_constant('eps_gam', 1e-5)
+climb.add_constant('gam_min', 15 * d2r)  # Via continuation, drive to gam_min = 0
+climb.add_constant('gam_max', 60 * d2r)
 
-# Constraint on V: M < M_max
-climb.add_inequality_constraint(
-    'path', 'mach', lower_limit='0', upper_limit='mach_max',
-    regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_mach', method='utm')
-)
-climb.add_constant('eps_mach', 1e-2)
-# climb.add_constant('mach_max', 0.82)
-climb.add_constant('mach_max', 2.0)
-climb.add_constant('CAS_max', 0.82 * speed_of_sound0)
+# # Constraint on V: M < M_max
+# climb.add_inequality_constraint(
+#     'path', 'mach', lower_limit='0', upper_limit='mach_max',
+#     regularizer=giuseppe.problems.symbolic.regularization.PenaltyConstraintHandler('eps_mach', method='utm')
+# )
+# climb.add_constant('eps_mach', 1e-2)
+climb.add_constant('mach_max', 0.82)
+# climb.add_constant('mach_max', 2.0)
+# climb.add_constant('CAS_max', 0.82 * speed_of_sound0)
 
 with giuseppe.utils.Timer(prefix='Compilation Time:'):
     comp_climb = giuseppe.problems.symbolic.SymDual(climb, control_method='differential').compile()
-    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb, verbose=False, max_nodes=100, node_buffer=10, bc_tol=1e-7)
+    num_solver = giuseppe.numeric_solvers.SciPySolver(comp_climb,
+                                                      verbose=False, max_nodes=100, node_buffer=10, bc_tol=1e-7)
 
 
 def ctrl2reg(u: np.array, u_min: float, u_max: float) -> np.array:
@@ -140,16 +146,11 @@ def reg2ctrl(u_reg: np.array, u_min: float, u_max: float) -> np.array:
     return 0.5 * ((u_max - u_min) * np.sin(u_reg) + u_max + u_min)
 
 
-def get_const_dict(_sol):
-    _constants_dict = {}
-    for key, val in zip(_sol.annotations.constants, _sol.k):
-        _constants_dict[key] = val
-    return _constants_dict
-
-
+# Generate Seed Solution
 guess = giuseppe.guess_generation.auto_propagate_guess(
     comp_climb,
     control=np.array((0.0, ctrl2reg(0.75, thrust_frac_min, thrust_frac_max))),
+    initial_states=np.array((h0, d0, V0, 16 * d2r, mass0)),
     t_span=1.0)
 
 with open('mach_fpa_guess.data', 'wb') as f:
@@ -160,19 +161,30 @@ seed_sol = num_solver.solve(guess)
 with open('mach_fpa_seed_sol.data', 'wb') as f:
     pickle.dump(seed_sol, f)
 
+# Continuation Process
 cont = giuseppe.continuation.ContinuationHandler(num_solver, seed_sol)
 
-cont.add_linear_series(50, {'hf': seed_sol.x[0, -1] + 50, 'df': seed_sol.x[1, -1] + 500}, bisection=True)
-cont.add_linear_series(100, {'hf': hf, 'df': df, 'Vf': Vf}, bisection=True)
-cont.add_linear_series(50, {'gamf': gamf}, bisection=True)
-cont.add_logarithmic_series(50, {'eps_gam': 1e-3}, bisection=True)
-cont.add_logarithmic_series(100, {'n_gam_min': 1e-2, 'gam_max': 45 * np.pi/180}, bisection=True)
-cont.add_linear_series(50, {'mach_max': 0.82}, bisection=True)
-cont.add_logarithmic_series(100, {'eps_mach': 1e-5, 'eps_thrust_frac': 1e-5, 'eps_CL': 1e-5},
-                            bisection=True)
-cont.add_logarithmic_series(100, {'eps_gam': 1e-4}, bisection=True)
-cont.add_logarithmic_series(100, {'n_gam_min': 1e-6, 'eps_gam': 1e-7}, bisection=True)
+cont.add_linear_series(50, {'gam_min': 3*d2r}, bisection=True)
+# cont.add_linear_series(50, {'eps_gam': 1e-2, 'eps_CL': 1e-2, 'eps_thrust_frac': 1e-2}, bisection=True)
+# cont.add_linear_series(50, {'Vf': V0}, bisection=True)
+# cont.add_linear_series(50, {'gam0': 16*d2r, 'gamf': 16*d2r, 'hf': seed_sol.x[0, -1] + 10}, bisection=True)
+# cont.add_linear_series(100, {'hf': seed_sol.x[0, -1] + 25})
+# cont.add_linear_series(100, {'Vf': V0})
+cont.add_linear_series(100, {'dgam0': 1e-2 * d2r, 'dgamf': 1e-2 * d2r}, bisection=True)
+cont.add_linear_series(200, {'hf': hf, 'Vf': Vf}, bisection=True)
+# cont.add_logarithmic_series(100, {'eps_gam': 1e-7, 'eps_thrust_frac': 1e-7, 'eps_CL': 1e-7},
+#                             bisection=True)
 
 sol_set = cont.run_continuation()
 
 sol_set.save('mach_fpa_sol_set.data')
+
+# # Sweep Minimum FPAs
+# cont = giuseppe.continuation.ContinuationHandler(num_solver, deepcopy(sol_set.solutions[-1]))
+# cont.add_linear_series(50, {'gam0': 1 * d2r + 1e-6, 'gamf': 1 * d2r + 1e-6}, bisection=True)
+# # cont.add_logarithmic_series(50, {'eps_gam': 1e-3})
+# cont.add_linear_series(100, {'gam_min': 1 * d2r}, bisection=True)
+# # cont.add_logarithmic_series(50, {'eps_gam': 1e-7})
+#
+# sol_set_sweep = cont.run_continuation()
+# sol_set_sweep.save('mach_fpa_sol_set_sweep.data')
