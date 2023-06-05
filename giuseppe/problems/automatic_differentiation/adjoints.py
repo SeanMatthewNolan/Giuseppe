@@ -72,44 +72,44 @@ class ADiffAdjoints(VectorizedAdjoints):
         lagrangian = self.source_ocp.ca_path_cost(*self.args['ocp_dynamic'])
         f = self.source_ocp.eom
 
-        hamiltonian = lagrangian + ca.dot(self.costates, f)
-        dh_dxp = ca.jacobian(hamiltonian, self.states_and_parameters)
-        dh_du = ca.jacobian(hamiltonian, self.controls)
-        dh_dt = ca.jacobian(hamiltonian, self.independent)
-        phi_0_adj = phi_0 + ca.dot(self.initial_adjoints, psi_0)
-        phi_f_adj = phi_f + ca.dot(self.terminal_adjoints, psi_f)
+        self.hamiltonian = lagrangian + ca.dot(self.costates, f)
+        self.dh_dxp = ca.jacobian(self.hamiltonian, self.states_and_parameters)
+        self.dh_du = ca.jacobian(self.hamiltonian, self.controls)
+        self.dh_dt = ca.jacobian(self.hamiltonian, self.independent)
+        self.phi_0_adj = phi_0 + ca.dot(self.initial_adjoints, psi_0)
+        self.phi_f_adj = phi_f + ca.dot(self.terminal_adjoints, psi_f)
 
         self.ca_hamiltonian = ca.Function(
                 'H', self.args['adj_dynamic'],
-                (hamiltonian,),
+                (self.hamiltonian,),
                 self.arg_names['adj_dynamic'], ('H',))
         self.ca_costate_dynamics = ca.Function(
                 'lam_dot', self.args['adj_dynamic'],
-                (-dh_dxp.T,),
+                (-self.dh_dxp.T,),
                 self.arg_names['adj_dynamic'], ('lam_dot',)
         )
         self.ca_dh_du = ca.Function(
                 'dH_du', self.args['adj_dynamic'],
-                (dh_du,),
+                (self.dh_du,),
                 self.arg_names['adj_dynamic'], ('dH_du',))
         self.ca_dh_dt = ca.Function(
                 'dH_dt', self.args['adj_dynamic'],
-                (dh_dt,),
+                (self.dh_dt,),
                 self.arg_names['adj_dynamic'], ('dH_dt',))
 
         self.ca_initial_adjoint_cost = ca.Function(
                 'Phi_0_adj', self.args['adj_initial'],
-                (phi_0_adj,),
+                (self.phi_0_adj,),
                 self.arg_names['adj_initial'], ('Phi_0_adj',))
         self.ca_terminal_adjoint_cost = ca.Function(
                 'Phi_f_adj', self.args['adj_terminal'],
-                (phi_f_adj,),
+                (self.phi_f_adj,),
                 self.arg_names['adj_terminal'], ('Phi_f_adj',))
 
-        adj1 = ca.jacobian(phi_0_adj, self.independent) - hamiltonian
-        adj2 = ca.jacobian(phi_0_adj, self.states_and_parameters).T + self.costates
-        adj3 = ca.jacobian(phi_f_adj, self.independent) + hamiltonian
-        adj4 = ca.jacobian(phi_f_adj, self.states_and_parameters).T - self.costates
+        adj1 = ca.jacobian(self.phi_0_adj, self.independent) - self.hamiltonian
+        adj2 = ca.jacobian(self.phi_0_adj, self.states_and_parameters).T + self.costates
+        adj3 = ca.jacobian(self.phi_f_adj, self.independent) + self.hamiltonian
+        adj4 = ca.jacobian(self.phi_f_adj, self.states_and_parameters).T - self.costates
 
         self.ca_initial_adjoint_boundary_conditions = ca.Function(
                 'Psi_0_adj', self.args['adj_initial'],
