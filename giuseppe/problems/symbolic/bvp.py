@@ -22,10 +22,16 @@ class SymNamedExpr:
         self.expr: SymExpr = sym
 
 
-@dataclass
 class SymBoundaryConditions:
-    initial: SymMatrix = EMPTY_SYM_MATRIX
-    terminal: SymMatrix = EMPTY_SYM_MATRIX
+    def __init__(self, initial: Optional[SymMatrix] = None, terminal: Optional[SymMatrix] = None):
+        if initial is None:
+            initial = EMPTY_SYM_MATRIX
+
+        if terminal is None:
+            terminal = EMPTY_SYM_MATRIX
+
+        self.initial: SymMatrix = initial
+        self.terminal: SymMatrix = terminal
 
 
 class SymBVP(Symbolic):
