@@ -72,9 +72,9 @@ class ADiffControlConstraintHandler(Regularizer):
         prob.input_constraints.initial = ca.substitute(prob.input_constraints.initial, bounded_control, control_expr)
         prob.input_constraints.terminal = ca.substitute(prob.input_constraints.terminal, bounded_control, control_expr)
 
-        prob.input_cost.initial = ca.substitute(prob.inputCost.initial, bounded_control, control_expr)
-        prob.input_cost.path = ca.substitute(prob.inputCost.path, bounded_control, control_expr) + error_expr
-        prob.input_cost.terminal = ca.substitute(prob.inputCost.terminal, bounded_control, control_expr)
+        prob.input_cost.initial = ca.substitute(prob.input_cost.initial, bounded_control, control_expr)
+        prob.input_cost.path = ca.substitute(prob.input_cost.path, bounded_control, control_expr) + error_expr
+        prob.input_cost.terminal = ca.substitute(prob.input_cost.terminal, bounded_control, control_expr)
 
         return prob
 
