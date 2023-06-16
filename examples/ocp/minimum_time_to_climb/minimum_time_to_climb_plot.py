@@ -5,7 +5,7 @@ import numpy as np
 
 from giuseppe.utils.examples import Atmosphere1976
 
-from minimum_time_to_climb import S, adiff_dual
+# from minimum_time_to_climb import S, adiff_dual
 from lookup_tables import thrust_table_bspline, eta_table_bspline_expanded, CLalpha_table_bspline_expanded,\
     CD0_table_bspline_expanded, temp_table_bspline, dens_table_bspline
 
@@ -27,9 +27,13 @@ elif DATA == 2:
     with open('guess.data', 'rb') as file:
         sol = pickle.load(file)
 
+# noinspection PyTypeChecker
+np.savetxt('txuSolution.csv', np.vstack((sol.t.reshape((1, -1)), sol.x, sol.u)), delimiter=',')
+
 r2d = 180 / np.pi
 d2r = np.pi / 180
 
+S = 530
 h = sol.x[0, :]
 V = sol.x[1, :]
 alpha = sol.u[0, :]
@@ -112,7 +116,7 @@ fig1.tight_layout()
 fig2 = plt.figure(figsize=MED_FIGSIZE)
 
 ax21 = fig2.add_subplot(411)
-ax21.plot(sol.t, LoD)
+ax21.plot(sol.t, abs(LoD))
 ax21.grid()
 ax21.set_ylabel('L/D')
 # ax21.set_xlabel(T_LAB)
@@ -207,69 +211,69 @@ ax54.grid()
 
 fig5.tight_layout()
 
-# FIGURE 6 (Validation with Hamiltonian)
-ham_map = adiff_dual.ca_hamiltonian.map(len(sol.t))
-ham_u_map = adiff_dual.ca_dh_du.map(len(sol.t))
-ham_t_map = adiff_dual.ca_dh_dt.map(len(sol.t))
+# # FIGURE 6 (Validation with Hamiltonian)
+# ham_map = adiff_dual.ca_hamiltonian.map(len(sol.t))
+# ham_u_map = adiff_dual.ca_dh_du.map(len(sol.t))
+# ham_t_map = adiff_dual.ca_dh_dt.map(len(sol.t))
+#
+# ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
+# ham_t_numerical = np.diff(ham) / np.diff(sol.t)
+# ham_t_numerical_max = np.max(np.abs(ham_t_numerical))
+# ham_u = np.asarray(ham_u_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
+# ham_u_max = np.max(np.abs(ham_u))
+# ham_t = np.asarray(ham_t_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
+# ham_t_max = np.max(np.abs(ham_t))
+#
+# psi_0 = np.asarray(adiff_dual.ca_initial_boundary_conditions(
+#     sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)).flatten()
+# psi_f = np.asarray(adiff_dual.ca_terminal_boundary_conditions(
+#     sol.t[-1], sol.x[:, -1], sol.u[:, -1], sol.p, sol.k)).flatten()
+# psi_adj_0 = np.asarray(adiff_dual.ca_initial_adjoint_boundary_conditions(
+#     sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.nu0, sol.k)).flatten()
+# psi_adj_f = np.asarray(adiff_dual.ca_terminal_adjoint_boundary_conditions(
+#     sol.t[-1], sol.x[:, -1], sol.lam[:, -1], sol.u[:, -1], sol.p, sol.nuf, sol.k)).flatten()
+#
+# fig6 = plt.figure(figsize=SMALL_FIGSIZE)
+# ax61 = fig6.add_subplot(211)
+# ax61.plot(sol.t, ham_u * d2r * 1e6)
+# ax61.grid()
+# ax61.set_ylabel(r'$\partial H/\partial u$ [$10^{-6}$ 1/deg]')
+#
+# ax62 = fig6.add_subplot(212)
+# ax62.plot(sol.t, ham_t * 1e5, label='AD')
+# ax62.plot(sol.t[:-1], ham_t_numerical * 1e5, zorder=0, label='FD')
+# ax62.grid()
+# ax62.set_ylabel(r'$\partial H/\partial t$ [$10^{-5}$ 1/s]')
+# ax62.set_xlabel(T_LAB)
+# ax62.set_ylim((1.5*ax62.get_ylim()[0], -1.5*ax62.get_ylim()[0]))
+# ax62.legend(loc='upper center')
+#
+# fig6.tight_layout()
 
-ham = np.asarray(ham_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
-ham_t_numerical = np.diff(ham) / np.diff(sol.t)
-ham_t_numerical_max = np.max(np.abs(ham_t_numerical))
-ham_u = np.asarray(ham_u_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
-ham_u_max = np.max(np.abs(ham_u))
-ham_t = np.asarray(ham_t_map(sol.t, sol.x, sol.lam, sol.u, sol.p, sol.k)).flatten()
-ham_t_max = np.max(np.abs(ham_t))
+# print(f'Max dH/du = {ham_u_max * d2r:.4} [1/deg]')
+# print(f'Max dH/dt (AD) = {ham_t_max:.4} [1/s]')
+# print(f'Max dH/dt (Num.) = {ham_t_numerical_max:.4} [1/s]')
 
-psi_0 = np.asarray(adiff_dual.ca_initial_boundary_conditions(
-    sol.t[0], sol.x[:, 0], sol.u[:, 0], sol.p, sol.k)).flatten()
-psi_f = np.asarray(adiff_dual.ca_terminal_boundary_conditions(
-    sol.t[-1], sol.x[:, -1], sol.u[:, -1], sol.p, sol.k)).flatten()
-psi_adj_0 = np.asarray(adiff_dual.ca_initial_adjoint_boundary_conditions(
-    sol.t[0], sol.x[:, 0], sol.lam[:, 0], sol.u[:, 0], sol.p, sol.nu0, sol.k)).flatten()
-psi_adj_f = np.asarray(adiff_dual.ca_terminal_adjoint_boundary_conditions(
-    sol.t[-1], sol.x[:, -1], sol.lam[:, -1], sol.u[:, -1], sol.p, sol.nuf, sol.k)).flatten()
+# print(f'\nt - t0 = {psi_0[0]:.4} [s]')
+# print(f'h - h0 = {psi_0[1]:.4} [ft]')
+# print(f'V - V0 = {psi_0[2]:.4} [ft/s]')
+# print(f'gam - gam0 = {psi_0[3] * r2d:.4} [deg]')
+# print(f'W - W0 = {psi_0[4]:.4} [lb]')
+# print(f'h - hf = {psi_f[0]:.4} [ft]')
+# print(f'V - Vf = {psi_f[1]:.4} [ft/s]')
+# print(f'gam - gamf = {psi_f[2] * r2d:.4} [deg]')
 
-fig6 = plt.figure(figsize=SMALL_FIGSIZE)
-ax61 = fig6.add_subplot(211)
-ax61.plot(sol.t, ham_u * d2r * 1e6)
-ax61.grid()
-ax61.set_ylabel(r'$\partial H/\partial u$ [$10^{-6}$ 1/deg]')
+# print(f'\nPhi0_adj_t - H0 = {psi_adj_0[0]:.4} [1]')
+# print(f'Phi0_adj_h + lam0_h = {psi_adj_0[1]:.4} [1/ft]')
+# print(f'Phi0_adj_V + lam0_V = {psi_adj_0[2]:.4} [s/ft]')
+# print(f'Phi0_adj_gam + lam0_gam = {psi_adj_0[3] * d2r:.4} [1/deg]')
+# print(f'Phi0_adj_W + lam0_W = {psi_adj_0[4]:.4} [1/lb]')
 
-ax62 = fig6.add_subplot(212)
-ax62.plot(sol.t, ham_t * 1e5, label='AD')
-ax62.plot(sol.t[:-1], ham_t_numerical * 1e5, zorder=0, label='FD')
-ax62.grid()
-ax62.set_ylabel(r'$\partial H/\partial t$ [$10^{-5}$ 1/s]')
-ax62.set_xlabel(T_LAB)
-ax62.set_ylim((1.5*ax62.get_ylim()[0], -1.5*ax62.get_ylim()[0]))
-ax62.legend(loc='upper center')
-
-fig6.tight_layout()
-
-print(f'Max dH/du = {ham_u_max * d2r:.4} [1/deg]')
-print(f'Max dH/dt (AD) = {ham_t_max:.4} [1/s]')
-print(f'Max dH/dt (Num.) = {ham_t_numerical_max:.4} [1/s]')
-
-print(f'\nt - t0 = {psi_0[0]:.4} [s]')
-print(f'h - h0 = {psi_0[1]:.4} [ft]')
-print(f'V - V0 = {psi_0[2]:.4} [ft/s]')
-print(f'gam - gam0 = {psi_0[3] * r2d:.4} [deg]')
-print(f'W - W0 = {psi_0[4]:.4} [lb]')
-print(f'h - hf = {psi_f[0]:.4} [ft]')
-print(f'V - Vf = {psi_f[1]:.4} [ft/s]')
-print(f'gam - gamf = {psi_f[2] * r2d:.4} [deg]')
-
-print(f'\nPhi0_adj_t - H0 = {psi_adj_0[0]:.4} [1]')
-print(f'Phi0_adj_h + lam0_h = {psi_adj_0[1]:.4} [1/ft]')
-print(f'Phi0_adj_V + lam0_V = {psi_adj_0[2]:.4} [s/ft]')
-print(f'Phi0_adj_gam + lam0_gam = {psi_adj_0[3] * d2r:.4} [1/deg]')
-print(f'Phi0_adj_W + lam0_W = {psi_adj_0[4]:.4} [1/lb]')
-
-print(f'\nPhif_adj_t + Hf = {psi_adj_f[0]:.4} [1]')
-print(f'Phif_adj_h + lamf_h = {psi_adj_f[1]:.4} [1/ft]')
-print(f'Phif_adj_V + lamf_V = {psi_adj_f[2]:.4} [s/ft]')
-print(f'Phif_adj_gam + lamf_gam = {psi_adj_f[3] * d2r:.4} [1/deg]')
-print(f'Phif_adj_W + lamf_W = {psi_adj_f[4]:.4} [1/lb]')
+# print(f'\nPhif_adj_t + Hf = {psi_adj_f[0]:.4} [1]')
+# print(f'Phif_adj_h + lamf_h = {psi_adj_f[1]:.4} [1/ft]')
+# print(f'Phif_adj_V + lamf_V = {psi_adj_f[2]:.4} [s/ft]')
+# print(f'Phif_adj_gam + lamf_gam = {psi_adj_f[3] * d2r:.4} [1/deg]')
+# print(f'Phif_adj_W + lamf_W = {psi_adj_f[4]:.4} [1/lb]')
 
 # SAVE FIGURES
 fig1.savefig('mttc_states.eps',
@@ -296,8 +300,8 @@ fig5.savefig('mttc_costates.eps',
              format='eps',
              bbox_inches='tight')
 
-fig6.savefig('mttc_hamiltonian.eps',
-             format='eps',
-             bbox_inches='tight')
+# fig6.savefig('mttc_hamiltonian.eps',
+#              format='eps',
+#              bbox_inches='tight')
 
 plt.show()
