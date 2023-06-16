@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 import numpy as np
 import casadi as ca
@@ -8,8 +8,11 @@ class Atmosphere1976:
     def __init__(self, use_metric: bool = True,
                  gravity: Optional[float] = None,
                  earth_radius: Optional[float] = None,
-                 gas_constant: Optional[float] = None
+                 gas_constant: Optional[float] = None,
+                 boundary_thickness: Optional[float] = None,
                  ):
+
+        self.boundary_thickness = boundary_thickness
 
         self.h_layers = np.array((-610, 11_000, 20_000, 32_000, 47_000, 51_000, 71_000, 84_852))  # m
         self.lapse_layers = np.array((-6.5, 0, 1, 2.8, 0, -2.8, -2, 0)) * 1e-3  # K/m
@@ -62,6 +65,54 @@ class Atmosphere1976:
         self.specific_heat_ratio = 1.4
         self.build_layers()
 
+        if self.boundary_thickness is not None:
+            h_sym = ca.SX.sym('h')
+            temperature_expr, pressure_expr, density_expr = self.get_ca_atm_expr(h_sym, geometric=False)
+
+            # Create 5th order polynomial to create atm model with continuous 2nd derivatives
+            num_poly_coeffs = 6
+            num_atm_layers = len(self.h_layers)
+            num_boundary_layers = num_atm_layers - 1
+            self.boundary_T_coefficients = np.empty((num_poly_coeffs, num_atm_layers + num_boundary_layers))
+            self.boundary_T_coefficients[:] = np.nan
+            self.boundary_P_coefficients = self.boundary_T_coefficients.copy()
+            self.boundary_rho_coefficients = self.boundary_T_coefficients.copy()
+
+            # indices where the boundary layers will be
+            idces = np.arange(1, num_atm_layers + num_boundary_layers, 2)
+            for idx in idces:  # skip last idx (no boundary)
+                # Get altitude boundary
+                altitude0 = self.h_layers[idx] - 0.5 * self.boundary_thickness
+                altitude1 = self.h_layers[idx] + 0.5 * self.boundary_thickness
+                coeffs_T, output_T = self.fit_boundary_layer(
+                    temperature_expr, h_sym, altitude0, altitude1
+                )
+                coeffs_P, output_P = self.fit_boundary_layer(
+                    pressure_expr, h_sym, altitude0, altitude1
+                )
+                coeffs_rho, output_rho = self.fit_boundary_layer(
+                    density_expr, h_sym, altitude0, altitude1
+                )
+
+                # Insert boundary layer base at idx
+                self.h_layers = np.insert(self.h_layers, idx, altitude0)
+                self.lapse_layers = np.insert(self.lapse_layers, idx, np.nan)
+                self.T_layers = np.insert(self.T_layers, idx, np.nan)
+                self.P_layers = np.insert(self.P_layers, idx, np.nan)
+                self.rho_layers = np.insert(self.rho_layers, idx, np.nan)
+                self.boundary_T_coefficients[:, idx] = coeffs_T.flatten()
+                self.boundary_P_coefficients[:, idx] = coeffs_P.flatten()
+                self.boundary_rho_coefficients[:, idx] = coeffs_rho.flatten()
+                self.layer_names.insert(
+                    idx, self.layer_names[idx-1] + '-' + self.layer_names[idx] + ' Boundary'
+                )
+
+                # Modify boundary layer at next idx to shift up by boundary layer
+                self.h_layers[idx + 1] = altitude1
+                self.T_layers[idx + 1] = output_T[3]
+                self.P_layers[idx + 1] = output_P[3]
+                self.rho_layers[idx + 1] = output_rho[3]
+
     def isothermal_layer(self, altitude, altitude_0, temperature_0, pressure_0, density_0):
         temperature = temperature_0
         exponential = np.exp(-self.gravity / (self.gas_constant * temperature) * (altitude - altitude_0))
@@ -73,6 +124,22 @@ class Atmosphere1976:
         temperature = temperature_0 + lapse_rate * (altitude - altitude_0)
         pressure = pressure_0 * (temperature / temperature_0) ** (-self.gravity / (lapse_rate * self.gas_constant))
         density = density_0 * (temperature / temperature_0) ** (-1 - self.gravity / (lapse_rate * self.gas_constant))
+        return temperature, pressure, density
+
+    @staticmethod
+    def boundary_layer(altitude, dh, coeffs_T, coeffs_P, coeffs_rho, altitude_0):
+        # Fifth-order polynomial of the form:
+        # p = C0 * [(h - h0)/dh]^0 + ... + C5 * [(h - h0)/dh]^5
+        h_normalized = (altitude - altitude_0) / dh
+
+        temperature = 0
+        pressure = 0
+        density = 0
+
+        for idx, (coeff_T, coeff_P, coeff_rho) in enumerate(zip(coeffs_T, coeffs_P, coeffs_rho)):
+            temperature += coeff_T * h_normalized ** idx
+            pressure += coeff_P * h_normalized ** idx
+            density += coeff_rho * h_normalized ** idx
         return temperature, pressure, density
 
     def build_layers(self):
@@ -107,19 +174,35 @@ class Atmosphere1976:
 
         layer_idx = np.sum(altitude_geopotential >= self.h_layers) - 1
         lapse_rate = self.lapse_layers[layer_idx]
-        if lapse_rate == 0:
-            return self.isothermal_layer(altitude=altitude_geopotential,
-                                         altitude_0=self.h_layers[layer_idx],
-                                         temperature_0=self.T_layers[layer_idx],
-                                         pressure_0=self.P_layers[layer_idx],
-                                         density_0=self.rho_layers[layer_idx])
+
+        # (altitude, dh, coeffs_T, coeffs_P, coeffs_rho, altitude_0):
+
+        if np.isnan(lapse_rate):
+            return self.boundary_layer(
+                altitude=altitude_geopotential,
+                dh=self.boundary_thickness,
+                coeffs_T=self.boundary_T_coefficients[:, layer_idx],
+                coeffs_P=self.boundary_P_coefficients[:, layer_idx],
+                coeffs_rho=self.boundary_rho_coefficients[:, layer_idx],
+                altitude_0=self.h_layers[layer_idx]
+            )
+        elif lapse_rate == 0:
+            return self.isothermal_layer(
+                altitude=altitude_geopotential,
+                altitude_0=self.h_layers[layer_idx],
+                temperature_0=self.T_layers[layer_idx],
+                pressure_0=self.P_layers[layer_idx],
+                density_0=self.rho_layers[layer_idx]
+            )
         else:
-            return self.gradient_layer(altitude=altitude_geopotential,
-                                       lapse_rate=lapse_rate,
-                                       altitude_0=self.h_layers[layer_idx],
-                                       temperature_0=self.T_layers[layer_idx],
-                                       pressure_0=self.P_layers[layer_idx],
-                                       density_0=self.rho_layers[layer_idx])
+            return self.gradient_layer(
+                altitude=altitude_geopotential,
+                lapse_rate=lapse_rate,
+                altitude_0=self.h_layers[layer_idx],
+                temperature_0=self.T_layers[layer_idx],
+                pressure_0=self.P_layers[layer_idx],
+                density_0=self.rho_layers[layer_idx]
+            )
 
     def temperature(self, altitude_geometric):
         temperature, _, __ = self.atm_data(altitude_geometric)
@@ -145,27 +228,50 @@ class Atmosphere1976:
 
         return self.layer_names[layer_idx]
 
-    def get_ca_atm_expr(self, altitude_geometric: Union[ca.SX, ca.MX]):
-        altitude_geopotential = self.geometric2geopotential(altitude_geometric)
+    def get_ca_atm_expr(
+            self, altitude: Union[ca.SX, ca.MX], geometric: bool = True) -> Tuple[Union[ca.SX, ca.MX],
+                                                                                  Union[ca.SX, ca.MX],
+                                                                                  Union[ca.SX, ca.MX]]:
+
+        type_h = type(altitude)  # SX or MX
+
+        # If geometric, convert to geopotential
+        if geometric:
+            altitude_geopotential = self.geometric2geopotential(altitude)
+        else:
+            altitude_geopotential = altitude
         layer_idx = ca.sum1(altitude_geopotential >= self.h_layers) - 1
 
-        temperature = 0
-        pressure = 0
-        density = 0
+        temperature = type_h(0)
+        pressure = type_h(0)
+        density = type_h(0)
         for idx, lapse_rate in enumerate(self.lapse_layers):
-            if lapse_rate == 0:
-                temperature_i, pressure_i, density_i = self.isothermal_layer(altitude=altitude_geopotential,
-                                                                             altitude_0=self.h_layers[idx],
-                                                                             temperature_0=self.T_layers[idx],
-                                                                             pressure_0=self.P_layers[idx],
-                                                                             density_0=self.rho_layers[idx])
+            if np.isnan(lapse_rate):
+                temperature_i, pressure_i, density_i = self.boundary_layer(
+                    altitude=altitude_geopotential,
+                    dh=self.boundary_thickness,
+                    coeffs_T=self.boundary_T_coefficients[:, idx],
+                    coeffs_P=self.boundary_P_coefficients[:, idx],
+                    coeffs_rho=self.boundary_rho_coefficients[:, idx],
+                    altitude_0=self.h_layers[idx]
+                )
+            elif lapse_rate == 0:
+                temperature_i, pressure_i, density_i = self.isothermal_layer(
+                    altitude=altitude_geopotential,
+                    altitude_0=self.h_layers[idx],
+                    temperature_0=self.T_layers[idx],
+                    pressure_0=self.P_layers[idx],
+                    density_0=self.rho_layers[idx]
+                )
             else:
-                temperature_i, pressure_i, density_i = self.gradient_layer(altitude=altitude_geopotential,
-                                                                           lapse_rate=lapse_rate,
-                                                                           altitude_0=self.h_layers[idx],
-                                                                           temperature_0=self.T_layers[idx],
-                                                                           pressure_0=self.P_layers[idx],
-                                                                           density_0=self.rho_layers[idx])
+                temperature_i, pressure_i, density_i = self.gradient_layer(
+                    altitude=altitude_geopotential,
+                    lapse_rate=lapse_rate,
+                    altitude_0=self.h_layers[idx],
+                    temperature_0=self.T_layers[idx],
+                    pressure_0=self.P_layers[idx],
+                    density_0=self.rho_layers[idx]
+                )
             temperature += ca.if_else(layer_idx == idx, temperature_i, 0)
             pressure += ca.if_else(layer_idx == idx, pressure_i, 0)
             density += ca.if_else(layer_idx == idx, density_i, 0)
@@ -177,31 +283,46 @@ class Atmosphere1976:
         speed_of_sound = np.sqrt(self.specific_heat_ratio * self.gas_constant * temperature)
         return speed_of_sound
 
-
-class CasidiFunction(ca.Callback):
-    def __init__(self, eval_func, func_name: str = 'func', n_in: int = 1, n_out: int = 1,
-                 options: Optional[dict] = None):
-        ca.Callback.__init__(self)
-        self.eval_func = eval_func
-        self.n_in = n_in
-        self.n_out = n_out
-
-        if options is None:
-            options = {"enable_fd": True, "fd_method": "smoothing"}
-
-        self.construct(func_name, options)
-
-    def get_n_in(self):
-        return self.n_in
-
-    def get_n_out(self):
-        return self.n_out
-
     @staticmethod
-    def init(): return
+    def fit_boundary_layer(f: ca.SX, h: ca.SX, h0: float, h1: float):
+        # Fit coefficients for a fifth-order polynomial of the form:
+        # p = C0 * [(h - h0)/dh]^0 + ... + C5 * [(h - h0)/dh]^5
+        # Return C = [C0, C1, ..., C5]
+        fh = ca.jacobian(f, h)
+        fhh = ca.jacobian(fh, h)
+        f_fun = ca.Function('f', (h,), (f,))
+        fh_fun = ca.Function('fh', (h,), (fh,))
+        fhh_fun = ca.Function('fhh', (h,), (fhh,))
 
-    def eval(self, args):
-        return self.eval_func(*args)
+        dh = h1 - h0
+        dh2 = dh**2
+
+        output = np.asarray((
+            f_fun(h0), fh_fun(h0), fhh_fun(h0),
+            f_fun(h1), fh_fun(h1), fhh_fun(h1)
+        )).reshape((-1, 1))
+
+        design_matrix = np.array((
+            (1, 0, 0, 0, 0, 0),
+            (0, 1/dh, 0, 0, 0, 0),
+            (0, 0, 2/dh2, 0, 0, 0),
+            (1, 1, 1, 1, 1, 1),
+            (0, 1/dh, 2/dh, 3/dh, 4/dh, 5/dh),
+            (0, 0, 2/dh2, 6/dh2, 12/dh2, 20/dh2)
+        ))
+
+        coefficients = np.linalg.solve(design_matrix, output)
+
+        # TODO - remove (validation)
+        x0 = 0
+        x1 = 1
+        f0 = 0
+        f1 = 0
+        for idx, coeff in enumerate(coefficients):
+            f0 += coeff * x0 ** idx
+            f1 += coeff * x1 ** idx
+
+        return coefficients, output
 
 
 if __name__ == "__main__":
@@ -219,7 +340,7 @@ if __name__ == "__main__":
     mu = 0.14076539e17
     g0 = mu / re**2
 
-    atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0)
+    atm = Atmosphere1976(use_metric=False, earth_radius=re, gravity=g0, boundary_thickness=1000)
     density_1976 = np.empty(shape=altitudes.shape)
     layer_1976 = list()
 
