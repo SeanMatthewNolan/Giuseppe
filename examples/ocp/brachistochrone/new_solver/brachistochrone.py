@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from giuseppe import SymDual, StrInputProb, auto_propagate_guess
+from giuseppe import SymDual, StrInputProb, auto_propagate_guess, auto_guess, SciPySolver
 from giuseppe.numeric_solvers.dual.collocation import DualCollocation
 from giuseppe.data_classes.remesh import remesh
 
@@ -37,8 +37,10 @@ ocp.add_constraint('initial', 'v - v_0')
 ocp.add_constraint('terminal', 'x - x_f')
 ocp.add_constraint('terminal', 'y - y_f')
 
-comp_dual = SymDual(ocp, control_method=None).compile()
-guess = auto_propagate_guess(comp_dual, t_span=1, control=-15/180 * 3.14159)
+comp_dual = SymDual(ocp)
+guess = auto_guess(comp_dual, u=-15 / 180 * 3.14159)
+
+guess = SciPySolver(comp_dual).solve(guess)
 
 remeshed = remesh(guess, np.linspace(guess.t[0], guess.t[-1], 11))
 
